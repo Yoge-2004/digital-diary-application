@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ month_name }} {{ year }} — Calendar — Digital Diary{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">
+    <i class="bi bi-calendar3" aria-hidden="true"></i> Calendar
+    <small>{{ month_name }} {{ year }}</small>
+  </div>
+  <div style="display:flex;gap:0.5rem;">
+    <a href="/calendar?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-surface btn-sm">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i> Prev
+    </a>
+    <a href="/calendar" class="btn btn-ghost btn-sm">Today</a>
+    <a href="/calendar?year={{ next_year }}&month={{ next_month }}" class="btn btn-surface btn-sm">
+      Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </a>
+  </div>
+</div>
+
+<div class="card card-paper" style="max-width:720px;">
+  <div class="card-header" style="text-align:center;font-family:var(--font-display);font-size:1.15rem;font-weight:700;justify-content:center;">
+    {{ month_name }} {{ year }}
+  </div>
+  <div class="card-body">
+
+    <div class="calendar-grid" role="grid" aria-label="{{ month_name }} {{ year }} calendar">
+
+      <!-- Day-of-week headers -->
+      {% for day_name in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
+      <div class="cal-header" role="columnheader" aria-label="{{ day_name }}">{{ day_name }}</div>
+      {% endfor %}
+
+      <!-- Server-side today detection (now is passed from the route) -->
+      {% set today_year  = now.year %}
+      {% set today_month = now.month %}
+      {% set today_day   = now.day %}
+
+      {% for week in cal %}
+      {% for day in week %}
+
+      {% if day == 0 %}
+      {# Empty padding cell #}
+      <div class="cal-day empty" role="gridcell" aria-hidden="true"></div>
+
+      {% else %}
+      {% set count    = day_counts.get(day, 0) %}
+      {% set is_today = (year == today_year and month == today_month and day == today_day) %}
+
+      {% if count > 0 %}
+      <a href="/diaries?month={{ month }}&year={{ year }}&day={{ day }}"
+         class="cal-day has-entries {% if is_today %}today{% endif %}"
+         data-day="{{ day }}"
+         role="gridcell"
+         title="{{ count }} entr{{ 'ies' if count != 1 else 'y' }} on {{ month_name }} {{ day }}"
+         aria-label="{{ month_name }} {{ day }}, {{ count }} entr{{ 'ies' if count != 1 else 'y' }}{% if is_today %} (today){% endif %}">
+        {{ day }}
+        <span class="cal-count" aria-hidden="true">{{ count }}</span>
+      </a>
+      {% else %}
+      <div class="cal-day {% if is_today %}today{% endif %}"
+           data-day="{{ day }}"
+           role="gridcell"
+           aria-label="{{ month_name }} {{ day }}{% if is_today %} (today){% endif %}">{{ day }}</div>
+      {% endif %}
+
+      {% endif %}
+      {% endfor %}
+      {% endfor %}
+
+    </div><!-- /calendar-grid -->
+  </div>
+</div>
+
+<!-- Legend -->
+<div style="display:flex;align-items:center;gap:1.25rem;margin-top:1rem;font-size:0.78rem;color:var(--txt-muted);flex-wrap:wrap;">
+  <div style="display:flex;align-items:center;gap:0.4rem;">
+    <div style="width:14px;height:14px;border-radius:4px;background:var(--clr-accent-light);border:1.5px solid var(--clr-accent);" aria-hidden="true"></div>
+    <span>Has entries</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.4rem;">
+    <div style="width:14px;height:14px;border-radius:4px;background:var(--clr-ink);" aria-hidden="true"></div>
+    <span>Today</span>
+  </div>
+  <div style="margin-left:auto;">
+    <a href="/diaries/new" class="btn btn-accent btn-sm">
+      <i class="bi bi-pencil-fill" aria-hidden="true"></i> Write today
+    </a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* Client-side today highlight — runs after DOM is ready so Jinja vars
+   are the ground truth but JS corrects for any timezone differences. */
+document.addEventListener('DOMContentLoaded', function () {
+  const today     = new Date();
+  const todayYear  = today.getFullYear();
+  const todayMonth = today.getMonth() + 1;   // 1-based
+  const todayDay   = today.getDate();
+
+  const pageYear  = {{ year }};
+  const pageMonth = {{ month }};
+
+  /* Only bother if we're on the current month */
+  if (pageYear === todayYear && pageMonth === todayMonth) {
+    document.querySelectorAll('.cal-day[data-day]').forEach(function (el) {
+      const day = parseInt(el.getAttribute('data-day'), 10);
+      if (day === todayDay) {
+        el.classList.add('today');
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

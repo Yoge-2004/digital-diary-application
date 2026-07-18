@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Shared &amp; Public Stories — Digital Diary{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">
+    <i class="bi bi-people-fill" aria-hidden="true"></i> Shared &amp; Public Stories
+    <small>Explore stories shared with you or made public by others</small>
+  </div>
+</div>
+
+<!-- Grid containing direct shares and public feed -->
+<div style="display:grid;grid-template-columns:1fr;gap:2rem;">
+
+  <!-- Section 1: Shared directly with me -->
+  <div class="card card-paper">
+    <div class="card-header">
+      <i class="bi bi-person-heart" aria-hidden="true"></i> Shared Directly With Me
+    </div>
+    <div class="card-body" style="padding:1.25rem;">
+      {% if shares %}
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        {% for s in shares %}
+        {% set mood_class = "mood--" + s.diary.mood %}
+        <div class="diary-card {{ mood_class }}">
+          <div class="diary-card-mood-strip"></div>
+          <div class="diary-card-body">
+            <div class="diary-card-meta">
+              <a href="/diaries/{{ s.diary.id }}" class="diary-card-title">{{ s.diary.title }}</a>
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+                <span class="mood-badge {{ mood_class }}">{{ s.diary.mood }}</span>
+                <span class="diary-card-date">{{ s.diary.created_at.strftime('%b %-d, %Y') }}</span>
+              </div>
+            </div>
+            
+            <div style="font-size:0.8rem;color:var(--txt-secondary);margin:.25rem 0;">
+              👤 Shared by: <strong>{{ s.shared_by.username }}</strong>
+              {% if s.expires_at %}
+                · <span style="color:var(--clr-rose);">Expires: {{ s.expires_at.strftime('%b %-d, %I:%M %p') }}</span>
+              {% endif %}
+              {% if s.diary.location %}
+                · <span>📍 {{ s.diary.location }}</span>
+              {% endif %}
+            </div>
+
+            <div class="diary-card-excerpt">
+              {{ s.diary.content[:160] }}{% if s.diary.content|length > 160 %}…{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:1.5rem 0;">
+        <span class="empty-icon" style="font-size:2rem;">✉️</span>
+        <p class="empty-sub">No stories have been shared directly with you yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Section 2: Global Public Stories -->
+  <div class="card card-paper">
+    <div class="card-header">
+      <i class="bi bi-globe" aria-hidden="true"></i> Global Public Feed
+    </div>
+    <div class="card-body" style="padding:1.25rem;">
+      {% if public_diaries %}
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        {% for diary in public_diaries %}
+        {% set mood_class = "mood--" + diary.mood %}
+        <div class="diary-card {{ mood_class }}">
+          <div class="diary-card-mood-strip"></div>
+          <div class="diary-card-body">
+            <div class="diary-card-meta">
+              <a href="/diaries/{{ diary.id }}" class="diary-card-title">{{ diary.title }}</a>
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+                <span class="mood-badge {{ mood_class }}">{{ diary.mood }}</span>
+                <span class="diary-card-date">{{ diary.created_at.strftime('%b %-d, %Y') }}</span>
+              </div>
+            </div>
+            
+            <div style="font-size:0.8rem;color:var(--txt-secondary);margin:.25rem 0;">
+              ✍️ Written by: <strong>{{ diary.user.username }}</strong>
+              {% if diary.location %}
+                · <span>📍 {{ diary.location }}</span>
+              {% endif %}
+            </div>
+
+            <div class="diary-card-excerpt">
+              {{ diary.content[:160] }}{% if diary.content|length > 160 %}…{% endif %}
+            </div>
+            
+            <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.4rem;">
+              {% for tag in diary.tags %}
+              <span class="tag-badge"><i class="bi bi-hash"></i>{{ tag.name }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:1.5rem 0;">
+        <span class="empty-icon" style="font-size:2rem;">🌐</span>
+        <p class="empty-sub">No public stories are available at the moment.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

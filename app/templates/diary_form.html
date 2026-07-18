@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit Entry" if mode == "edit" else "New Entry" }} — Digital Diary{% endblock %}
+
+{% block content %}
+
+{# ── Meta for autosave ── #}
+<div id="autosaveMeta"
+     data-diary-id="{% if diary %}{{ diary.id }}{% endif %}"
+     data-mode="{{ mode }}"
+     style="display:none;"></div>
+
+
+<div class="journal-form-wrap">
+
+  <!-- Breadcrumb / back -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+    <nav aria-label="Breadcrumb" style="font-size:.78rem;color:var(--txt-muted);display:flex;align-items:center;gap:.4rem;">
+      <a href="/diaries" style="color:var(--txt-muted);">My Diaries</a>
+      <i class="bi bi-chevron-right" style="font-size:.6rem;" aria-hidden="true"></i>
+      <span>{{ "Edit Entry" if mode == "edit" else "New Entry" }}</span>
+    </nav>
+    <a href="{% if mode == 'edit' %}/diaries/{{ diary.id }}{% else %}/diaries{% endif %}"
+       class="btn btn-ghost btn-sm">
+      <i class="bi bi-arrow-left" aria-hidden="true"></i>
+      {{ "Cancel" if mode == "edit" else "Back" }}
+    </a>
+  </div>
+
+  <form method="post"
+        action="{% if mode == 'edit' %}/diaries/{{ diary.id }}/edit{% else %}/diaries/new{% endif %}"
+        id="diaryForm"
+        novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <!-- ════════════════════════════════════════
+         THE JOURNAL PAGE
+         ════════════════════════════════════════ -->
+    <div class="journal-page">
+
+      <!-- Page header: date + visibility -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0.75rem 1.5rem;border-bottom:1px solid var(--border-color);">
+        <div class="journal-datestamp">
+          <i class="bi bi-feather" aria-hidden="true"></i>
+          {% if mode == 'edit' and diary %}
+            {{ diary.created_at.strftime('%A, %B %-d, %Y') }}
+          {% else %}
+            <span id="liveDate"></span>
+          {% endif %}
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);" for="diaryVisibility">
+            <i class="bi bi-eye" aria-hidden="true"></i>
+          </label>
+          <select class="form-select" name="visibility" id="diaryVisibility"
+                  style="font-size:.78rem;padding:.25rem .6rem;min-height:unset;height:auto;"
+                  aria-label="Entry visibility">
+            <option value="private" {% if not diary or (diary and diary.visibility == 'private') %}selected{% endif %}>🔒 Private</option>
+            <option value="public"  {% if diary and diary.visibility == 'public' %}selected{% endif %}>🌐 Public</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- Title -->
+      <div style="padding:1.25rem 1.5rem 0.5rem 1.5rem;">
+        <input class="journal-title-input"
+               id="diaryTitle"
+               name="title"
+               placeholder="Give this entry a title…"
+               value="{% if diary %}{{ diary.title }}{% endif %}"
+               required
+               maxlength="255"
+               autocomplete="off"
+               aria-label="Entry title"
+               aria-describedby="title-feedback">
+        <div class="form-feedback" id="title-feedback" aria-live="polite" style="font-size:.78rem;"></div>
+      </div>
+
+      <!-- Location Tagging -->
+      <div class="journal-location-row">
+        <span class="journal-location-label">
+          📍 Location:
+        </span>
+        <input type="text" 
+               id="diaryLocation" 
+               name="location" 
+               placeholder="Paris, France or home…" 
+               value="{% if diary %}{{ diary.location }}{% endif %}"
+               class="journal-location-input"
+               aria-label="Location text">
+        <button type="button" 
+                id="detectLocationBtn" 
+                class="btn btn-ghost btn-sm journal-location-btn" 
+                title="Detect current location">
+          <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+        </button>
+      </div>
+
+
+      <!-- Lined paper writing area -->
+      <div class="journal-paper">
+        <textarea class="journal-textarea"
+                  id="diaryContent"
+                  name="content"
+                  placeholder="What happened today? What are you thinking, feeling, learning? This space is entirely yours…"
+                  required
+                  aria-label="Diary entry content"
+                  aria-describedby="content-feedback">{% if diary %}{{ diary.content }}{% endif %}</textarea>
+      </div>
+
+
+      <!-- Writing stats bar -->
+      <div class="writing-stats" id="writingStats">
+        <span id="wordCount" aria-live="polite">0 words</span>
+        <span>·</span>
+        <span id="charCount">0 chars</span>
+        <span id="autosaveIndicator" style="margin-left:auto;display:flex;align-items:center;gap:.35rem;opacity:.7;">
+          <i class="bi bi-cloud" aria-hidden="true"></i> Auto-save on
+        </span>
+      </div>
+      <div class="form-feedback" id="content-feedback" aria-live="polite" style="padding:.25rem 1rem;font-size:.78rem;"></div>
+
+      <!-- ── Bottom toolbar: mood + tags + submit ── -->
+      <div class="journal-toolbar">
+
+        <!-- Mood pills -->
+         <input type="hidden" name="mood" id="moodInput" value="{% if diary %}{{ diary.mood }}{% else %}neutral{% endif %}">
+        <span class="journal-toolbar-label">Mood</span>
+        {% set moods = [
+          ("happy","😄"),("sad","😢"),("neutral","😐"),("angry","😠"),("anxious","😰"),
+          ("excited","🤩"),("grateful","🙏"),("calm","😌"),("melancholy","😔"),("hopeful","🌟"),
+        ] %}
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-right:.5rem;">
+          {% for mood_val, emoji in moods %}
+          <button type="button"
+                  class="mood-pill"
+                  data-mood="{{ mood_val }}"
+                  title="{{ mood_val | capitalize }}"
+                  aria-label="{{ mood_val | capitalize }} mood">
+            {{ emoji }} {{ mood_val }}
+          </button>
+          {% endfor %}
+        </div>
+
+        <div style="width:1px;background:var(--border-color);align-self:stretch;margin:0 .25rem;flex-shrink:0;" aria-hidden="true"></div>
+
+        <!-- Tags inline -->
+        <span class="journal-toolbar-label">Tags</span>
+        <input class="form-control"
+               id="tagsInput"
+               name="tags"
+               placeholder="travel, ideas…"
+               value="{% if diary %}{{ diary.tags | map(attribute='name') | join(', ') }}{% endif %}"
+               style="flex:1;min-width:120px;max-width:260px;font-size:.82rem;padding:.2rem .6rem;min-height:unset;height:auto;"
+               aria-label="Tags, comma separated"
+               autocomplete="off">
+
+
+        <div style="display:flex;flex-wrap:wrap;gap:.25rem;" id="tagPillsPreview" aria-live="polite"></div>
+
+        <!-- Submit -->
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+          <div id="autosaveBadge" style="display:none;font-family:var(--font-hand);font-size:.9rem;color:var(--txt-muted);"></div>
+          <button class="btn btn-primary" type="submit" id="submitBtn" style="min-height:40px;min-width:130px;">
+            <i class="bi bi-{{ 'floppy-fill' if mode == 'edit' else 'pencil-fill' }}" aria-hidden="true"></i>
+            <span>{{ "Save changes" if mode == "edit" else "Save entry" }}</span>
+          </button>
+        </div>
+
+      </div><!-- /.journal-toolbar -->
+    </div><!-- /.journal-page -->
+
+  </form>
+
+  <!-- Existing tag suggestions (if any) -->
+  {% if all_tags %}
+  <div style="margin-top:.75rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.78rem;color:var(--txt-muted);">
+    <i class="bi bi-tags" aria-hidden="true"></i> Your tags:
+    {% for t in all_tags %}
+    <button type="button" class="tag-badge" onclick="addTag('{{ t.name }}')" style="cursor:pointer;" aria-label="Add tag {{ t.name }}">
+      <i class="bi bi-plus-sm" aria-hidden="true"></i>{{ t.name }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div><!-- /.journal-form-wrap -->
+
+<script>
+  // Live date stamp
+  (function() {
+    const el = document.getElementById('liveDate');
+    if (el) {
+      const now = new Date();
+      el.textContent = now.toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    }
+  })();
+
+  // Geolocation detector with reverse geocoding
+  (function() {
+    const locBtn = document.getElementById('detectLocationBtn');
+    const locInput = document.getElementById('diaryLocation');
+    if (locBtn && locInput) {
+      locBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          alert("Geolocation is not supported by your browser");
+          return;
+        }
+        locBtn.classList.add('is-loading');
+        locBtn.disabled = true;
+        locInput.placeholder = 'Detecting your location…';
+
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+
+            // Reverse geocode using OpenStreetMap Nominatim (free, no API key)
+            try {
+              const resp = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
+                { headers: { 'Accept-Language': 'en' } }
+              );
+              if (resp.ok) {
+                const data = await resp.json();
+                const addr = data.address || {};
+                // Build a readable location string
+                const parts = [];
+                if (addr.neighbourhood || addr.suburb || addr.village || addr.town) {
+                  parts.push(addr.neighbourhood || addr.suburb || addr.village || addr.town);
+                }
+                if (addr.city || addr.county) {
+                  parts.push(addr.city || addr.county);
+                }
+                if (addr.state) {
+                  parts.push(addr.state);
+                }
+                if (addr.country) {
+                  parts.push(addr.country);
+                }
+                locInput.value = parts.length > 0 ? parts.join(', ') : data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+              } else {
+                // Fallback to coordinates if API fails
+                locInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+              }
+            } catch (e) {
+              // Fallback to coordinates on network error
+              locInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            }
+
+            locBtn.classList.remove('is-loading');
+            locBtn.disabled = false;
+            locInput.placeholder = 'Paris, France or home…';
+            locInput.dispatchEvent(new Event('input'));
+          },
+          (err) => {
+            locBtn.classList.remove('is-loading');
+            locBtn.disabled = false;
+            locInput.placeholder = 'Paris, France or home…';
+            alert("Unable to retrieve location: " + err.message);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+  })();
+</script>
+{% endblock %}

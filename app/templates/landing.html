@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Digital Diary — Your Private Journal Online{% endblock %}
+{% block meta_desc %}A secure, beautiful digital diary to capture your thoughts, track your moods, and build your writing streak — completely private and always yours.{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════════
+     Hero Section
+══════════════════════════════════════ -->
+<section class="landing-hero" style="min-height:calc(100vh - 68px);">
+  <div class="hero-bg" aria-hidden="true"></div>
+
+  <div style="max-width:var(--content-max);width:100%;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,5vw,4rem);align-items:center;"
+       class="hero-grid">
+
+    <!-- Left: Copy -->
+    <div class="hero-content" style="animation:fadeUp .8s cubic-bezier(0.16, 1, 0.3, 1) both;">
+      <div class="hero-eyebrow">
+        <span aria-hidden="true">✨</span> The Elevated Journaling Experience
+      </div>
+
+      <h1 class="hero-title" style="margin-bottom:1.5rem;">
+        Capture your life,<br>
+        <span class="accent-word">elegantly</span> curated.
+      </h1>
+
+      <p class="hero-lead" style="margin-bottom:2.5rem;">
+        A sanctuary for your thoughts. Designed for those who appreciate 
+        the art of writing and the value of privacy.
+      </p>
+
+      <div style="display:flex;gap:1.25rem;flex-wrap:wrap;margin-bottom:4rem;">
+        <a href="/register" class="btn btn-primary btn-lg" style="padding: 1rem 2.5rem; border-radius: 0;">
+          Begin your journey
+        </a>
+        <a href="/login" class="btn btn-outline-primary btn-lg" style="padding: 1rem 2.5rem; border-radius: 0;">
+          Sign in
+        </a>
+      </div>
+
+      <!-- Mini stats -->
+      <div style="display:flex;gap:2rem;flex-wrap:wrap;">
+        {% set mini_stats = [("🔒","100% Private"),("🌙","Dark mode"),("📱","Works on any device"),("📤","Export anytime")] %}
+        {% for icon, label in mini_stats %}
+        <div style="font-size:.82rem;color:var(--txt-secondary);display:flex;align-items:center;gap:.4rem;font-weight:500;">
+          <span aria-hidden="true">{{ icon }}</span> {{ label }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Right: Diary preview card -->
+    <div style="animation:fadeUp 1s .2s cubic-bezier(0.16, 1, 0.3, 1) both;" class="hero-preview-col">
+      <div style="position:relative; perspective: 1000px;">
+        <!-- Decorative floating elements -->
+        <div style="position:absolute;top:-40px;right:-40px;width:150px;height:150px;
+                    background:radial-gradient(circle, var(--clr-accent-light) 0%, transparent 70%);
+                    opacity:.8; z-index:0; filter: blur(20px);"></div>
+        
+        <!-- Main sample diary card -->
+        <div class="card" style="position:relative;z-index:1;box-shadow:var(--shadow-xl); border: none; border-radius: 0; background: #fff; transform: rotateY(-5deg) rotateX(5deg);">
+          <div style="padding: 3rem 2.5rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;">
+              <span style="font-family:var(--font-hand);font-size:1.2rem;color:var(--txt-muted); letter-spacing: 0.05em;">JULY 17, 2026</span>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--clr-accent);"></div>
+            </div>
+            <h2 style="font-family:var(--font-display);font-size:1.75rem;font-weight:700;margin-bottom:1.5rem;letter-spacing:-.02em; color: var(--clr-ink);">
+              Reflections on Stillness
+            </h2>
+            <p style="font-family:var(--font-serif);font-size:1rem;line-height:1.8;color:var(--txt-secondary); margin-bottom: 2rem;">
+              There is a certain luxury in silence that we often overlook. This morning, as the first light touched the mahogany desk, I realized that true wealth is time spent in conversation with oneself…
+            </p>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; display:flex; justify-content: space-between; align-items: center;">
+               <span style="font-family:var(--font-sans); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--txt-muted);">Private Entry</span>
+               <i class="bi bi-bookmark-fill" style="color: var(--clr-accent);"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     Features
+══════════════════════════════════════ -->
+<section style="padding:clamp(3rem,6vw,5rem) 0;border-top:1px solid var(--border-color);">
+  <div style="text-align:center;margin-bottom:clamp(2rem,4vw,3.5rem);">
+    <div style="font-family:var(--font-hand);font-size:1.2rem;color:var(--clr-accent-dark);margin-bottom:.4rem;">
+      Everything you need
+    </div>
+    <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2.25rem);font-weight:700;letter-spacing:-.02em;">
+      Built for real journalling
+    </h2>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(clamp(260px,30vw,320px),1fr));gap: 2rem;"
+       class="stagger">
+    {% set features = [
+      ("📖","Refined Typography","Experience the elegance of Lora and Playfair Display — typefaces curated for deep focus and reading pleasure."),
+      ("🎭","Emotional Landscape","Track your inner world with a sophisticated mood system that captures the nuance of your daily life."),
+      ("🔥","The Ritual of Writing","Cultivate a daily practice with elegant streak tracking that honors your commitment to yourself."),
+      ("🗓️","Chronicle Archive","Navigate your personal history through a beautifully organized calendar view of your life's moments."),
+      ("📊","Insights & Patterns","Discover the rhythm of your thoughts with serene data visualizations of your journaling habits."),
+      ("🔍","Deep Retrieval","Find any moment in time instantly with a powerful, intuitive search designed for your personal archive."),
+      ("📤","Data Sovereignty","Your words belong to you. Export your entire history in premium formats whenever you wish."),
+      ("🔒","Uncompromising Privacy","Bank-grade security ensures your private thoughts remain exactly that — private and protected."),
+    ] %}
+    {% for icon, title, desc in features %}
+    <div class="card" style="padding: 2.5rem; border-radius: 0; background: #fff; border: 1px solid var(--border-color); transition: all 0.4s var(--ease);">
+      <div style="font-size:1.5rem;margin-bottom:1.5rem; color: var(--clr-accent);" aria-hidden="true">{{ icon }}</div>
+      <h3 style="font-family:var(--font-display);font-size:1.25rem;font-weight:700;margin-bottom:1rem; color: var(--clr-ink);">{{ title }}</h3>
+      <p style="font-family:var(--font-serif);font-size:0.95rem;color:var(--txt-secondary);line-height:1.8;margin:0;">{{ desc }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CTA
+══════════════════════════════════════ -->
+<section style="padding:clamp(3rem,5vw,4rem) 0;text-align:center;border-top:1px solid var(--border-color);">
+  <div style="max-width:560px;margin:0 auto;">
+    <div style="font-size:3rem;margin-bottom:1rem;" aria-hidden="true">📖</div>
+    <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2rem);font-weight:700;letter-spacing:-.02em;margin-bottom:.75rem;">
+      Your story is worth telling.
+    </h2>
+    <p style="font-family:var(--font-serif);font-style:italic;color:var(--txt-secondary);font-size:1.05rem;margin-bottom:2rem;line-height:1.7;">
+      Start writing today — it only takes a few seconds to create your account.
+    </p>
+    <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;">
+      <a href="/register" class="btn btn-primary btn-lg" style="border-radius: 0; padding: 1.25rem 3rem;">
+        Create your account
+      </a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

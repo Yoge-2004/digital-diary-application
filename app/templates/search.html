@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Search — Digital Diary{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">
+    Search
+    {% if query or filters.tag or filters.mood %}
+    <small>{{ entries | length }} result{{ 's' if entries | length != 1 else '' }} found</small>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Search form -->
+<div class="card card-paper" style="padding:1.25rem;margin-bottom:1.5rem;">
+  <form method="get" action="/search" id="searchForm">
+    <div style="display:grid;grid-template-columns:1fr auto;gap:0.5rem;margin-bottom:1rem;">
+      <div style="position:relative;">
+        <i class="bi bi-search" style="position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--txt-muted);"></i>
+        <input class="form-control" style="padding-left:2.4rem;font-size:1rem;" name="q" id="searchInput"
+               value="{{ query }}" placeholder="Search your diaries…" autofocus autocomplete="off">
+      </div>
+      <button class="btn btn-accent" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Search</button>
+    </div>
+
+    <!-- Advanced filters -->
+    <details {% if filters.tag or filters.mood or filters.month or filters.year %}open{% endif %}>
+      <summary style="cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--txt-secondary);padding:0.25rem 0;list-style:none;display:flex;align-items:center;gap:0.4rem;">
+        <i class="bi bi-sliders"></i> Advanced filters
+      </summary>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-top:0.75rem;">
+        <div>
+          <label class="form-label" for="s-mood">Mood</label>
+          <select class="form-select" id="s-mood" name="mood">
+            <option value="">All moods</option>
+            {% for m in ["happy","sad","neutral","angry","anxious","excited","grateful","calm","melancholy","hopeful"] %}
+            <option value="{{ m }}" {% if filters.mood == m %}selected{% endif %}>{{ m | capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="s-tag">Tag</label>
+          <select class="form-select" id="s-tag" name="tag">
+            <option value="">All tags</option>
+            {% for t in all_tags %}
+            <option value="{{ t.name }}" {% if filters.tag == t.name %}selected{% endif %}>#{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="s-month">Month</label>
+          <input class="form-control" id="s-month" name="month" type="number" min="1" max="12" placeholder="e.g. 7" value="{{ filters.month or '' }}">
+        </div>
+        <div>
+          <label class="form-label" for="s-year">Year</label>
+          <input class="form-control" id="s-year" name="year" type="number" min="2000" max="2099" placeholder="e.g. 2025" value="{{ filters.year or '' }}">
+        </div>
+      </div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;">
+        <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-funnel"></i> Apply filters</button>
+        <a href="/search" class="btn btn-ghost btn-sm"><i class="bi bi-x-circle"></i> Clear</a>
+      </div>
+    </details>
+  </form>
+</div>
+
+<!-- Results -->
+{% if entries %}
+<div style="display:flex;flex-direction:column;gap:0.75rem;" class="stagger">
+  {% for diary in entries %}
+  {% set mood_class = "mood--" + diary.mood %}
+  <div class="diary-card {{ mood_class }}">
+    <div class="diary-card-mood-strip"></div>
+    <div class="diary-card-body">
+      <div class="diary-card-meta">
+        <a href="/diaries/{{ diary.id }}" class="diary-card-title">{{ diary.title }}</a>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+          <span class="mood-badge {{ mood_class }}">{{ diary.mood }}</span>
+          <span class="diary-card-date">{{ diary.created_at.strftime('%b %-d, %Y') }}</span>
+        </div>
+      </div>
+      <div class="diary-card-excerpt">{{ diary.content[:250] }}{% if diary.content|length > 250 %}…{% endif %}</div>
+      <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.25rem;">
+        {% for tag in diary.tags %}
+        <a href="/search?tag={{ tag.name }}" class="tag-badge"><i class="bi bi-hash"></i>{{ tag.name }}</a>
+        {% endfor %}
+        {% if diary.is_pinned %}<span class="status-badge pinned"><i class="bi bi-pin-fill"></i> Pinned</span>{% endif %}
+        {% if diary.is_favorite %}<span class="status-badge favorite"><i class="bi bi-star-fill"></i></span>{% endif %}
+        {% if diary.is_bookmarked %}<span class="status-badge bookmarked"><i class="bi bi-bookmark-fill"></i></span>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% elif query or filters.tag or filters.mood or filters.month or filters.year %}
+<div class="empty-state">
+  <span class="empty-icon" aria-hidden="true">🔍</span>
+  <div class="empty-title">No results found</div>
+  <p class="empty-sub">Try different keywords or <a href="/search">clear all filters</a>.</p>
+</div>
+{% else %}
+<div class="empty-state">
+  <span class="empty-icon" aria-hidden="true">📖</span>
+  <div class="empty-title">Search your diary</div>
+  <p class="empty-sub">Type a keyword, select a mood, or pick a tag above to find entries.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,2 @@
+"""Digital Diary application package."""
+

@@ -1,0 +1,69 @@
+{# Reusable diary card partial. Expects `diary` in context. #}
+{% set mood_class = "mood--" + diary.mood %}
+<div class="diary-card {{ mood_class }}">
+  <div class="diary-card-mood-strip"></div>
+  <div class="diary-card-body">
+    <div class="diary-card-meta">
+      <a href="/diaries/{{ diary.id }}" class="diary-card-title" title="{{ diary.title }}">{{ diary.title }}</a>
+      <div style="display:flex;align-items:center;gap:.35rem;flex-shrink:0;">
+        <span class="diary-card-date">{{ diary.created_at.strftime('%b %-d') }}</span>
+        <div class="diary-card-actions">
+          <form method="post" action="/diaries/{{ diary.id }}/favorite" style="display:contents;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="back" value="{{ request.url }}">
+            <button type="submit" class="icon-btn"
+                    title="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }}"
+                    style="color:{{ 'hsl(38 85% 52%)' if diary.is_favorite else 'inherit' }};"
+                    aria-label="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }} {{ diary.title }}">
+              <i class="bi bi-star{{ '-fill' if diary.is_favorite else '' }}" aria-hidden="true"></i>
+            </button>
+          </form>
+          
+          <form method="post" action="/diaries/{{ diary.id }}/bookmark" style="display:contents;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="back" value="{{ request.url }}">
+            <button type="submit" class="icon-btn"
+                    title="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }}"
+                    style="color:{{ 'var(--clr-slate)' if diary.is_bookmarked else 'inherit' }};"
+                    aria-label="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }} {{ diary.title }}">
+              <i class="bi bi-bookmark{{ '-fill' if diary.is_bookmarked else '' }}" aria-hidden="true"></i>
+            </button>
+          </form>
+
+          <form method="post" action="/diaries/{{ diary.id }}/pin" style="display:contents;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="back" value="{{ request.url }}">
+            <button type="submit" class="icon-btn"
+                    title="{{ 'Unpin' if diary.is_pinned else 'Pin' }}"
+                    style="color:{{ 'var(--clr-sage)' if diary.is_pinned else 'inherit' }};"
+                    aria-label="{{ 'Unpin' if diary.is_pinned else 'Pin' }} {{ diary.title }}">
+              <i class="bi bi-pin{{ '-fill' if diary.is_pinned else '' }}" aria-hidden="true"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    {% if diary.location %}
+    <div style="font-size:0.75rem;color:var(--txt-secondary);margin-bottom:0.25rem;">
+      📍 {{ diary.location }}
+    </div>
+    {% endif %}
+
+    <div class="diary-card-excerpt">{{ diary.content[:200] }}{% if diary.content|length > 200 %}…{% endif %}</div>
+    <div class="diary-card-footer">
+      <span class="mood-badge {{ mood_class }}">{{ diary.mood }}</span>
+      {% for tag in diary.tags %}
+      <a href="/diaries?tag={{ tag.name }}" class="tag-badge"><i class="bi bi-hash" aria-hidden="true"></i>{{ tag.name }}</a>
+      {% endfor %}
+      {% if diary.is_pinned   %}<span class="status-badge pinned"  ><i class="bi bi-pin-fill"    aria-hidden="true"></i> Pinned</span>{% endif %}
+      {% if diary.is_favorite %}<span class="status-badge favorite"><i class="bi bi-star-fill"   aria-hidden="true"></i></span>{% endif %}
+      {% if diary.is_bookmarked %}<span class="status-badge bookmarked"><i class="bi bi-bookmark-fill" aria-hidden="true"></i></span>{% endif %}
+      {% if diary.is_archived %}<span class="status-badge archived"><i class="bi bi-archive-fill" aria-hidden="true"></i> Archived</span>{% endif %}
+      <span style="margin-left:auto; font-size:0.75rem; color:var(--txt-muted);">
+        {{ '🔒' if diary.visibility == 'private' else '🌐' }}
+      </span>
+    </div>
+  </div>
+</div>
+

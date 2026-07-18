@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}{{ diary.title }} — Digital Diary{% endblock %}
+{% block meta_desc %}{{ diary.content[:160] }}{% endblock %}
+
+{% block content %}
+{% set mood_class = "mood--" + diary.mood %}
+
+<!-- Breadcrumb -->
+<nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--txt-muted);margin-bottom:1.25rem;">
+  <a href="/diaries" style="color:var(--txt-muted);">My Diaries</a>
+  <i class="bi bi-chevron-right" style="font-size:.6rem;" aria-hidden="true"></i>
+  <span style="color:var(--txt-primary);font-weight:500;">{{ diary.title | truncate(45) }}</span>
+</nav>
+
+<div style="max-width:860px;">
+
+  <!-- ════════════════════════════════════════
+       THE OPEN JOURNAL
+       ════════════════════════════════════════ -->
+  <div class="journal-page {{ mood_class }}" style="margin-bottom:1rem;">
+
+    <!-- Mood colour strip at top -->
+    <div class="diary-card-mood-strip" style="border-radius:var(--border-radius) var(--border-radius) 0 0;height:6px;"></div>
+
+    <!-- Entry header -->
+    <div style="padding:1.25rem 1.5rem 0.875rem 1.5rem;border-bottom:1px solid var(--border-color);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <h1 style="font-family:var(--font-display);font-size:clamp(1.4rem,3.5vw,2rem);font-weight:700;letter-spacing:-.02em;margin:0 0 .4rem;line-height:1.2;">
+            {{ diary.title }}
+          </h1>
+          <div class="journal-datestamp" style="margin-bottom:0;">
+            <i class="bi bi-feather" aria-hidden="true"></i>
+            <time datetime="{{ diary.created_at.isoformat() }}">
+              {{ diary.created_at.strftime('%A, %B %-d, %Y') }}
+            </time>
+            <span style="color:var(--border-color-2);font-family:var(--font-sans);font-size:.8rem;">
+              {{ diary.created_at.strftime('%I:%M %p') }}
+            </span>
+            {% if diary.updated_at and diary.updated_at != diary.created_at %}
+            <span style="font-family:var(--font-sans);font-size:.75rem;color:var(--txt-muted);">
+              · edited {{ diary.updated_at.strftime('%b %-d') }}
+            </span>
+            {% endif %}
+          </div>
+          
+          {# Location Tagging Display #}
+          {% if diary.location %}
+          <div style="font-size: 0.85rem; color: var(--txt-secondary); margin-top: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+            <span style="font-family:var(--font-hand);font-size:1rem;">📍 Written in:</span>
+            <strong style="color: var(--txt-primary);font-family:var(--font-serif);font-weight:600;">{{ diary.location }}</strong>
+          </div>
+          {% endif %}
+        </div>
+        
+        {% if not is_read_only %}
+        <a href="/diaries/{{ diary.id }}/edit" class="btn btn-ghost btn-sm" style="flex-shrink:0;">
+          <i class="bi bi-pencil-fill" aria-hidden="true"></i> Edit
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- Badges row -->
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.75rem;">
+        <span class="mood-badge {{ mood_class }}">{{ diary.mood }}</span>
+          {% for tag in diary.tags %}
+          <a href="/diaries?tag={{ tag.name }}" class="tag-badge">
+            <i class="bi bi-hash" aria-hidden="true"></i>{{ tag.name }}
+          </a>
+          {% endfor %}
+          {% if diary.is_pinned   %}<span class="status-badge pinned"  ><i class="bi bi-pin-fill"     aria-hidden="true"></i> Pinned</span>{% endif %}
+          {% if diary.is_favorite %}<span class="status-badge favorite"><i class="bi bi-star-fill"    aria-hidden="true"></i> Favourite</span>{% endif %}
+          {% if diary.is_bookmarked %}<span class="status-badge bookmarked"><i class="bi bi-bookmark-fill" aria-hidden="true"></i> Bookmarked</span>{% endif %}
+          {% if diary.is_archived %}<span class="status-badge archived"><i class="bi bi-archive-fill" aria-hidden="true"></i> Archived</span>{% endif %}
+        <span class="status-badge" style="margin-left:auto;opacity:.6;">
+          <i class="bi bi-{{ 'lock' if diary.visibility == 'private' else 'globe' }}" aria-hidden="true"></i>
+          {{ diary.visibility | capitalize }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Entry content — lined paper reading area -->
+    <article class="diary-reading" aria-label="Diary entry content">
+      <div>{{ diary.content }}</div>
+
+      {# Attachments appear directly on the written page #}
+      {% if diary.attachments %}
+      <div style="margin-top: 3rem; border-top: 1px dashed var(--border-color); padding-top: 1.5rem;">
+        <div style="font-family: var(--font-hand); font-size: 1.25rem; color: var(--txt-secondary); margin-bottom: 1rem;">Memorabilia:</div>
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start;">
+          {% for att in diary.attachments %}
+            {% if att.mime_type and att.mime_type.startswith('image/') %}
+              {# Elegant Polaroid Frame #}
+              <div style="background: #fff; padding: 10px 10px 24px 10px; box-shadow: var(--shadow-md); border: 1px solid #ddd; max-width: 200px; display: inline-block; text-align: center;">
+                <a href="/attachments/{{ att.id }}/view" target="_blank" title="View full image">
+                  <img src="/attachments/{{ att.id }}/view" style="width: 180px; height: 130px; object-fit: cover; border: 1px solid #eee;" alt="{{ att.filename }}">
+                </a>
+                <div style="font-family: var(--font-hand); font-size: 0.95rem; margin-top: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
+                  {{ att.filename }}
+                </div>
+              </div>
+            {% else %}
+              {# Notebook Paper Clip Frame #}
+              <div style="background: #fffeb3; padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e6e68a; max-width: 160px; text-align: center; border-radius: 4px; position: relative;">
+                <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 1.3rem;">📎</div>
+                <div style="margin-top: 8px; font-weight: bold; font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ att.filename }}
+                </div>
+                <div style="font-size: 0.68rem; color: var(--txt-muted); margin-bottom: 8px;">
+                  {{ (att.size / 1024) | round(1) }} KB
+                </div>
+                <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm" style="font-size: 0.7rem; padding: 2px 6px; min-height: unset; height: auto;" download>
+                  Download
+                </a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </article>
+
+  </div><!-- /.journal-page -->
+
+  <!-- ════════════════════════════════════════
+       Action toolbar — AJAX toggles
+       ════════════════════════════════════════ -->
+  <div class="diary-actions-bar" role="toolbar" aria-label="Entry actions" style="margin-bottom:1rem;">
+
+    {% if not is_read_only %}
+    <!-- Favourite (AJAX) -->
+    <button type="button"
+            class="btn btn-surface btn-sm {% if diary.is_favorite %}btn-toggle-active{% endif %}"
+            data-toggle-url="/diaries/{{ diary.id }}/favorite"
+            data-toggle-flag="is_favorite"
+            data-active-class="btn-toggle-active"
+            data-icon-on="bi-star-fill"
+            data-icon-off="bi-star"
+            data-label-on="Unfavourite"
+            data-label-off="Favourite"
+            aria-pressed="{{ 'true' if diary.is_favorite else 'false' }}"
+            title="{{ 'Unfavourite' if diary.is_favorite else 'Add to favourites' }}">
+      <i class="bi bi-star{{ '-fill' if diary.is_favorite else '' }}" aria-hidden="true"></i>
+      <span class="toggle-label">{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }}</span>
+    </button>
+
+    <!-- Bookmark (AJAX) -->
+    <button type="button"
+            class="btn btn-surface btn-sm {% if diary.is_bookmarked %}btn-toggle-active{% endif %}"
+            data-toggle-url="/diaries/{{ diary.id }}/bookmark"
+            data-toggle-flag="is_bookmarked"
+            data-active-class="btn-toggle-active"
+            data-icon-on="bi-bookmark-fill"
+            data-icon-off="bi-bookmark"
+            data-label-on="Unbookmark"
+            data-label-off="Bookmark"
+            aria-pressed="{{ 'true' if diary.is_bookmarked else 'false' }}"
+            title="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark entry' }}">
+      <i class="bi bi-bookmark{{ '-fill' if diary.is_bookmarked else '' }}" aria-hidden="true"></i>
+      <span class="toggle-label">{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }}</span>
+    </button>
+
+    <!-- Pin (AJAX) -->
+    <button type="button"
+            class="btn btn-surface btn-sm {% if diary.is_pinned %}btn-toggle-active-green{% endif %}"
+            data-toggle-url="/diaries/{{ diary.id }}/pin"
+            data-toggle-flag="is_pinned"
+            data-active-class="btn-toggle-active-green"
+            data-icon-on="bi-pin-fill"
+            data-icon-off="bi-pin"
+            data-label-on="Unpin"
+            data-label-off="Pin"
+            aria-pressed="{{ 'true' if diary.is_pinned else 'false' }}"
+            title="{{ 'Unpin' if diary.is_pinned else 'Pin to top' }}">
+      <i class="bi bi-pin{{ '-fill' if diary.is_pinned else '' }}" aria-hidden="true"></i>
+      <span class="toggle-label">{{ 'Unpin' if diary.is_pinned else 'Pin' }}</span>
+    </button>
+
+    <!-- Archive / Restore (AJAX) -->
+    {% if diary.is_archived %}
+    <button type="button"
+            class="btn btn-surface btn-sm"
+            data-toggle-url="/diaries/{{ diary.id }}/archive"
+            data-toggle-flag="is_archived"
+            data-active-class=""
+            data-icon-on="bi-archive-fill"
+            data-icon-off="bi-arrow-counterclockwise"
+            data-label-on="Archive"
+            data-label-off="Restore"
+            aria-pressed="true"
+            title="Restore from archive">
+      <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+      <span class="toggle-label">Restore</span>
+    </button>
+    {% else %}
+    <button type="button"
+            class="btn btn-surface btn-sm"
+            data-toggle-url="/diaries/{{ diary.id }}/archive"
+            data-toggle-flag="is_archived"
+            data-active-class=""
+            data-icon-on="bi-archive-fill"
+            data-icon-off="bi-archive"
+            data-label-on="Archive"
+            data-label-off="Archive"
+            aria-pressed="false"
+            title="Archive this entry">
+      <i class="bi bi-archive" aria-hidden="true"></i>
+      <span class="toggle-label">Archive</span>
+    </button>
+    {% endif %}
+
+    <!-- Duplicate -->
+    <form method="post" action="/diaries/{{ diary.id }}/duplicate" style="display:contents;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn btn-surface btn-sm" type="submit" title="Duplicate entry">
+        <i class="bi bi-copy" aria-hidden="true"></i> Duplicate
+      </button>
+    </form>
+    {% else %}
+    {# Read-Only users can still bookmark for their own convenience #}
+    <div style="font-family: var(--font-hand); font-size: 1.15rem; color: var(--txt-secondary);">
+      📖 Read-only Shared Entry
+    </div>
+    {% endif %}
+
+    <!-- Export -->
+    <div style="display:flex;gap:.35rem;margin-left:auto;">
+      <a href="/diaries/{{ diary.id }}/export/markdown" class="btn btn-ghost btn-sm" title="Download as Markdown">
+        <i class="bi bi-markdown-fill" aria-hidden="true"></i> .md
+      </a>
+      <a href="/diaries/{{ diary.id }}/export/json" class="btn btn-ghost btn-sm" title="Download as JSON">
+        <i class="bi bi-filetype-json" aria-hidden="true"></i> .json
+      </a>
+    </div>
+
+    {% if not is_read_only %}
+    <!-- Delete -->
+    <form method="post" action="/diaries/{{ diary.id }}/delete"
+          data-confirm="Permanently delete this entry? This cannot be undone."
+          style="display:contents;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn btn-outline-danger btn-sm" type="submit" title="Delete entry">
+        <i class="bi bi-trash3-fill" aria-hidden="true"></i>
+      </button>
+    </form>
+    {% endif %}
+
+  </div><!-- /.diary-actions-bar -->
+
+  <!-- ════════════════════════════════════════
+       SOCIAL NETWORKING / SHARING PANEL (Owner Only)
+       ════════════════════════════════════════ -->
+  {% if not is_read_only %}
+  <div class="card card-paper" style="margin-bottom:1rem;">
+    <div class="card-header">
+      <i class="bi bi-share-fill" aria-hidden="true"></i> Share &amp; Social Networking
+    </div>
+    <div class="card-body" style="padding:1.25rem;">
+      <form method="post" action="/diaries/{{ diary.id }}/shares">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        
+        <div class="share-form-grid">
+          <div>
+            <label class="form-label" for="shared_to_username">Share with Username (Leave blank for public link)</label>
+            <input type="text" class="form-control" name="shared_to_username" id="shared_to_username" placeholder="e.g. friend123">
+          </div>
+          <div>
+            <label class="form-label" for="expires_in_hours">Expiry</label>
+            <select class="form-select" name="expires_in_hours" id="expires_in_hours">
+              <option value="">Never</option>
+              <option value="1">1 Hour</option>
+              <option value="24">24 Hours</option>
+              <option value="168">7 Days</option>
+            </select>
+          </div>
+          <div>
+            <button class="btn btn-accent" type="submit" style="min-height:42px;">
+              Create Share
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {# List of Active Shares #}
+      {% if shares %}
+      <div style="margin-top: 1.25rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--txt-secondary); margin-bottom: 0.75rem;">Active Share Links</h3>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          {% for s in shares %}
+          <div style="display:flex; justify-content:space-between; align-items:center; background: var(--bg-surface-2); padding: 0.5rem 0.75rem; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); font-size: 0.8rem;">
+            <div>
+              <strong>
+                {% if s.shared_to_user_id %}
+                  👤 Shared directly with: {{ s.shared_to.username }}
+                {% else %}
+                  🔗 Public share link
+                {% endif %}
+              </strong>
+              <div style="color: var(--txt-muted); font-size: 0.75rem; margin-top: 2px;">
+                Expires: {{ s.expires_at.strftime('%Y-%m-%d %I:%M %p') if s.expires_at else 'Never' }}
+              </div>
+            </div>
+            
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <button class="btn btn-ghost btn-sm" style="padding: 2px 6px; min-height:unset; height:auto; font-size: 0.7rem;" 
+                      onclick="navigator.clipboard.writeText(window.location.origin + '/diaries/{{ diary.id }}'); alert('Link copied to clipboard!');">
+                Copy Link
+              </button>
+              
+              <form method="post" action="/diaries/{{ diary.id }}/shares/{{ s.id }}/revoke" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm" style="padding: 2px 6px; min-height:unset; height:auto; font-size: 0.7rem;">
+                  Revoke
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ════════════════════════════════════════
+       Attachments — AJAX upload zone (Owner Only)
+       ════════════════════════════════════════ -->
+  {% if not is_read_only %}
+  <div class="card card-paper">
+    <div class="card-header">
+      <i class="bi bi-paperclip" aria-hidden="true"></i>
+      Manage Attachments
+      <span style="font-size:.72rem;color:var(--txt-muted);font-weight:400;">
+        ({{ diary.attachments | length }})
+      </span>
+    </div>
+    <div class="card-body" style="padding:1rem 1.25rem;">
+
+      <!-- Drop zone (AJAX) -->
+      <div class="upload-zone"
+           id="uploadZone"
+           data-diary-id="{{ diary.id }}"
+           role="button"
+           tabindex="0"
+           aria-label="Click or drag files here to upload"
+           style="margin-bottom:1rem;">
+
+        <input type="file" id="attachmentFile" name="file"
+               accept="image/*,.pdf,.txt,.md"
+               style="display:none;" aria-hidden="true">
+
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.4rem;pointer-events:none;">
+          <i class="bi bi-cloud-upload-fill" style="font-size:1.75rem;color:var(--txt-muted);" aria-hidden="true"></i>
+          <div style="font-size:.875rem;font-weight:600;color:var(--txt-secondary);">
+            Drag &amp; drop a file here, or click to browse
+          </div>
+          <div style="font-size:.72rem;color:var(--txt-muted);">
+            Images, PDF, Markdown, Text · Max 10 MB
+          </div>
+        </div>
+
+        <div style="margin-top:.875rem;text-align:center;pointer-events:auto;">
+          <button type="button" id="uploadBtn" class="btn btn-primary btn-sm">
+            <i class="bi bi-upload" aria-hidden="true"></i> Upload file
+          </button>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="upload-progress-bar" id="uploadProgressBar">
+          <div class="upload-progress-fill" id="uploadProgressFill"></div>
+        </div>
+        <div id="uploadStatus" style="font-size:.75rem;color:var(--txt-muted);text-align:center;margin-top:.35rem;min-height:1.2em;"
+             aria-live="polite"></div>
+      </div>
+
+      <!-- Attachment list (updated via JS) -->
+      <div id="attachmentList">
+        {% if diary.attachments %}
+        {% for att in diary.attachments %}
+        <div class="attachment-item">
+          {% if att.mime_type and att.mime_type.startswith('image/') %}
+            <i class="bi bi-image-fill attachment-icon" style="color:var(--clr-slate);" aria-hidden="true"></i>
+          {% elif att.mime_type == 'application/pdf' %}
+            <i class="bi bi-file-pdf-fill attachment-icon" style="color:var(--clr-danger);" aria-hidden="true"></i>
+          {% else %}
+            <i class="bi bi-file-earmark-text-fill attachment-icon" style="color:var(--txt-muted);" aria-hidden="true"></i>
+          {% endif %}
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ att.filename }}
+            </div>
+            <div style="font-size:.72rem;color:var(--txt-muted);">
+              {{ (att.size / 1024) | round(1) }} KB{% if att.mime_type %} · {{ att.mime_type }}{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+
+      {% if not diary.attachments %}
+      <p id="attachmentEmpty" style="font-family:var(--font-hand);font-size:1.05rem;color:var(--txt-muted);text-align:center;margin:0.5rem 0;">
+        No attachments yet — drop a file above to attach it ✨
+      </p>
+      {% else %}
+      <p id="attachmentEmpty" style="display:none;"></p>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /max-width -->
+{% endblock %}

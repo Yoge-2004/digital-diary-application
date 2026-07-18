@@ -1,0 +1,269 @@
+{% block body %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% if auth_mode == 'register' %}Create account{% else %}Sign in{% endif %} — Digital Diary</title>
+  <meta name="description" content="Securely access your personal Digital Diary.">
+  <meta name="csrf-token" content="{{ csrf_token or '' }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+</head>
+<body>
+
+<div class="auth-page">
+
+  <!-- ── Left illustrative panel ── -->
+  <div class="auth-side">
+    <div class="auth-side-content">
+      <div style="font-size:clamp(3rem,6vw,5rem);margin-bottom:1rem;filter:drop-shadow(0 4px 16px rgba(0,0,0,.4));">📖</div>
+      <div class="auth-side-logo">Digital Diary</div>
+      <p class="auth-side-tagline">
+        "The act of writing is the act of discovering what you believe."
+        <br><span style="font-size:.85em;opacity:.6;font-style:normal;font-family:var(--font-sans);font-weight:600;">— David Hare</span>
+      </p>
+
+      <div style="margin-top:2.5rem;display:flex;flex-direction:column;gap:1rem;text-align:left;max-width:300px;margin-inline:auto;">
+        {% set features = [
+          ("bi-shield-lock-fill", "Secure & private — your words, only yours"),
+          ("bi-emoji-smile", "Mood tracking across 10 emotional states"),
+          ("bi-graph-up-arrow", "Streak tracking & writing analytics"),
+          ("bi-search",        "Full-text search with advanced filters"),
+          ("bi-download",      "Export entries as Markdown or JSON"),
+        ] %}
+        {% for icon, text in features %}
+        <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.85rem;opacity:0.78;animation:fadeUp 0.5s {{ loop.index * 0.1 }}s ease-out both;">
+          <i class="bi {{ icon }}" style="font-size:1.05rem;flex-shrink:0;color:hsl(38 80% 65%);"></i>
+          {{ text }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right form panel ── -->
+  <div class="auth-form-side">
+    <div class="auth-form-box">
+
+      <!-- Theme toggle -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
+        <button class="theme-toggle" aria-label="Toggle colour theme">
+          <i class="bi bi-moon-fill"></i>
+          <span class="theme-label">Dark</span>
+        </button>
+      </div>
+
+      <h1 class="auth-form-title">
+        {% if auth_mode == 'register' %}Create your diary{% else %}Welcome back{% endif %}
+      </h1>
+      <p class="auth-form-sub">
+        {% if auth_mode == 'register' %}
+          Already have an account? <a href="/login">Sign in instead</a>
+        {% else %}
+          No account yet? <a href="/register">Start for free</a>
+        {% endif %}
+      </p>
+
+      <!-- Server-side error -->
+      {% if flash_error %}
+      <div class="flash flash-error" style="margin-bottom:1.25rem;position:static;animation:scaleIn .3s ease-out both;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>{{ flash_error }}</span>
+      </div>
+      {% endif %}
+
+      <!-- ══════════ REGISTER FORM ══════════ -->
+      {% if auth_mode == 'register' %}
+      <form method="post" action="/register" id="registerForm" novalidate autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- Username -->
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label" for="reg-username">
+            <i class="bi bi-person" aria-hidden="true"></i> Username
+          </label>
+          <div class="input-icon-wrap">
+            <i class="bi bi-at input-icon-prefix" aria-hidden="true"></i>
+            <input class="form-control"
+                   id="reg-username"
+                   name="username"
+                   placeholder="yourname"
+                   required
+                   minlength="3"
+                   maxlength="50"
+                   autocomplete="username"
+                   aria-describedby="username-feedback"
+                   pattern="[a-zA-Z0-9_]+">
+          </div>
+          <div class="form-feedback" id="username-feedback" aria-live="polite"></div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label" for="reg-email">
+            <i class="bi bi-envelope" aria-hidden="true"></i> Email address
+          </label>
+          <div class="input-icon-wrap">
+            <i class="bi bi-envelope input-icon-prefix" aria-hidden="true"></i>
+            <input class="form-control"
+                   id="reg-email"
+                   name="email"
+                   type="email"
+                   placeholder="you@example.com"
+                   required
+                   autocomplete="email"
+                   aria-describedby="email-feedback">
+          </div>
+          <div class="form-feedback" id="email-feedback" aria-live="polite"></div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group" style="margin-bottom:0.5rem;">
+          <label class="form-label" for="reg-password">
+            <i class="bi bi-lock" aria-hidden="true"></i> Password
+          </label>
+          <div class="password-wrap input-icon-wrap">
+            <i class="bi bi-lock input-icon-prefix" aria-hidden="true"></i>
+            <input class="form-control"
+                   id="reg-password"
+                   name="password"
+                   type="password"
+                   placeholder="••••••••"
+                   required
+                   minlength="8"
+                   autocomplete="new-password"
+                   aria-describedby="password-feedback pw-strength-label">
+            <button type="button" class="toggle-pw" aria-label="Show password">
+              <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="form-feedback" id="password-feedback" aria-live="polite"></div>
+
+          <!-- Strength meter -->
+          <div class="pw-strength">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div class="pw-strength-bar" style="flex:1;margin-right:.5rem;">
+                <div class="pw-strength-fill" id="pwStrengthFill"></div>
+              </div>
+              <span class="pw-strength-label" id="pwStrengthLabel" aria-live="polite"></span>
+            </div>
+            <div class="pw-requirements" id="pwRequirements">
+              <div class="pw-req" id="req-len">
+                <i class="bi bi-circle" aria-hidden="true"></i> At least 8 characters
+              </div>
+              <div class="pw-req" id="req-upper">
+                <i class="bi bi-circle" aria-hidden="true"></i> One uppercase letter (A–Z)
+              </div>
+              <div class="pw-req" id="req-lower">
+                <i class="bi bi-circle" aria-hidden="true"></i> One lowercase letter (a–z)
+              </div>
+              <div class="pw-req" id="req-num">
+                <i class="bi bi-circle" aria-hidden="true"></i> One number (0–9)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirm password -->
+        <div class="form-group" style="margin-bottom:1.5rem;">
+          <label class="form-label" for="reg-confirm">
+            <i class="bi bi-lock-fill" aria-hidden="true"></i> Confirm password
+          </label>
+          <div class="password-wrap input-icon-wrap">
+            <i class="bi bi-lock-fill input-icon-prefix" aria-hidden="true"></i>
+            <input class="form-control"
+                   id="reg-confirm"
+                   name="confirm_password"
+                   type="password"
+                   placeholder="••••••••"
+                   required
+                   autocomplete="new-password"
+                   aria-describedby="confirm-feedback">
+            <button type="button" class="toggle-pw" aria-label="Show confirm password">
+              <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="form-feedback" id="confirm-feedback" aria-live="polite"></div>
+        </div>
+
+        <button class="btn btn-primary no-ripple" style="width:100%;font-size:0.95rem;min-height:48px;" type="submit">
+          <i class="bi bi-person-plus-fill" aria-hidden="true"></i>
+          Create my diary
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+
+        <p style="text-align:center;margin-top:0.875rem;font-size:0.78rem;color:var(--txt-muted);">
+          By creating an account you agree to keep your personal data private.
+        </p>
+      </form>
+
+      <!-- ══════════ LOGIN FORM ══════════ -->
+      {% else %}
+      <form method="post" action="/login" id="loginForm" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- Username -->
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label" for="login-username">
+            <i class="bi bi-person" aria-hidden="true"></i> Username or email
+          </label>
+          <div class="input-icon-wrap">
+            <i class="bi bi-person input-icon-prefix" aria-hidden="true"></i>
+            <input class="form-control"
+                   id="login-username"
+                   name="username"
+                   placeholder="yourname or you@example.com"
+                   required
+                   autocomplete="username"
+                   aria-describedby="login-username-feedback">
+          </div>
+          <div class="form-feedback" id="login-username-feedback" aria-live="polite"></div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group" style="margin-bottom:0.5rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.35rem;">
+            <label class="form-label" for="login-password" style="margin-bottom:0;">
+              <i class="bi bi-lock" aria-hidden="true"></i> Password
+            </label>
+            <a href="/forgot-password" style="font-size:0.78rem;color:var(--clr-accent-dark);">
+              Forgot password?
+            </a>
+          </div>
+          <div class="password-wrap input-icon-wrap">
+            <i class="bi bi-lock input-icon-prefix" aria-hidden="true"></i>
+            <input class="form-control"
+                   id="login-password"
+                   name="password"
+                   type="password"
+                   placeholder="••••••••"
+                   required
+                   autocomplete="current-password"
+                   aria-describedby="login-password-feedback">
+            <button type="button" class="toggle-pw" aria-label="Show password">
+              <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="form-feedback" id="login-password-feedback" aria-live="polite"></div>
+        </div>
+
+        <div style="margin-bottom:1.5rem;"></div>
+
+        <button class="btn btn-primary no-ripple" style="width:100%;font-size:0.95rem;min-height:48px;" type="submit">
+          <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+          Sign in to my diary
+        </button>
+      </form>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', path='js/app.js') }}"></script>
+</body>
+</html>
+{% endblock %}

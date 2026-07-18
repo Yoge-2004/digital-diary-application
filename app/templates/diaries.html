@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}My Diaries — Digital Diary{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">
+      {% if archived %}Archived Entries
+      {% elif favorite %}Favourites
+      {% elif bookmarked %}Bookmarked
+      {% elif mood_filter %}Mood: {{ mood_filter | capitalize }}
+      {% elif tag_filter %}Tag: #{{ tag_filter }}
+      {% else %}My Diaries
+      {% endif %}
+    </div>
+    <div style="font-family:var(--font-hand);font-size:0.95rem;color:var(--txt-muted);">
+      {{ diaries | length }} entr{{ 'y' if diaries|length == 1 else 'ies' }} found
+    </div>
+  </div>
+  <a href="/diaries/new" class="btn btn-accent">
+    <i class="bi bi-pencil-fill" aria-hidden="true"></i> New entry
+  </a>
+</div>
+
+<!-- ── Layout: filter sidebar + cards ── -->
+<div style="display:grid;grid-template-columns:clamp(220px,24vw,260px) 1fr;gap:clamp(.75rem,2vw,1.5rem);align-items:start;"
+     class="diaries-layout">
+
+  <!-- Filter Sidebar -->
+  <aside class="filter-panel" aria-label="Filter entries">
+
+    <div class="filter-panel-title">
+      <i class="bi bi-funnel-fill" aria-hidden="true"></i> Filter &amp; Search
+    </div>
+
+    <form action="/diaries" method="get" id="filterForm">
+      <!-- Keyword search -->
+      <div class="form-group" style="margin-bottom:.875rem;">
+        <label class="form-label" for="diariesSearch">Keyword</label>
+        <div class="input-icon-wrap">
+          <i class="bi bi-search input-icon-prefix" aria-hidden="true"></i>
+          <input class="form-control" id="diariesSearch" name="q" placeholder="Search titles &amp; content…"
+                 value="{{ q or '' }}" autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Mood -->
+      <div class="form-group" style="margin-bottom:.875rem;">
+        <label class="form-label" for="moodFilter">Mood</label>
+        <select class="form-select" id="moodFilter" name="mood">
+          <option value="">All moods</option>
+          {% for m in ["happy","sad","neutral","angry","anxious","excited","grateful","calm","melancholy","hopeful"] %}
+          <option value="{{ m }}" {% if mood_filter == m %}selected{% endif %}>{{ m | capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Tag -->
+      <div class="form-group" style="margin-bottom:.875rem;">
+        <label class="form-label" for="tagFilter">Tag</label>
+        <select class="form-select" id="tagFilter" name="tag">
+          <option value="">All tags</option>
+          {% for tag in all_tags %}
+          <option value="{{ tag.name }}" {% if tag_filter == tag.name %}selected{% endif %}>#{{ tag.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Status toggles -->
+      <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.875rem;">
+        <a href="/diaries?favorite=true"
+           class="btn btn-sm {% if favorite %}btn-accent{% else %}btn-ghost{% endif %}"
+           style="justify-content:flex-start;">
+          <i class="bi bi-star{{ '-fill' if favorite else '' }}" aria-hidden="true"></i>
+          Favourites only
+        </a>
+        <a href="/diaries?bookmarked=true"
+           class="btn btn-sm {% if bookmarked %}btn-accent{% else %}btn-ghost{% endif %}"
+           style="justify-content:flex-start;">
+          <i class="bi bi-bookmark{{ '-fill' if bookmarked else '' }}" aria-hidden="true"></i>
+          Bookmarked
+        </a>
+        <a href="/diaries?archived=true"
+           class="btn btn-sm {% if archived %}btn-surface{% else %}btn-ghost{% endif %}"
+           style="justify-content:flex-start;">
+          <i class="bi bi-archive{{ '-fill' if archived else '' }}" aria-hidden="true"></i>
+          Archived
+        </a>
+      </div>
+
+      <button class="btn btn-primary btn-sm" type="submit" style="width:100%;">
+        <i class="bi bi-search" aria-hidden="true"></i> Apply filters
+      </button>
+
+      {% if q or mood_filter or tag_filter or favorite or bookmarked or archived %}
+      <a href="/diaries" class="btn btn-ghost btn-sm" style="width:100%;margin-top:.4rem;">
+        <i class="bi bi-x-circle" aria-hidden="true"></i> Clear all
+      </a>
+      {% endif %}
+    </form>
+
+  </aside>
+
+  <!-- ── Entries list ── -->
+  <div>
+    {% if pinned_diaries %}
+    <div style="margin-bottom:1.25rem;">
+      <div class="pinned-section-title">
+        <i class="bi bi-pin-fill" aria-hidden="true"></i> Pinned
+      </div>
+      <div class="stagger" style="display:flex;flex-direction:column;gap:.6rem;">
+        {% for diary in pinned_diaries %}
+        {% include "partials/diary_card.html" %}
+        {% endfor %}
+      </div>
+    </div>
+    <hr class="divider">
+    {% endif %}
+
+    {% if diaries %}
+    <div class="stagger" style="display:flex;flex-direction:column;gap:.6rem;">
+      {% for diary in diaries %}
+      {% include "partials/diary_card.html" %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">📖</span>
+      <div class="empty-title">
+        {% if q or mood_filter or tag_filter or favorite or archived %}
+          No entries match your filters
+        {% else %}
+          Your diary is empty
+        {% endif %}
+      </div>
+      <p class="empty-sub">
+        {% if q or mood_filter or tag_filter %}
+          Try adjusting your search or <a href="/diaries">view all entries</a>
+        {% elif favorite %}
+          <a href="/diaries">Find entries to favourite</a>
+        {% else %}
+          Every story starts with a first word.
+        {% endif %}
+      </p>
+      {% if not q and not mood_filter and not tag_filter and not favorite and not archived %}
+      <a href="/diaries/new" class="btn btn-accent" style="margin-top:1.25rem;">
+        <i class="bi bi-pencil-fill" aria-hidden="true"></i> Write your first entry
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+</div><!-- /grid -->
+
+{% endblock %}

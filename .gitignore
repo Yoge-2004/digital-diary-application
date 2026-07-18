@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing / cache
+.pytest_cache/
+.junie/
+.agents/
+
+# Databases & local files
+*.db
+*.sqlite3
+uploads/

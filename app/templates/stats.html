@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Statistics — Digital Diary{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">
+    <i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i> Statistics
+  </div>
+  <a href="/calendar" class="btn btn-ghost btn-sm">
+    <i class="bi bi-calendar3" aria-hidden="true"></i> Calendar
+  </a>
+</div>
+
+<!-- ── Top stat cards (with count-up) ── -->
+<div class="stat-grid stagger" style="margin-bottom:1.75rem;">
+  <div class="stat-card">
+    <div class="stat-card-icon" aria-hidden="true">📝</div>
+    <div class="stat-label">Total Entries</div>
+    <div class="stat-value" data-count="{{ summary.total_entries }}">{{ summary.total_entries }}</div>
+    <div class="stat-sub">all time</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon" aria-hidden="true">🔥</div>
+    <div class="stat-label">Current Streak</div>
+    <div class="stat-value" data-count="{{ summary.current_streak }}">{{ summary.current_streak }}</div>
+    <div class="stat-sub">day{{ 's' if summary.current_streak != 1 else '' }} in a row</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon" aria-hidden="true">🏆</div>
+    <div class="stat-label">Longest Streak</div>
+    <div class="stat-value" data-count="{{ summary.longest_streak }}">{{ summary.longest_streak }}</div>
+    <div class="stat-sub">best record</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon" aria-hidden="true">⭐</div>
+    <div class="stat-label">Favourites</div>
+    <div class="stat-value" data-count="{{ summary.favorites }}">{{ summary.favorites }}</div>
+    <div class="stat-sub">starred entries</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon" aria-hidden="true">📅</div>
+    <div class="stat-label">This Month</div>
+    <div class="stat-value" data-count="{{ summary.monthly_entries }}">{{ summary.monthly_entries }}</div>
+    <div class="stat-sub">entries written</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon" aria-hidden="true">🗄️</div>
+    <div class="stat-label">Archived</div>
+    <div class="stat-value" data-count="{{ summary.archive_count }}">{{ summary.archive_count }}</div>
+    <div class="stat-sub">
+      <a href="/diaries?archived=true" style="font-size:.75rem;color:var(--clr-accent-dark);">View archived →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts grid ── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(.75rem,2vw,1.5rem);" class="stats-grid">
+
+  <!-- Mood Distribution -->
+  <div class="card card-paper">
+    <div class="card-header">
+      <i class="bi bi-emoji-smile" aria-hidden="true"></i> Mood Distribution
+    </div>
+    <div class="card-body">
+      {% if summary.mood_distribution %}
+      {% set max_mood_count = summary.mood_distribution.values() | max %}
+      {% set moods_emoji = {"happy":"😄","sad":"😢","neutral":"😐","angry":"😠","anxious":"😰","excited":"🤩","grateful":"🙏","calm":"😌","melancholy":"😔","hopeful":"🌟"} %}
+      {% for mood, count in summary.mood_distribution.items() | sort(attribute=1, reverse=True) %}
+      {% set pct = ((count / max_mood_count) * 100) | round | int %}
+      <div class="mood-bar-row">
+        <div class="mood-bar-label">
+          <span aria-hidden="true">{{ moods_emoji.get(mood, '😶') }}</span> {{ mood }}
+        </div>
+        <div class="mood-bar-track" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ mood }} mood: {{ count }} entries">
+          <div class="mood-bar-fill" style="width:{{ pct }}%"></div>
+        </div>
+        <div class="mood-bar-count">{{ count }}</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:1.5rem 0;">
+        <span class="empty-icon" style="font-size:2rem;">😶</span>
+        <p class="empty-sub">Write some entries to see your mood patterns</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Day of Week Activity -->
+  <div class="card card-paper">
+    <div class="card-header">
+      <i class="bi bi-calendar-week" aria-hidden="true"></i> Best Writing Days
+    </div>
+    <div class="card-body">
+      {% if summary.dow_activity %}
+      {% set max_dow = summary.dow_activity.values() | max %}
+      {% for day, count in summary.dow_activity.items() %}
+      {% set pct = ((count / (max_dow or 1)) * 100) | round | int %}
+      <div class="mood-bar-row">
+        <div class="mood-bar-label" style="min-width:clamp(55px,10vw,80px);">{{ day }}</div>
+        <div class="mood-bar-track">
+          <div class="mood-bar-fill"
+               style="width:{{ pct }}%;background:linear-gradient(90deg,var(--clr-sage),hsl(185 50% 55%));"></div>
+        </div>
+        <div class="mood-bar-count">{{ count }}</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:1.5rem 0;">
+        <span class="empty-icon" style="font-size:2rem;">📅</span>
+        <p class="empty-sub">No activity data yet</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Monthly Activity — full width -->
+  <div class="card card-paper" style="grid-column:1/-1;">
+    <div class="card-header">
+      <i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Monthly Activity
+    </div>
+    <div class="card-body">
+      {% if summary.monthly_activity %}
+      {% set max_monthly = summary.monthly_activity.values() | max %}
+      <div style="display:flex;align-items:flex-end;gap:clamp(.3rem,1vw,.6rem);height:clamp(80px,15vw,140px);
+                  overflow-x:auto;padding-bottom:.5rem;" role="img" aria-label="Monthly writing activity chart">
+        {% for month_key, count in summary.monthly_activity.items() | sort %}
+        {% set bar_h = ((count / (max_monthly or 1)) * 100) | round | int %}
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem;flex-shrink:0;min-width:clamp(28px,4vw,40px);">
+          <div style="font-size:clamp(.6rem,1vw,.7rem);font-weight:700;color:var(--txt-muted);">{{ count }}</div>
+          <div style="width:clamp(20px,3vw,30px);
+                      background:linear-gradient(180deg,var(--clr-accent),var(--clr-ink));
+                      border-radius:4px 4px 0 0;
+                      height:{{ bar_h }}%;min-height:4px;
+                      transition:height .8s var(--ease-out);
+                      box-shadow:0 2px 8px hsl(38 85% 52% / .2);">
+          </div>
+          <div style="font-size:clamp(.58rem,.9vw,.68rem);color:var(--txt-muted);transform:rotate(-30deg);transform-origin:top center;white-space:nowrap;margin-top:6px;">
+            {{ month_key }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:1.5rem 0;">
+        <span class="empty-icon" style="font-size:2rem;">📈</span>
+        <p class="empty-sub">Write some entries to see monthly activity</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div><!-- /stats-grid -->
+
+<style>
+  @media(max-width:700px) {
+    .stats-grid { grid-template-columns:1fr !important; }
+    .stats-grid > .card:last-child { grid-column:1 !important; }
+  }
+</style>
+{% endblock %}

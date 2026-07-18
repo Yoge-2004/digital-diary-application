@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Digital Diary{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">
+      Good {{ "morning" if now.hour < 12 else "afternoon" if now.hour < 17 else "evening" }},
+      <span style="font-style:italic;color:var(--clr-accent-dark);">{{ current_user.username }}</span>
+    </div>
+    <div style="font-family:var(--font-hand);font-size:1.05rem;color:var(--txt-muted);margin-top:0.1rem;">
+      {{ now.strftime('%A, %B %-d, %Y') }}
+    </div>
+  </div>
+  <a href="/diaries/new" class="btn btn-accent">
+    <i class="bi bi-pencil-fill" aria-hidden="true"></i> New entry
+  </a>
+</div>
+
+<!-- ── Stat grid ── -->
+<div class="stat-grid stagger" style="margin-bottom:1.75rem;">
+  <div class="stat-card">
+    <div class="stat-card-icon">📝</div>
+    <div class="stat-label">Total Entries</div>
+    <div class="stat-value" data-count="{{ summary.total_entries }}">{{ summary.total_entries }}</div>
+    <div class="stat-sub">all time</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon">🔥</div>
+    <div class="stat-label">Writing Streak</div>
+    <div class="stat-value" data-count="{{ summary.current_streak }}">{{ summary.current_streak }}</div>
+    <div class="stat-sub">day{{ 's' if summary.current_streak != 1 else '' }} in a row</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon">⭐</div>
+    <div class="stat-label">Favourites</div>
+    <div class="stat-value" data-count="{{ summary.favorites }}">{{ summary.favorites }}</div>
+    <div class="stat-sub"><a href="/diaries?favorite=true" style="font-size:.72rem;color:var(--clr-accent-dark);">View all →</a></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon">📅</div>
+    <div class="stat-label">This Month</div>
+    <div class="stat-value" data-count="{{ summary.monthly_entries }}">{{ summary.monthly_entries }}</div>
+    <div class="stat-sub">entries written</div>
+  </div>
+</div>
+
+<!-- ── Two-column layout ── -->
+<div style="display:grid;grid-template-columns:1fr clamp(280px,30vw,340px);gap:clamp(1rem,2vw,1.5rem);align-items:start;" class="dash-grid">
+
+  <!-- Recent entries -->
+  <div class="card card-paper">
+    <div class="card-header">
+      <i class="bi bi-clock-history" aria-hidden="true"></i> Recent Entries
+      <a href="/diaries" class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:.78rem;">
+        All entries <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+
+    {% if summary.recent_diaries %}
+    <div>
+      {% for diary in summary.recent_diaries %}
+      {% set mood_class = "mood--" + diary.mood %}
+      <a href="/diaries/{{ diary.id }}" style="text-decoration:none;color:inherit;display:block;">
+        <div class="diary-card {{ mood_class }}"
+             style="border-radius:0;border:none;border-bottom:1px solid var(--border-color);box-shadow:none;background:transparent;
+                    {% if loop.last %}border-bottom:none{% endif %};margin:0;animation-delay:{{ loop.index0 * 0.07 }}s;">
+          <div class="diary-card-mood-strip"></div>
+          <div class="diary-card-body">
+            <div class="diary-card-meta">
+              <div class="diary-card-title">{{ diary.title }}</div>
+              <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0;">
+                <span class="mood-badge {{ mood_class }}">{{ diary.mood }}</span>
+                <span class="diary-card-date">{{ diary.created_at.strftime('%b %-d') }}</span>
+              </div>
+            </div>
+            <div class="diary-card-excerpt">{{ diary.content[:160] }}{% if diary.content|length > 160 %}…{% endif %}</div>
+            <div class="diary-card-footer">
+              {% for tag in diary.tags | list %}{% if loop.index <= 3 %}
+              <a href="/diaries?tag={{ tag.name }}" class="tag-badge"><i class="bi bi-hash" aria-hidden="true"></i>{{ tag.name }}</a>
+              {% endif %}{% endfor %}
+              {% if diary.is_pinned %}<span class="status-badge pinned"><i class="bi bi-pin-fill" aria-hidden="true"></i> Pinned</span>{% endif %}
+              {% if diary.is_favorite %}<span class="status-badge favorite"><i class="bi bi-star-fill" aria-hidden="true"></i></span>{% endif %}
+              {% if diary.is_bookmarked %}<span class="status-badge bookmarked"><i class="bi bi-bookmark-fill" aria-hidden="true"></i></span>{% endif %}
+            </div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div style="padding:.75rem 1.25rem;text-align:center;border-top:1px solid var(--border-color);">
+      <a href="/diaries/new" class="btn btn-accent btn-sm" style="width:100%;">
+        <i class="bi bi-pencil-fill" aria-hidden="true"></i>
+        {% if summary.current_streak > 0 %}
+          Keep your {{ summary.current_streak }}-day streak going!
+        {% else %}
+          Write today's entry
+        {% endif %}
+      </a>
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">📝</span>
+      <div class="empty-title">Your diary is empty</div>
+      <p class="empty-sub">Every great journey starts with a single entry.</p>
+      <a href="/diaries/new" class="btn btn-accent" style="margin-top:1rem;">
+        <i class="bi bi-pencil-fill" aria-hidden="true"></i> Write your first entry
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Streak card -->
+    <div class="card card-paper">
+      <div class="card-header"><i class="bi bi-trophy-fill" style="color:var(--clr-accent);" aria-hidden="true"></i> Streaks</div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;text-align:center;margin-bottom:.75rem;">
+          <div style="background:var(--bg-surface-2);border-radius:var(--border-radius-sm);padding:.75rem;border:1px solid var(--border-color);">
+            <div class="stat-value" style="font-size:1.75rem;" data-count="{{ summary.current_streak }}">{{ summary.current_streak }}</div>
+            <div class="stat-label" style="font-size:.68rem;">Current</div>
+          </div>
+          <div style="background:var(--bg-surface-2);border-radius:var(--border-radius-sm);padding:.75rem;border:1px solid var(--border-color);">
+            <div class="stat-value" style="font-size:1.75rem;" data-count="{{ summary.longest_streak }}">{{ summary.longest_streak }}</div>
+            <div class="stat-label" style="font-size:.68rem;">Longest</div>
+          </div>
+        </div>
+        <a href="/stats" class="btn btn-ghost btn-sm" style="width:100%;font-size:.78rem;">
+          <i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i> Full statistics
+        </a>
+      </div>
+    </div>
+
+    <!-- Mood breakdown -->
+    <div class="card card-paper">
+      <div class="card-header"><i class="bi bi-emoji-smile" aria-hidden="true"></i> Mood Breakdown</div>
+      <div class="card-body">
+        {% if summary.mood_distribution %}
+        {% set max_count = summary.mood_distribution.values() | max %}
+        {% set moods_emoji = {"happy":"😄","sad":"😢","neutral":"😐","angry":"😠","anxious":"😰","excited":"🤩","grateful":"🙏","calm":"😌","melancholy":"😔","hopeful":"🌟"} %}
+        {% for mood, count in summary.mood_distribution.items() | sort(attribute=1, reverse=True) %}
+        {% set pct = ((count / max_count) * 100) | round | int %}
+        <div class="mood-bar-row">
+          <div class="mood-bar-label">
+            <span>{{ moods_emoji.get(mood, '😶') }}</span> {{ mood }}
+          </div>
+          <div class="mood-bar-track">
+            <div class="mood-bar-fill" style="width:{{ pct }}%"></div>
+          </div>
+          <div class="mood-bar-count">{{ count }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="font-family:var(--font-hand);font-size:1rem;color:var(--txt-muted);text-align:center;">
+          Write some entries to see your mood patterns ✨
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="card card-paper">
+      <div class="card-header"><i class="bi bi-lightning-fill" style="color:var(--clr-accent);" aria-hidden="true"></i> Quick links</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:.4rem;">
+        <a href="/calendar" class="btn btn-ghost btn-sm" style="justify-content:flex-start;">
+          <i class="bi bi-calendar3" aria-hidden="true"></i> View calendar
+        </a>
+        <a href="/diaries?favorite=true" class="btn btn-ghost btn-sm" style="justify-content:flex-start;">
+          <i class="bi bi-star-fill" style="color:var(--clr-accent);" aria-hidden="true"></i> Favourites
+        </a>
+        <a href="/search" class="btn btn-ghost btn-sm" style="justify-content:flex-start;">
+          <i class="bi bi-search" aria-hidden="true"></i> Search entries
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Inject datetime for greeting
+  const now = new Date();
+  document.querySelectorAll('.page-title').forEach(el => {
+    // greeting already set server-side but update day string client-side
+  });
+</script>
+{% endblock %}
