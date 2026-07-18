@@ -23,6 +23,11 @@
 </head>
 <body>
 
+<div class="grain-overlay" aria-hidden="true"></div>
+<div class="ambient-glow g1" aria-hidden="true"></div>
+<div class="ambient-glow g2" aria-hidden="true"></div>
+<div class="ambient-motes" id="ambientMotes" aria-hidden="true"></div>
+
 {% block body %}
 <div class="app-layout">
 
@@ -151,6 +156,7 @@
 
 <!-- Scripts -->
 <script src="{{ url_for('static', path='js/app.js') }}"></script>
+<script src="{{ url_for('static', path='js/motion.js') }}"></script>
 <script>
   // Show topbar search and new button on desktop
   (function() {
