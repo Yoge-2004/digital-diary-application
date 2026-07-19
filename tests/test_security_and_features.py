@@ -273,8 +273,35 @@ def test_attachment_upload_and_visibility_on_page():
 
 
 # ---------------------------------------------------------------------
-# Location tagging
+# Button feedback (AJAX toggles shouldn't trigger a full navigation)
 # ---------------------------------------------------------------------
+
+def test_card_list_toggle_is_ajax_not_a_page_reload():
+    """Regression test: the diary-card list view's favorite/bookmark/pin
+    buttons used to be plain <form> submits, which redirected (303) back
+    to the same page — triggering a full page-turn view-transition just
+    to toggle an icon. They should now behave exactly like the entry
+    detail page's toggles: an instant JSON response, no redirect."""
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+        diary_id = client.post("/api/diaries", json={"title": "Card toggle test", "content": "..."}).json()["id"]
+
+        list_html = client.get("/diaries").text
+        assert f'data-toggle-url="/diaries/{diary_id}/favorite"' in list_html
+        assert f'action="/diaries/{diary_id}/favorite"' not in list_html
+
+        csrf = client.cookies.get("csrf_token")
+        response = client.post(
+            f"/diaries/{diary_id}/favorite",
+            data={"csrf_token": csrf},
+            headers={"X-Requested-With": "fetch"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("application/json")
+        assert response.json() == {"ok": True, "flag": "is_favorite", "value": True}
+
 
 def test_location_round_trips_through_api_and_page():
     client, tmp = build_client()

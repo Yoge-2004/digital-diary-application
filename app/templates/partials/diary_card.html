@@ -8,38 +8,41 @@
       <div style="display:flex;align-items:center;gap:.35rem;flex-shrink:0;">
         <span class="diary-card-date">{{ diary.created_at.strftime('%b %-d') }}</span>
         <div class="diary-card-actions">
-          <form method="post" action="/diaries/{{ diary.id }}/favorite" style="display:contents;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="back" value="{{ request.url }}">
-            <button type="submit" class="icon-btn"
-                    title="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }}"
-                    style="color:{{ 'hsl(38 85% 52%)' if diary.is_favorite else 'inherit' }};"
-                    aria-label="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }} {{ diary.title }}">
-              <i class="bi bi-star{{ '-fill' if diary.is_favorite else '' }}" aria-hidden="true"></i>
-            </button>
-          </form>
-          
-          <form method="post" action="/diaries/{{ diary.id }}/bookmark" style="display:contents;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="back" value="{{ request.url }}">
-            <button type="submit" class="icon-btn"
-                    title="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }}"
-                    style="color:{{ 'var(--clr-slate)' if diary.is_bookmarked else 'inherit' }};"
-                    aria-label="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }} {{ diary.title }}">
-              <i class="bi bi-bookmark{{ '-fill' if diary.is_bookmarked else '' }}" aria-hidden="true"></i>
-            </button>
-          </form>
+          <button type="button" class="icon-btn {{ 'is-favorited' if diary.is_favorite else '' }}"
+                  data-toggle-url="/diaries/{{ diary.id }}/favorite"
+                  data-toggle-flag="is_favorite"
+                  data-active-class="is-favorited"
+                  data-icon-on="bi-star-fill"
+                  data-icon-off="bi-star"
+                  aria-pressed="{{ 'true' if diary.is_favorite else 'false' }}"
+                  title="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }}"
+                  aria-label="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }} {{ diary.title }}">
+            <i class="bi bi-star{{ '-fill' if diary.is_favorite else '' }}" aria-hidden="true"></i>
+          </button>
 
-          <form method="post" action="/diaries/{{ diary.id }}/pin" style="display:contents;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="back" value="{{ request.url }}">
-            <button type="submit" class="icon-btn"
-                    title="{{ 'Unpin' if diary.is_pinned else 'Pin' }}"
-                    style="color:{{ 'var(--clr-sage)' if diary.is_pinned else 'inherit' }};"
-                    aria-label="{{ 'Unpin' if diary.is_pinned else 'Pin' }} {{ diary.title }}">
-              <i class="bi bi-pin{{ '-fill' if diary.is_pinned else '' }}" aria-hidden="true"></i>
-            </button>
-          </form>
+          <button type="button" class="icon-btn {{ 'is-bookmarked' if diary.is_bookmarked else '' }}"
+                  data-toggle-url="/diaries/{{ diary.id }}/bookmark"
+                  data-toggle-flag="is_bookmarked"
+                  data-active-class="is-bookmarked"
+                  data-icon-on="bi-bookmark-fill"
+                  data-icon-off="bi-bookmark"
+                  aria-pressed="{{ 'true' if diary.is_bookmarked else 'false' }}"
+                  title="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }}"
+                  aria-label="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }} {{ diary.title }}">
+            <i class="bi bi-bookmark{{ '-fill' if diary.is_bookmarked else '' }}" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="icon-btn {{ 'is-pinned' if diary.is_pinned else '' }}"
+                  data-toggle-url="/diaries/{{ diary.id }}/pin"
+                  data-toggle-flag="is_pinned"
+                  data-active-class="is-pinned"
+                  data-icon-on="bi-pin-fill"
+                  data-icon-off="bi-pin"
+                  aria-pressed="{{ 'true' if diary.is_pinned else 'false' }}"
+                  title="{{ 'Unpin' if diary.is_pinned else 'Pin' }}"
+                  aria-label="{{ 'Unpin' if diary.is_pinned else 'Pin' }} {{ diary.title }}">
+            <i class="bi bi-pin{{ '-fill' if diary.is_pinned else '' }}" aria-hidden="true"></i>
+          </button>
         </div>
       </div>
     </div>

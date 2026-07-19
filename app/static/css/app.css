@@ -2875,7 +2875,27 @@ img, video { max-width: 100%; display: block; }
 }
 .reveal.is-visible { opacity: 1; transform: none; }
 
-/* 11. Topbar glass + selection + scrollbar polish ---------------------- */
+/* ---- 12. Icon-button toggle states (card list quick actions) ------ */
+.icon-btn.is-favorited  { color: hsl(38 85% 52%) !important; }
+.icon-btn.is-bookmarked { color: var(--clr-slate) !important; }
+.icon-btn.is-pinned     { color: var(--clr-sage) !important; }
+
+.icon-btn { transition: color var(--t-fast), background var(--t-fast), transform 150ms var(--ease-spring); }
+.icon-btn:active { transform: scale(0.88); }
+
+/* A quick "landed" pop right after a toggle completes, so the click
+   reads as an action even on a fast connection where the loading
+   spinner barely has time to show. Triggered by app.js adding/removing
+   .just-toggled once the fetch resolves. */
+@keyframes toggle-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.icon-btn.just-toggled i,
+.btn.just-toggled i { animation: toggle-pop 420ms var(--ease-spring); }
+
+/* 13. Topbar glass + selection + scrollbar polish ---------------------- */
 .topbar {
   background: hsl(0 0% 100% / .84);
   backdrop-filter: blur(10px) saturate(1.15);

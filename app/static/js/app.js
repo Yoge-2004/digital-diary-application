@@ -941,6 +941,10 @@
         const labelOff    = btn.dataset.labelOff;
 
         btn.classList.toggle(activeClass, isOn);
+        btn.classList.remove("just-toggled");
+        void btn.offsetWidth; // restart the animation even on rapid re-toggles
+        btn.classList.add("just-toggled");
+        setTimeout(() => btn.classList.remove("just-toggled"), 450);
 
         const iconEl = btn.querySelector("i");
         if (iconEl && iconOn && iconOff) {
