@@ -426,7 +426,10 @@ def diary_detail(request: Request, diary_id: str, db: Session = Depends(get_db),
 def edit_diary_page(request: Request, diary_id: str, db: Session = Depends(get_db), current_user=Depends(get_optional_user)):
     if not current_user:
         return _redirect("/login")
-    diary = services.get_diary(db, current_user, diary_id)
+    try:
+        diary = services.get_owned_diary(db, current_user, diary_id)
+    except Exception:
+        return _redirect("/diaries?err=Entry+not+found+or+access+denied")
     all_tags = repositories.list_tags(db, current_user.id)
     return _response_with_csrf(
         request,
@@ -456,7 +459,7 @@ def edit_diary(
         return _redirect("/login")
     try:
         verify_csrf(request, csrf_token)
-        diary = services.get_diary(db, current_user, diary_id)
+        diary = services.get_owned_diary(db, current_user, diary_id)
         services.edit_diary(
             db,
             diary,
@@ -470,14 +473,24 @@ def edit_diary(
 def _toggle_and_redirect(request: Request, diary_id: str, flag: str, db: Session, current_user, back: str | None = None):
     """Toggle a boolean flag; return JSON if called via fetch, else redirect."""
     from fastapi.responses import JSONResponse
+    is_ajax = request.headers.get("X-Requested-With") == "fetch"
     if not current_user:
-        if request.headers.get("X-Requested-With") == "fetch":
+        if is_ajax:
             return JSONResponse({"ok": False, "detail": "Not authenticated"}, status_code=401)
         return _redirect("/login")
-    diary = services.get_diary(db, current_user, diary_id)
-    services.toggle_flag(db, diary, flag)
+    try:
+        diary = services.get_owned_diary(db, current_user, diary_id)
+        services.toggle_flag(db, diary, flag)
+    except Exception as exc:
+        if is_ajax:
+            status_code = getattr(exc, "status_code", 400)
+            detail = getattr(exc, "detail", None) or _safe_msg(exc)
+            return JSONResponse({"ok": False, "detail": detail}, status_code=status_code)
+        dest = back or "/diaries"
+        sep = "&" if "?" in dest else "?"
+        return _redirect(f"{dest}{sep}err={_safe_msg(exc)}")
     new_value = getattr(diary, flag)
-    if request.headers.get("X-Requested-With") == "fetch":
+    if is_ajax:
         return JSONResponse({"ok": True, "flag": flag, "value": new_value})
     dest = back or f"/diaries/{diary_id}"
     return _redirect(dest)
@@ -492,8 +505,7 @@ async def favorite_diary(
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
-    if request.headers.get("X-Requested-With") != "fetch":
-        verify_csrf(request, csrf_token)
+    verify_csrf(request, csrf_token)
     return _toggle_and_redirect(request, diary_id, "is_favorite", db, current_user, back)
 
 
@@ -506,8 +518,7 @@ async def pin_diary(
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
-    if request.headers.get("X-Requested-With") != "fetch":
-        verify_csrf(request, csrf_token)
+    verify_csrf(request, csrf_token)
     return _toggle_and_redirect(request, diary_id, "is_pinned", db, current_user, back)
 
 
@@ -520,8 +531,7 @@ async def archive_diary(
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
-    if request.headers.get("X-Requested-With") != "fetch":
-        verify_csrf(request, csrf_token)
+    verify_csrf(request, csrf_token)
     return _toggle_and_redirect(request, diary_id, "is_archived", db, current_user, back)
 
 
@@ -535,9 +545,12 @@ def restore_diary(
 ):
     if not current_user:
         return _redirect("/login")
-    verify_csrf(request, csrf_token)
-    diary = services.get_diary(db, current_user, diary_id)
-    services.restore_diary(db, diary)
+    try:
+        verify_csrf(request, csrf_token)
+        diary = services.get_owned_diary(db, current_user, diary_id)
+        services.restore_diary(db, diary)
+    except Exception as exc:
+        return _redirect(f"/diaries?err={_safe_msg(exc)}")
     return _redirect(f"/diaries/{diary_id}?msg=Entry+restored")
 
 
@@ -551,9 +564,12 @@ def duplicate_diary(
 ):
     if not current_user:
         return _redirect("/login")
-    verify_csrf(request, csrf_token)
-    diary = services.get_diary(db, current_user, diary_id)
-    clone = services.duplicate_diary(db, diary)
+    try:
+        verify_csrf(request, csrf_token)
+        diary = services.get_owned_diary(db, current_user, diary_id)
+        clone = services.duplicate_diary(db, diary)
+    except Exception as exc:
+        return _redirect(f"/diaries/{diary_id}?err={_safe_msg(exc)}")
     return _redirect(f"/diaries/{clone.id}?msg=Entry+duplicated")
 
 
@@ -567,9 +583,12 @@ def delete_diary(
 ):
     if not current_user:
         return _redirect("/login")
-    verify_csrf(request, csrf_token)
-    diary = services.get_diary(db, current_user, diary_id)
-    services.delete_diary(db, diary)
+    try:
+        verify_csrf(request, csrf_token)
+        diary = services.get_owned_diary(db, current_user, diary_id)
+        services.delete_diary(db, diary)
+    except Exception as exc:
+        return _redirect(f"/diaries?err={_safe_msg(exc)}")
     return _redirect("/diaries?msg=Entry+deleted")
 
 
@@ -689,10 +708,9 @@ async def upload_attachment(
             return JSONResponse({"ok": False, "detail": detail}, status_code=400)
         return _redirect(f"/diaries/{diary_id}?err={detail}")
     try:
-        if not is_ajax:
-            verify_csrf(request, csrf_token)
-        diary = services.get_diary(db, current_user, diary_id)
-        att = services.attach_file(db, current_user, diary, file)
+        verify_csrf(request, csrf_token)
+        diary = services.get_owned_diary(db, current_user, diary_id)
+        att = services.attach_file(db, current_user, diary, file, upload_dir=request.app.state.settings.upload_dir)
         if is_ajax:
             return JSONResponse({
                 "ok": True,
@@ -791,8 +809,7 @@ async def bookmark_diary(
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
-    if request.headers.get("X-Requested-With") != "fetch":
-        verify_csrf(request, csrf_token)
+    verify_csrf(request, csrf_token)
     return _toggle_and_redirect(request, diary_id, "is_bookmarked", db, current_user, back)
 
 
