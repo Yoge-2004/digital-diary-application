@@ -24,3 +24,6 @@ env/
 *.db
 *.sqlite3
 uploads/
+.coverage
+coverage.json
+htmlcov/
