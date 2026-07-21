@@ -41,11 +41,13 @@
       <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0.75rem 1.5rem;border-bottom:1px solid var(--border-color);">
         <div class="journal-datestamp">
           <i class="bi bi-feather" aria-hidden="true"></i>
-          {% if mode == 'edit' and diary %}
-            {{ diary.created_at.strftime('%A, %B %-d, %Y') }}
-          {% else %}
-            <span id="liveDate"></span>
-          {% endif %}
+          <input type="date"
+                 name="entry_date"
+                 id="entryDateInput"
+                 class="journal-date-input"
+                 value="{% if mode == 'edit' and diary %}{{ diary.created_at.strftime('%Y-%m-%d') }}{% else %}{{ today }}{% endif %}"
+                 max="{{ today }}"
+                 aria-label="Entry date — pick a previous day to backdate this entry">
         </div>
         <div style="display:flex;align-items:center;gap:.5rem;">
           <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);" for="diaryVisibility">

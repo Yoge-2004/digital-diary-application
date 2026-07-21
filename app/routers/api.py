@@ -147,13 +147,14 @@ def list_diaries(
     tag: str | None = None,
     mood: str | None = None,
     favorite: bool | None = None,
-    archived: bool | None = None,
+    archived: bool = False,
     month: int | None = None,
     year: int | None = None,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """List the current user's diaries with optional filters."""
+    """List the current user's diaries with optional filters. `archived`
+    defaults to False (hidden), matching the web /diaries list."""
     return services.list_diaries(
         db,
         current_user,

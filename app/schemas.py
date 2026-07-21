@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -51,6 +51,7 @@ class DiaryBase(BaseModel):
     visibility: str = Field(default="private", max_length=20)
     location: str | None = Field(default=None, max_length=255)
     tags: list[str] = Field(default_factory=list)
+    entry_date: date | None = Field(default=None, description="Backdate this entry to a previous day; defaults to today if omitted. Cannot be in the future.")
 
 
 class DiaryCreate(DiaryBase):
@@ -64,6 +65,7 @@ class DiaryUpdate(BaseModel):
     visibility: str | None = Field(default=None, max_length=20)
     location: str | None = Field(default=None, max_length=255)
     tags: list[str] | None = None
+    entry_date: date | None = None
     is_archived: bool | None = None
     is_favorite: bool | None = None
     is_pinned: bool | None = None

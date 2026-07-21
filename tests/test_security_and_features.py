@@ -10,6 +10,7 @@ cookie jar while sharing backend state — this is how "alice" and
 
 from __future__ import annotations
 
+import datetime as dt
 import re
 import tempfile
 
@@ -301,6 +302,61 @@ def test_card_list_toggle_is_ajax_not_a_page_reload():
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/json")
         assert response.json() == {"ok": True, "flag": "is_favorite", "value": True}
+
+
+# ---------------------------------------------------------------------
+# Archived entries should be hidden from the default list
+# ---------------------------------------------------------------------
+
+def test_archived_entries_hidden_from_default_list():
+    """Regression test: archived=None was being passed through explicitly
+    from the route handler, which skipped the repository's hide-archived
+    -by-default filter entirely, so archived entries leaked into the main
+    /diaries list and /api/diaries response."""
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+        diary_id = client.post("/api/diaries", json={"title": "To archive", "content": "..."}).json()["id"]
+        client.patch(f"/api/diaries/{diary_id}/archive")
+
+        assert client.get("/api/diaries").json() == []
+
+        list_html = client.get("/diaries").text
+        assert "To archive" not in list_html
+
+        # explicitly asking for archived should still find it
+        archived_html = client.get("/diaries?archived=true").text
+        assert "To archive" in archived_html
+
+
+# ---------------------------------------------------------------------
+# Backdating entries
+# ---------------------------------------------------------------------
+
+def test_entry_can_be_backdated_but_not_future_dated():
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+
+        past = (dt.date.today() - dt.timedelta(days=5)).isoformat()
+        created = client.post(
+            "/api/diaries",
+            json={"title": "Forgot to write this", "content": "...", "entry_date": past},
+        )
+        assert created.status_code == 201
+        diary_id = created.json()["id"]
+        assert client.get(f"/api/diaries/{diary_id}").json()["created_at"].startswith(past)
+
+        future = (dt.date.today() + dt.timedelta(days=1)).isoformat()
+        rejected = client.post(
+            "/api/diaries",
+            json={"title": "Scheduling ahead", "content": "...", "entry_date": future},
+        )
+        assert rejected.status_code == 400
+
+        # editing to a future date is rejected too
+        bad_edit = client.put(f"/api/diaries/{diary_id}", json={"entry_date": future})
+        assert bad_edit.status_code == 400
 
 
 def test_location_round_trips_through_api_and_page():

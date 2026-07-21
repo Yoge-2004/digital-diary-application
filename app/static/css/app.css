@@ -1160,6 +1160,8 @@ img, video { max-width: 100%; display: block; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
+  flex-shrink: 0;
   gap: 0.6rem;
   padding: 0.75rem 1.5rem;
   border-radius: var(--border-radius-sm);
@@ -1175,6 +1177,7 @@ img, video { max-width: 100%; display: block; }
   position: relative;
   overflow: hidden;
   min-height: 44px;
+  max-height: max-content;
   user-select: none;
   letter-spacing: 0.02em;
 }
@@ -2189,6 +2192,9 @@ img, video { max-width: 100%; display: block; }
     transparent 5px 28px
   );
   background-size: 14px 28px;
+  background-position: center top;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent);
   pointer-events: none;
   border-radius: 4px 0 0 4px;
 }
@@ -2213,7 +2219,11 @@ img, video { max-width: 100%; display: block; }
   padding: 1rem 2rem 1rem 3.75rem; /* left room for margin line */
   min-height: 400px;
 
-  /* Ruled horizontal lines — matches line-height: 2 at 1.1rem ≈ 35px */
+  /* Ruled horizontal lines — matches line-height: 2 at 1.1rem ≈ 35px.
+     The rule sits at ~1.3em into each 2em line box (not at the very
+     bottom, i.e. 2em) because that's roughly where a line-height:2 box
+     actually places the text baseline — drawing it at the box's bottom
+     edge left a visible gap between the handwriting and the line. */
   background-image:
     /* red margin line */
     linear-gradient(90deg, transparent 3.25rem, hsl(5 65% 65% / 0.25) 3.25rem, hsl(5 65% 65% / 0.25) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
@@ -2221,9 +2231,11 @@ img, video { max-width: 100%; display: block; }
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent calc(2em - 1px),
-      hsl(220 30% 88% / 0.50) calc(2em - 1px),
-      hsl(220 30% 88% / 0.50) 2em
+      transparent calc(1.3em - 1px),
+      hsl(220 30% 88% / 0.50) calc(1.3em - 1px),
+      hsl(220 30% 88% / 0.50) 1.3em,
+      transparent 1.3em,
+      transparent 2em
     );
   background-attachment: local;
 }
@@ -2234,9 +2246,11 @@ img, video { max-width: 100%; display: block; }
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent calc(2em - 1px),
-      hsl(220 15% 25% / 0.55) calc(2em - 1px),
-      hsl(220 15% 25% / 0.55) 2em
+      transparent calc(1.3em - 1px),
+      hsl(220 15% 25% / 0.55) calc(1.3em - 1px),
+      hsl(220 15% 25% / 0.55) 1.3em,
+      transparent 1.3em,
+      transparent 2em
     );
 }
 
@@ -2313,6 +2327,30 @@ img, video { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.journal-date-input {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.journal-date-input:hover,
+.journal-date-input:focus {
+  background: hsl(38 60% 55% / 0.12);
+}
+.journal-date-input::-webkit-calendar-picker-indicator {
+  filter: sepia(1) saturate(3) hue-rotate(0deg) opacity(0.6);
+  cursor: pointer;
+}
+[data-theme="dark"] .journal-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1) sepia(1) saturate(3) opacity(0.7);
 }
 
 /* ── Floating toolbar (mood + tags on diary form) ── */
@@ -2398,9 +2436,11 @@ img, video { max-width: 100%; display: block; }
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent calc(2em - 1px),
-      hsl(220 30% 88% / 0.45) calc(2em - 1px),
-      hsl(220 30% 88% / 0.45) 2em
+      transparent calc(1.3em - 1px),
+      hsl(220 30% 88% / 0.45) calc(1.3em - 1px),
+      hsl(220 30% 88% / 0.45) 1.3em,
+      transparent 1.3em,
+      transparent 2em
     );
   background-attachment: local;
   min-height: 200px;
@@ -2412,9 +2452,11 @@ img, video { max-width: 100%; display: block; }
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent calc(2em - 1px),
-      hsl(220 15% 25% / 0.55) calc(2em - 1px),
-      hsl(220 15% 25% / 0.55) 2em
+      transparent calc(1.3em - 1px),
+      hsl(220 15% 25% / 0.55) calc(1.3em - 1px),
+      hsl(220 15% 25% / 0.55) 1.3em,
+      transparent 1.3em,
+      transparent 2em
     );
 }
 
@@ -2592,9 +2634,11 @@ img, video { max-width: 100%; display: block; }
       repeating-linear-gradient(
         to bottom,
         transparent 0,
-        transparent calc(2em - 1px),
-        hsl(220 30% 88% / 0.50) calc(2em - 1px),
-        hsl(220 30% 88% / 0.50) 2em
+        transparent calc(1.3em - 1px),
+        hsl(220 30% 88% / 0.50) calc(1.3em - 1px),
+        hsl(220 30% 88% / 0.50) 1.3em,
+        transparent 1.3em,
+        transparent 2em
       );
   }
 
@@ -2603,9 +2647,11 @@ img, video { max-width: 100%; display: block; }
       repeating-linear-gradient(
         to bottom,
         transparent 0,
-        transparent calc(2em - 1px),
-        hsl(220 30% 88% / 0.50) calc(2em - 1px),
-        hsl(220 30% 88% / 0.50) 2em
+        transparent calc(1.3em - 1px),
+        hsl(220 30% 88% / 0.50) calc(1.3em - 1px),
+        hsl(220 30% 88% / 0.50) 1.3em,
+        transparent 1.3em,
+        transparent 2em
       );
   }
 }
@@ -2660,7 +2706,10 @@ img, video { max-width: 100%; display: block; }
   --clr-leather-tint: hsl(20 55% 13%);
   --grain-opacity:    0.05;
 }
-[data-theme="dark"] { --grain-opacity: 0.09; }
+[data-theme="dark"] {
+  --grain-opacity: 0.09;
+  --clr-leather-tint: hsl(20 45% 5%);
+}
 
 /* 0. Reduced-motion safety net ------------------------------------ */
 @media (prefers-reduced-motion: reduce) {

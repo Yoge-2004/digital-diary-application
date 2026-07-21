@@ -3,7 +3,7 @@ from __future__ import annotations
 import calendar as cal_module
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -292,7 +292,7 @@ def diaries(
     mood: str | None = None,
     favorite: bool | None = None,
     bookmarked: bool | None = None,
-    archived: bool | None = None,
+    archived: bool = False,
     month: int | None = None,
     year: int | None = None,
     db: Session = Depends(get_db),
@@ -300,7 +300,10 @@ def diaries(
 ):
     if not current_user:
         return _redirect("/login")
-    # If archived filter not set, default hides archived (repositories default)
+    # archived defaults to False so the main list hides archived entries;
+    # the (single) "Archived" checkbox sends archived=true to show only
+    # archived ones. Unlike this route, /search intentionally passes
+    # archived=None through so it can find archived entries too.
     entries = services.list_diaries(
         db,
         current_user,
@@ -361,7 +364,7 @@ def new_diary_page(request: Request, db: Session = Depends(get_db), current_user
         templates.TemplateResponse(
             request,
             "diary_form.html",
-            _base_context(request, current_user) | {"mode": "create", "diary": None, "all_tags": all_tags},
+            _base_context(request, current_user) | {"mode": "create", "diary": None, "all_tags": all_tags, "today": date.today().isoformat()},
         ),
     )
 
@@ -375,6 +378,7 @@ def new_diary(
     visibility: str = Form("private"),
     location: str | None = Form(None),
     tags: str = Form(""),
+    entry_date: str | None = Form(None),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
@@ -386,7 +390,11 @@ def new_diary(
         diary = services.create_diary(
             db,
             current_user,
-            DiaryCreate(title=title, content=content, mood=mood, visibility=visibility, location=location, tags=services.split_tags(tags)),
+            DiaryCreate(
+                title=title, content=content, mood=mood, visibility=visibility, location=location,
+                tags=services.split_tags(tags),
+                entry_date=date.fromisoformat(entry_date) if entry_date else None,
+            ),
         )
     except Exception as exc:
         return _redirect(f"/diaries/new?err={_safe_msg(exc)}")
@@ -436,7 +444,7 @@ def edit_diary_page(request: Request, diary_id: str, db: Session = Depends(get_d
         templates.TemplateResponse(
             request,
             "diary_form.html",
-            _base_context(request, current_user) | {"mode": "edit", "diary": diary, "all_tags": all_tags},
+            _base_context(request, current_user) | {"mode": "edit", "diary": diary, "all_tags": all_tags, "today": date.today().isoformat()},
         ),
     )
 
@@ -451,6 +459,7 @@ def edit_diary(
     visibility: str = Form("private"),
     location: str | None = Form(None),
     tags: str = Form(""),
+    entry_date: str | None = Form(None),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
@@ -463,7 +472,11 @@ def edit_diary(
         services.edit_diary(
             db,
             diary,
-            DiaryUpdate(title=title, content=content, mood=mood, visibility=visibility, location=location, tags=services.split_tags(tags)),
+            DiaryUpdate(
+                title=title, content=content, mood=mood, visibility=visibility, location=location,
+                tags=services.split_tags(tags),
+                entry_date=date.fromisoformat(entry_date) if entry_date else None,
+            ),
         )
     except Exception as exc:
         return _redirect(f"/diaries/{diary_id}/edit?err={_safe_msg(exc)}")

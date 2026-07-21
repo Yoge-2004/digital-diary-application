@@ -117,6 +117,22 @@ def reset_password_by_credentials(db: Session, username: str, email: str, new_pa
     return True
 
 
+def _resolve_created_at(entry_date) -> datetime | None:
+    """Turn an optional user-chosen date into a full created_at datetime.
+
+    Combines the chosen date with the current time-of-day (so ordering
+    among same-day entries and the displayed time stay sensible) and
+    rejects a date in the future — this is for backdating a forgotten
+    entry to when it actually happened, not for scheduling ahead.
+    """
+    if entry_date is None:
+        return None
+    now = datetime.now(UTC)
+    if entry_date > now.date():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Entry date can't be in the future")
+    return datetime.combine(entry_date, now.time(), tzinfo=UTC)
+
+
 def create_diary(db: Session, user: User, payload: DiaryCreate) -> Diary:
     """Create a new diary entry owned by `user`."""
     return repositories.create_diary(
@@ -128,6 +144,7 @@ def create_diary(db: Session, user: User, payload: DiaryCreate) -> Diary:
         visibility=payload.visibility,
         location=payload.location,
         tag_names=_normalize_tags(payload.tags),
+        created_at=_resolve_created_at(payload.entry_date),
     )
 
 
@@ -142,6 +159,7 @@ def edit_diary(db: Session, diary: Diary, payload: DiaryUpdate) -> Diary:
         visibility=payload.visibility,
         location=payload.location,
         tag_names=_normalize_tags(payload.tags) if payload.tags is not None else None,
+        created_at=_resolve_created_at(payload.entry_date),
         is_archived=payload.is_archived,
         is_favorite=payload.is_favorite,
         is_pinned=payload.is_pinned,

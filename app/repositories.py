@@ -163,6 +163,7 @@ def create_diary(
     visibility: str,
     location: str | None = None,
     tag_names: list[str],
+    created_at=None,
 ) -> Diary:
     diary = Diary(
         user_id=user_id,
@@ -172,6 +173,8 @@ def create_diary(
         visibility=visibility,
         location=location.strip() if location else None,
     )
+    if created_at is not None:
+        diary.created_at = created_at
     diary.tags = [get_or_create_tag(db, user_id, name) for name in tag_names if name.strip()]
     db.add(diary)
     db.commit()
@@ -189,6 +192,7 @@ def update_diary(
     visibility: str | None = None,
     location: str | None = None,
     tag_names: list[str] | None = None,
+    created_at=None,
     is_archived: bool | None = None,
     is_favorite: bool | None = None,
     is_pinned: bool | None = None,
@@ -204,6 +208,8 @@ def update_diary(
         diary.visibility = visibility
     if location is not None:
         diary.location = location.strip() if location else None
+    if created_at is not None:
+        diary.created_at = created_at
     if tag_names is not None:
         diary.tags = [get_or_create_tag(db, diary.user_id, name) for name in tag_names if name.strip()]
     if is_archived is not None:

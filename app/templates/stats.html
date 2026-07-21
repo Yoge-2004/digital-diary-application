@@ -122,8 +122,8 @@
     <div class="card-body">
       {% if summary.monthly_activity %}
       {% set max_monthly = summary.monthly_activity.values() | max %}
-      <div style="display:flex;align-items:flex-end;gap:clamp(.3rem,1vw,.6rem);height:clamp(80px,15vw,140px);
-                  overflow-x:auto;padding-bottom:.5rem;" role="img" aria-label="Monthly writing activity chart">
+      <div style="display:flex;align-items:flex-end;gap:clamp(.3rem,1vw,.6rem);min-height:clamp(80px,15vw,140px);
+                  overflow-x:auto;overflow-y:visible;padding-bottom:1.75rem;" role="img" aria-label="Monthly writing activity chart">
         {% for month_key, count in summary.monthly_activity.items() | sort %}
         {% set bar_h = ((count / (max_monthly or 1)) * 100) | round | int %}
         <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem;flex-shrink:0;min-width:clamp(28px,4vw,40px);">
