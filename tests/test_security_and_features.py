@@ -359,6 +359,19 @@ def test_entry_can_be_backdated_but_not_future_dated():
         assert bad_edit.status_code == 400
 
 
+def test_search_page_survives_empty_month_year_params():
+    """Regression test: HTML forms always submit every named field, so an
+    untouched month/year select sends month=&year= (empty strings, not
+    absent). These were typed as `int | None`, and FastAPI/Pydantic reject
+    an empty string as invalid int input with a raw 422, instead of
+    treating it as 'not provided'."""
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+        response = client.get("/search?q=&mood=&tag=&month=&year=")
+        assert response.status_code == 200
+
+
 def test_location_round_trips_through_api_and_page():
     client, tmp = build_client()
     with client, tmp:

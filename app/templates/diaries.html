@@ -123,7 +123,7 @@
       {% include "partials/diary_card.html" %}
       {% endfor %}
     </div>
-    {% else %}
+    {% elif not pinned_diaries %}
     <div class="empty-state">
       <span class="empty-icon">📖</span>
       <div class="empty-title">

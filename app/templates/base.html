@@ -38,9 +38,9 @@
   {% if current_user %}
   <aside class="sidebar" id="appSidebar" role="navigation" aria-label="Main navigation">
 
-    <div class="sidebar-logo">
+    <a href="/dashboard" class="sidebar-logo" style="text-decoration:none;display:block;" aria-label="Go to dashboard">
       DIARY<span style="color: var(--clr-accent);">.</span>
-    </div>
+    </a>
 
     <div class="sidebar-user">
       <div class="sidebar-avatar" aria-hidden="true">{{ current_user.username[0].upper() }}</div>
@@ -114,7 +114,7 @@
       </div>
 
       {% else %}
-      <a href="/" class="topbar-brand" style="font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; text-decoration: none; color: var(--clr-ink); letter-spacing: -0.02em;">
+      <a href="/" class="topbar-brand" style="font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; text-decoration: none; color: var(--txt-primary); letter-spacing: -0.02em;">
         DIARY<span style="color: var(--clr-accent);">.</span>
       </a>
       <div class="topbar-actions">

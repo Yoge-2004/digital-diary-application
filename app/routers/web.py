@@ -293,13 +293,15 @@ def diaries(
     favorite: bool | None = None,
     bookmarked: bool | None = None,
     archived: bool = False,
-    month: int | None = None,
-    year: int | None = None,
+    month: str | None = None,
+    year: str | None = None,
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
     if not current_user:
         return _redirect("/login")
+    month_int = int(month) if month else None
+    year_int = int(year) if year else None
     # archived defaults to False so the main list hides archived entries;
     # the (single) "Archived" checkbox sends archived=true to show only
     # archived ones. Unlike this route, /search intentionally passes
@@ -313,8 +315,8 @@ def diaries(
         favorite=favorite,
         bookmarked=bookmarked,
         archived=archived,
-        month=month,
-        year=year,
+        month=month_int,
+        year=year_int,
     )
     all_tags = repositories.list_tags(db, current_user.id)
     # Filter pinned diaries from normal ones
@@ -671,14 +673,16 @@ def search(
     q: str | None = None,
     tag: str | None = None,
     mood: str | None = None,
-    month: int | None = None,
-    year: int | None = None,
+    month: str | None = None,
+    year: str | None = None,
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
     if not current_user:
         return _redirect("/login")
-    entries = services.list_diaries(db, current_user, search=q, tag=tag, mood=mood, month=month, year=year, archived=None)
+    month_int = int(month) if month else None
+    year_int = int(year) if year else None
+    entries = services.list_diaries(db, current_user, search=q, tag=tag, mood=mood, month=month_int, year=year_int, archived=None)
     all_tags = repositories.list_tags(db, current_user.id)
     return _response_with_csrf(
         request,
@@ -688,7 +692,7 @@ def search(
             _base_context(request, current_user) | {
                 "entries": entries,
                 "query": q or "",
-                "filters": {"tag": tag, "mood": mood, "month": month, "year": year},
+                "filters": {"tag": tag, "mood": mood, "month": month_int, "year": year_int},
                 "all_tags": all_tags,
             },
         ),
