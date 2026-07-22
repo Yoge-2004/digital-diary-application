@@ -23,25 +23,49 @@
     <div class="stat-card-icon">📝</div>
     <div class="stat-label">Total Entries</div>
     <div class="stat-value" data-count="{{ summary.total_entries }}">{{ summary.total_entries }}</div>
-    <div class="stat-sub">all time</div>
+    <div class="stat-sub">
+      {% if summary.total_entries == 0 %}
+        <span style="font-size:.72rem;">Every story starts with one</span>
+      {% else %}
+        <a href="/diaries" style="font-size:.72rem;color:var(--clr-accent-dark);">Browse them all →</a>
+      {% endif %}
+    </div>
   </div>
   <div class="stat-card">
     <div class="stat-card-icon">🔥</div>
     <div class="stat-label">Writing Streak</div>
     <div class="stat-value" data-count="{{ summary.current_streak }}">{{ summary.current_streak }}</div>
-    <div class="stat-sub">day{{ 's' if summary.current_streak != 1 else '' }} in a row</div>
+    <div class="stat-sub">
+      {% if summary.current_streak == 0 %}
+        <span style="font-size:.72rem;">Write today to start one</span>
+      {% else %}
+        day{{ 's' if summary.current_streak != 1 else '' }} in a row — keep it up
+      {% endif %}
+    </div>
   </div>
   <div class="stat-card">
     <div class="stat-card-icon">⭐</div>
     <div class="stat-label">Favourites</div>
     <div class="stat-value" data-count="{{ summary.favorites }}">{{ summary.favorites }}</div>
-    <div class="stat-sub"><a href="/diaries?favorite=true" style="font-size:.72rem;color:var(--clr-accent-dark);">View all →</a></div>
+    <div class="stat-sub">
+      {% if summary.favorites == 0 %}
+        <span style="font-size:.72rem;">Star an entry to save it here</span>
+      {% else %}
+        <a href="/diaries?favorite=true" style="font-size:.72rem;color:var(--clr-accent-dark);">View all →</a>
+      {% endif %}
+    </div>
   </div>
   <div class="stat-card">
     <div class="stat-card-icon">📅</div>
     <div class="stat-label">This Month</div>
     <div class="stat-value" data-count="{{ summary.monthly_entries }}">{{ summary.monthly_entries }}</div>
-    <div class="stat-sub">entries written</div>
+    <div class="stat-sub">
+      {% if summary.monthly_entries == 0 %}
+        <span style="font-size:.72rem;">Nothing written yet this month</span>
+      {% else %}
+        <a href="/calendar" style="font-size:.72rem;color:var(--clr-accent-dark);">See the calendar →</a>
+      {% endif %}
+    </div>
   </div>
 </div>
 
