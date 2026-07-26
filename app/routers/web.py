@@ -5,7 +5,7 @@ import json
 import re
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -90,11 +90,14 @@ def register(
     username: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
+    confirm_password: str = Form(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
     try:
         verify_csrf(request, csrf_token)
+        if password != confirm_password:
+            return _redirect("/register?err=Passwords+do+not+match")
         user = services.register_user(db, UserCreate(username=username, email=email, password=password))
     except Exception as exc:
         return _redirect(f"/register?err={_safe_msg(exc)}")
@@ -162,38 +165,60 @@ def forgot_password_page(request: Request, current_user=Depends(get_optional_use
 
 
 @router.post("/forgot-password/verify")
-async def forgot_password_verify(request: Request, db: Session = Depends(get_db)):
-    """Step 1 — verify username + email pair exists."""
+async def forgot_password_request(request: Request, db: Session = Depends(get_db)):
+    """Request a password reset. Always responds with the same generic
+    success message regardless of whether the account exists, so this
+    can't be used to check which usernames/emails are registered. If
+    there's a match, emails a real single-use reset link (or logs it to
+    the server console if SMTP isn't configured — see core/email.py)."""
     from fastapi.responses import JSONResponse
     try:
         body = await request.json()
         username = body.get("username", "").strip()
-        email    = body.get("email", "").strip()
-        user = services.verify_reset_credentials(db, username, email)
-        if user:
-            return JSONResponse({"ok": True})
-        return JSONResponse({"ok": False, "detail": "No account found matching that username and email"}, status_code=404)
-    except Exception as exc:
-        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+        email = body.get("email", "").strip()
+        services.request_password_reset(db, str(request.base_url), username, email)
+    except Exception:
+        pass
+    return JSONResponse({"ok": True, "detail": "If that account exists, we've sent a reset link to its email address."})
 
 
-@router.post("/forgot-password/reset")
-async def forgot_password_reset(request: Request, db: Session = Depends(get_db)):
-    """Step 2 — reset password after credentials verified."""
+@router.get("/reset-password", response_class=HTMLResponse)
+def reset_password_page(request: Request, token: str = "", db: Session = Depends(get_db), current_user=Depends(get_optional_user)):
+    if current_user:
+        return _redirect("/dashboard")
+    token_valid = True
+    try:
+        services.get_user_by_reset_token(db, token)
+    except Exception:
+        token_valid = False
+    return _response_with_csrf(
+        request,
+        templates.TemplateResponse(
+            request,
+            "reset_password.html",
+            _base_context(request, None) | {"token": token, "token_valid": token_valid},
+        ),
+    )
+
+
+@router.post("/reset-password")
+async def reset_password_submit(request: Request, db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
     try:
         body = await request.json()
-        username     = body.get("username", "").strip()
-        email        = body.get("email", "").strip()
+        token = body.get("token", "")
         new_password = body.get("new_password", "")
+        confirm_new_password = body.get("confirm_new_password", "")
         if len(new_password) < 8:
             return JSONResponse({"ok": False, "detail": "Password must be at least 8 characters"}, status_code=400)
-        ok = services.reset_password_by_credentials(db, username, email, new_password)
-        if ok:
-            return JSONResponse({"ok": True})
-        return JSONResponse({"ok": False, "detail": "Unable to reset password — please try again"}, status_code=400)
+        if new_password != confirm_new_password:
+            return JSONResponse({"ok": False, "detail": "Passwords do not match"}, status_code=400)
+        services.reset_password_with_token(db, token, new_password)
+        return JSONResponse({"ok": True})
+    except HTTPException as exc:
+        return JSONResponse({"ok": False, "detail": exc.detail}, status_code=exc.status_code)
     except Exception as exc:
-        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+        return JSONResponse({"ok": False, "detail": _safe_msg(exc)}, status_code=400)
 
 
 # ──────────────────────────────────────────
@@ -783,6 +808,7 @@ def update_password(
     request: Request,
     current_password: str = Form(...),
     new_password: str = Form(...),
+    confirm_new_password: str = Form(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_user),
@@ -791,6 +817,8 @@ def update_password(
         return _redirect("/login")
     try:
         verify_csrf(request, csrf_token)
+        if new_password != confirm_new_password:
+            return _redirect("/settings?err=New+passwords+do+not+match")
         services.change_password(db, current_user, PasswordUpdate(current_password=current_password, new_password=new_password))
     except Exception as exc:
         return _redirect(f"/settings?err={_safe_msg(exc)}")

@@ -47,6 +47,18 @@ def update_user_password(db: Session, user: User, password_hash: str) -> User:
     return user
 
 
+def set_password_reset_token(db: Session, user: User, token: str | None, expires_at) -> User:
+    user.reset_token = token
+    user.reset_token_expires = expires_at
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_user_by_reset_token(db: Session, token: str) -> User | None:
+    return db.scalar(select(User).where(User.reset_token == token))
+
+
 def set_last_login(db: Session, user: User) -> User:
     user.last_login = datetime.now(UTC)
     db.commit()

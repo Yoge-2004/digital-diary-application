@@ -9,14 +9,16 @@ stays a thin, dumb data-access layer underneath this.
 
 from __future__ import annotations
 
+import secrets
 from collections.abc import Iterable
 from pathlib import Path
 
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.email import send_password_reset_email
 from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app import repositories
 from app.models import Attachment, Diary, Tag, User
@@ -100,21 +102,48 @@ def delete_account(db: Session, user: User) -> None:
     repositories.delete_user(db, user)
 
 
-def verify_reset_credentials(db: Session, username: str, email: str) -> User | None:
-    """Return user if both username and email match a single account, else None."""
+def request_password_reset(db: Session, request_base_url: str, username: str, email: str) -> None:
+    """Start a password reset: if username+email match an account, email
+    them a single-use, 1-hour reset link. Deliberately returns nothing and
+    never raises for 'no such account' — the caller should always show the
+    same generic message regardless of whether a match was found, so this
+    can't be used to enumerate which usernames/emails have accounts.
+
+    This replaces the old behaviour where matching username+email alone
+    would let you reset the password directly, with no verification that
+    you actually control that email address.
+    """
     user = repositories.get_user_by_username(db, username)
-    if user and user.email.lower() == email.strip().lower():
-        return user
-    return None
+    if not user or user.email.lower() != email.strip().lower():
+        return
+    token = secrets.token_urlsafe(32)
+    repositories.set_password_reset_token(db, user, token, datetime.now(UTC) + timedelta(hours=1))
+    reset_url = f"{request_base_url.rstrip('/')}/reset-password?token={token}"
+    send_password_reset_email(settings, user.email, reset_url)
 
 
-def reset_password_by_credentials(db: Session, username: str, email: str, new_password: str) -> bool:
-    """Reset password if credentials match. Returns True on success."""
-    user = verify_reset_credentials(db, username, email)
-    if not user:
-        return False
+def get_user_by_reset_token(db: Session, token: str) -> User:
+    """Return the user for a still-valid reset token, else raise 400."""
+    user = repositories.get_user_by_reset_token(db, token) if token else None
+    if not user or not user.reset_token_expires:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This reset link is invalid or has expired")
+    # Safely compare tz-naive or tz-aware depending on SQLite vs Postgres
+    now = datetime.now(UTC)
+    expires = user.reset_token_expires
+    now_cmp = now.replace(tzinfo=None) if not expires.tzinfo else now
+    expires_cmp = expires.replace(tzinfo=None) if not expires.tzinfo else expires
+    if expires_cmp < now_cmp:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This reset link is invalid or has expired")
+    return user
+
+
+def reset_password_with_token(db: Session, token: str, new_password: str) -> User:
+    """Verify the token once more and reset the password, then invalidate
+    the token so it can't be reused (e.g. if the email got forwarded)."""
+    user = get_user_by_reset_token(db, token)
     repositories.update_user_password(db, user, hash_password(new_password))
-    return True
+    repositories.set_password_reset_token(db, user, None, None)
+    return user
 
 
 def _resolve_created_at(entry_date) -> datetime | None:

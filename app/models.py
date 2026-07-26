@@ -34,6 +34,8 @@ class User(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
     )
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reset_token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    reset_token_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     diaries: Mapped[list["Diary"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     tags: Mapped[list["Tag"]] = relationship(back_populates="user", cascade="all, delete-orphan")

@@ -77,6 +77,7 @@ def test_first_visit_csrf_token_matches_cookie():
                 "username": "firsttimer",
                 "email": "firsttimer@example.com",
                 "password": "password123",
+                "confirm_password": "password123",
                 "csrf_token": rendered_token,
             },
             follow_redirects=False,
@@ -124,10 +125,10 @@ def test_only_owner_can_mutate_via_web():
     alice, bob = TestClient(app), TestClient(app)
     with alice, bob, tmp:
         csrf = web_csrf(alice, "/register")
-        alice.post("/register", data={"username": "alice", "email": "alice@example.com", "password": "password123", "csrf_token": csrf}, follow_redirects=False)
+        alice.post("/register", data={"username": "alice", "email": "alice@example.com", "password": "password123", "confirm_password": "password123", "csrf_token": csrf}, follow_redirects=False)
 
         csrf = web_csrf(bob, "/register")
-        bob.post("/register", data={"username": "bob", "email": "bob@example.com", "password": "password123", "csrf_token": csrf}, follow_redirects=False)
+        bob.post("/register", data={"username": "bob", "email": "bob@example.com", "password": "password123", "confirm_password": "password123", "csrf_token": csrf}, follow_redirects=False)
 
         csrf = web_csrf(alice, "/diaries/new")
         alice.post(
@@ -370,6 +371,131 @@ def test_search_page_survives_empty_month_year_params():
         api_register(client, "alice", "alice@example.com")
         response = client.get("/search?q=&mood=&tag=&month=&year=")
         assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------
+# Password confirmation must actually be checked server-side
+# ---------------------------------------------------------------------
+
+def test_registration_rejects_mismatched_confirm_password():
+    """Regression test: the backend accepted `password` without ever
+    reading or checking `confirm_password`, relying entirely on
+    client-side JS to catch a typo — a JS-disabled or scripted client
+    could register with a password that didn't match what was shown."""
+    client, tmp = build_client()
+    with client, tmp:
+        csrf = web_csrf(client, "/register")
+        response = client.post(
+            "/register",
+            data={
+                "username": "mismatched",
+                "email": "mismatched@example.com",
+                "password": "password123",
+                "confirm_password": "somethingElse123",
+                "csrf_token": csrf,
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert "do+not+match" in response.headers["location"] or "do not match" in response.headers["location"]
+        # account must not have been created
+        assert client.cookies.get("access_token") is None
+
+
+def test_password_change_rejects_mismatched_confirmation():
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com", password="OldPass123!")
+        csrf = web_csrf(client, "/settings")
+        response = client.post(
+            "/settings/password",
+            data={
+                "current_password": "OldPass123!",
+                "new_password": "NewPass456!",
+                "confirm_new_password": "Typo789!",
+                "csrf_token": csrf,
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert "do+not+match" in response.headers["location"]
+
+        # old password must still work; new one must not have been set
+        login_csrf = web_csrf(client, "/login")
+        login_resp = client.post(
+            "/login",
+            data={"username": "alice", "password": "OldPass123!", "csrf_token": login_csrf},
+            follow_redirects=False,
+        )
+        assert login_resp.status_code == 303
+        assert login_resp.headers["location"] == "/dashboard"
+
+
+# ---------------------------------------------------------------------
+# Password reset must require a real, single-use, expiring token —
+# not just knowledge of a username + email (which may be publicly
+# visible, e.g. on a shared/public entry).
+# ---------------------------------------------------------------------
+
+def _get_reset_token(tmp, username="alice"):
+    import sqlite3
+    conn = sqlite3.connect(f"{tmp.name}/test.db")
+    row = conn.execute("SELECT reset_token FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def test_password_reset_requires_a_real_token_not_just_credentials():
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com", password="OldPass123!")
+
+        # Old vulnerable behavior must be gone: this endpoint no longer
+        # accepts a new_password directly from username+email.
+        old_style = client.post(
+            "/forgot-password/reset",
+            json={"username": "alice", "email": "alice@example.com", "new_password": "Hacked123!"},
+        )
+        assert old_style.status_code == 404  # route no longer exists
+
+        # Requesting a reset with correct credentials generates a token...
+        request = client.post("/forgot-password/verify", json={"username": "alice", "email": "alice@example.com"})
+        assert request.status_code == 200
+        token = _get_reset_token(tmp)
+        assert token  # a real token was actually generated
+
+        # ...a made-up token is rejected...
+        fake = client.post("/reset-password", json={"token": "not-a-real-token", "new_password": "Hacked123!", "confirm_new_password": "Hacked123!"})
+        assert fake.status_code == 400
+
+        # ...but the real token works...
+        real = client.post("/reset-password", json={"token": token, "new_password": "BrandNew123!", "confirm_new_password": "BrandNew123!"})
+        assert real.status_code == 200
+
+        # ...old password is now invalid, new one works...
+        old_login = client.post("/api/auth/login", data={"username": "alice", "password": "OldPass123!"})
+        assert old_login.status_code == 401
+        new_login = client.post("/api/auth/login", data={"username": "alice", "password": "BrandNew123!"})
+        assert new_login.status_code == 200
+
+        # ...and the token can't be reused a second time.
+        reuse = client.post("/reset-password", json={"token": token, "new_password": "AnotherOne123!", "confirm_new_password": "AnotherOne123!"})
+        assert reuse.status_code == 400
+
+
+def test_password_reset_request_does_not_leak_account_existence():
+    """A request for a username/email that doesn't exist must get the
+    exact same generic response as a real one, so this can't be used to
+    enumerate which accounts exist."""
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+        real = client.post("/forgot-password/verify", json={"username": "alice", "email": "alice@example.com"})
+        fake = client.post("/forgot-password/verify", json={"username": "nobody-here", "email": "nobody@example.com"})
+        assert real.status_code == fake.status_code == 200
+        assert real.json() == fake.json()
+        # and no token should exist for a nonexistent user, obviously
+        assert _get_reset_token(tmp, "nobody-here") is None
 
 
 def test_location_round_trips_through_api_and_page():

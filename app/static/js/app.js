@@ -382,33 +382,18 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  //  Forgot-password multi-step
+  //  Forgot-password request (always shows the same generic success)
   // ══════════════════════════════════════════════════════════
   function initForgotPasswordForm() {
     const form = document.getElementById("forgotForm");
     if (!form) return;
 
     const steps = $$(".forgot-step", form);
-    const dots  = $$(".step-dot", document);
-    let current = 0;
-
     function showStep(idx) {
-      steps.forEach((s, i) => {
-        s.style.display = i === idx ? "block" : "none";
-        s.style.animation = i === idx ? "fadeUp 0.4s ease-out both" : "none";
-      });
-      // Update stepper dots
-      dots.forEach((d, i) => {
-        const stepEl = d.closest(".step");
-        stepEl?.classList.toggle("active", i === idx);
-        stepEl?.classList.toggle("done", i < idx);
-      });
-      current = idx;
+      steps.forEach((s, i) => { s.style.display = i === idx ? "block" : "none"; });
     }
-
     showStep(0);
 
-    // Step 1 → 2: verify credentials via fetch
     const verifyBtn = document.getElementById("verifyBtn");
     verifyBtn?.addEventListener("click", async () => {
       const uInput = document.getElementById("fp-username");
@@ -421,7 +406,7 @@
       verifyBtn.disabled = true;
 
       try {
-        const resp = await fetch("/forgot-password/verify", {
+        await fetch("/forgot-password/verify", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -432,13 +417,10 @@
             email: eInput.value.trim(),
           }),
         });
-        const data = await resp.json();
-        if (resp.ok && data.ok) {
-          showStep(1);
-        } else {
-          setInvalid(uInput, data.detail || "No account found with these details");
-          shakeForm(form);
-        }
+        // Always show the same generic "check your email" step, whether
+        // or not an account actually matched — this is deliberate, so the
+        // form can't be used to check which usernames/emails exist.
+        showStep(1);
       } catch {
         showFlash("Something went wrong. Please try again.", "error");
       } finally {
@@ -446,12 +428,19 @@
         verifyBtn.disabled = false;
       }
     });
+  }
 
-    // Step 2 → 3: submit new password
-    const resetBtn = document.getElementById("resetBtn");
+  // ══════════════════════════════════════════════════════════
+  //  Reset password (token-gated, reached via the emailed link)
+  // ══════════════════════════════════════════════════════════
+  function initResetPasswordForm() {
+    const form = document.getElementById("resetPwForm");
+    if (!form) return;
+
+    const resetBtn = document.getElementById("resetPwBtn");
     resetBtn?.addEventListener("click", async () => {
-      const npInput  = document.getElementById("fp-new-password");
-      const cnfInput = document.getElementById("fp-confirm-password");
+      const npInput = document.getElementById("rp-new");
+      const cnfInput = document.getElementById("rp-confirm");
       const pOk = validatePassword(npInput);
       if (!pOk) { shakeForm(form); return; }
       if (npInput.value !== cnfInput.value) {
@@ -464,23 +453,25 @@
       resetBtn.disabled = true;
 
       try {
-        const resp = await fetch("/forgot-password/reset", {
+        const resp = await fetch("/reset-password", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || "",
           },
           body: JSON.stringify({
-            username: document.getElementById("fp-username")?.value.trim(),
-            email: document.getElementById("fp-email")?.value.trim(),
+            token: document.getElementById("reset-token")?.value || "",
             new_password: npInput.value,
+            confirm_new_password: cnfInput.value,
           }),
         });
         const data = await resp.json();
         if (resp.ok && data.ok) {
-          showStep(2); // success screen
+          form.style.display = "none";
+          const success = document.getElementById("resetPwSuccess");
+          if (success) success.style.display = "block";
         } else {
-          showFlash(data.detail || "Reset failed. Please try again.", "error");
+          showFlash(data.detail || "Reset failed. Please request a new link.", "error");
         }
       } catch {
         showFlash("Something went wrong. Please try again.", "error");
@@ -1157,6 +1148,7 @@
     initRegisterForm();
     initLoginForm();
     initForgotPasswordForm();
+    initResetPasswordForm();
     initMoodSelector();
     initMoodPills();
     initTagInput();

@@ -19,6 +19,19 @@ class Settings:
     cookie_samesite: str = os.getenv("COOKIE_SAMESITE", "lax")
     upload_dir: Path = field(default_factory=lambda: BASE_DIR / "uploads")
 
+    # Password-reset emails. If smtp_host is empty, reset links are logged
+    # to the server console instead of emailed — safe for local dev, but
+    # NOT a substitute for real SMTP in any deployment with real users:
+    # without real delivery, whoever can read the server logs can also
+    # reset any account's password.
+    smtp_host: str = os.getenv("SMTP_HOST", "")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user: str = os.getenv("SMTP_USER", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    smtp_from: str = os.getenv("SMTP_FROM", "no-reply@example.com")
+    smtp_use_tls: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    app_base_url: str = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
+
     def __post_init__(self) -> None:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 

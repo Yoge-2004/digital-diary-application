@@ -32,6 +32,7 @@ def test_web_auth_and_diary_flow():
                 "username": "alice",
                 "email": "alice@example.com",
                 "password": "password123",
+                "confirm_password": "password123",
                 "csrf_token": csrf_token,
             },
             follow_redirects=False,
