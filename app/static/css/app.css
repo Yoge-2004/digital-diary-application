@@ -344,6 +344,13 @@ img, video { max-width: 100%; display: block; }
   min-width: 0;
 }
 
+/* No sidebar exists for anonymous visitors (landing, login, register) -
+   don't reserve its width, or the page ends up with a large, lopsided
+   empty gap on the left as if broken/unfinished. */
+.app-main--full {
+  margin-left: 0;
+}
+
 /* ── Top Bar ── */
 .topbar {
   background: var(--bg-surface);

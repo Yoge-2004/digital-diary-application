@@ -82,7 +82,7 @@
   {% endif %}
 
   <!-- ── Main content ── -->
-  <div class="app-main">
+  <div class="app-main {{ '' if current_user else 'app-main--full' }}">
 
     <!-- Top bar -->
     <header class="topbar" role="banner">
