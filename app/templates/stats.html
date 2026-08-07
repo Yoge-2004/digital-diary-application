@@ -122,18 +122,20 @@
     <div class="card-body">
       {% if summary.monthly_activity %}
       {% set max_monthly = summary.monthly_activity.values() | max %}
-      <div style="display:flex;align-items:flex-end;gap:clamp(.3rem,1vw,.6rem);min-height:clamp(80px,15vw,140px);
+      <div style="display:flex;align-items:flex-end;gap:clamp(.3rem,1vw,.6rem);height:clamp(80px,15vw,140px);
                   overflow-x:auto;overflow-y:visible;padding-bottom:1.75rem;" role="img" aria-label="Monthly writing activity chart">
         {% for month_key, count in summary.monthly_activity.items() | sort %}
         {% set bar_h = ((count / (max_monthly or 1)) * 100) | round | int %}
         <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem;flex-shrink:0;min-width:clamp(28px,4vw,40px);">
           <div style="font-size:clamp(.6rem,1vw,.7rem);font-weight:700;color:var(--txt-muted);">{{ count }}</div>
-          <div style="width:clamp(20px,3vw,30px);
-                      background:linear-gradient(180deg,var(--clr-accent),var(--clr-ink));
-                      border-radius:4px 4px 0 0;
-                      height:{{ bar_h }}%;min-height:4px;
-                      transition:height .8s var(--ease-out);
-                      box-shadow:0 2px 8px hsl(38 85% 52% / .2);">
+          <div style="width:clamp(20px,3vw,30px);height:clamp(60px,12vw,110px);display:flex;align-items:flex-end;">
+            <div style="width:100%;
+                        background:linear-gradient(180deg,var(--clr-accent),var(--clr-ink));
+                        border-radius:4px 4px 0 0;
+                        height:{{ bar_h }}%;min-height:4px;
+                        transition:height .8s var(--ease-out);
+                        box-shadow:0 2px 8px hsl(38 85% 52% / .2);">
+            </div>
           </div>
           <div style="font-size:clamp(.58rem,.9vw,.68rem);color:var(--txt-muted);transform:rotate(-30deg);transform-origin:top center;white-space:nowrap;margin-top:6px;">
             {{ month_key }}

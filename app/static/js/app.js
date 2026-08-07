@@ -539,14 +539,18 @@
   // ══════════════════════════════════════════════════════════
   function initWordCount() {
     const textarea = document.getElementById("diaryContent");
-    const counter  = document.getElementById("wordCount");
+    const counter = document.getElementById("wordCount");
+    const charCounter = document.getElementById("charCount");
     if (!textarea || !counter) return;
 
     function update() {
       const text  = textarea.value.trim();
       const words = text ? (text.match(/\S+/g)?.length || 0) : 0;
       const chars = textarea.value.length;
-      counter.textContent = `${words} word${words !== 1 ? "s" : ""} · ${chars} chars`;
+      counter.textContent = `${words} word${words !== 1 ? "s" : ""}`;
+      if (charCounter) {
+        charCounter.textContent = `${chars} char${chars !== 1 ? "s" : ""}`;
+      }
 
       // Validate minimum
       if (chars > 0 && chars < 10) {
@@ -945,6 +949,14 @@
         const labelEl = btn.querySelector(".toggle-label");
         if (labelEl && labelOn && labelOff) {
           labelEl.textContent = isOn ? labelOn : labelOff;
+        }
+
+        // Keep the accessible name (and tooltip) in sync even when the
+        // visible text label is hidden by CSS on narrow screens.
+        if (labelOn && labelOff) {
+          const accessibleName = isOn ? labelOn : labelOff;
+          btn.setAttribute("aria-label", accessibleName);
+          btn.setAttribute("title", accessibleName);
         }
 
         // Also update any aria attributes

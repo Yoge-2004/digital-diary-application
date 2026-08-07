@@ -139,6 +139,7 @@
             data-label-on="Unfavourite"
             data-label-off="Favourite"
             aria-pressed="{{ 'true' if diary.is_favorite else 'false' }}"
+            aria-label="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }}"
             title="{{ 'Unfavourite' if diary.is_favorite else 'Add to favourites' }}">
       <i class="bi bi-star{{ '-fill' if diary.is_favorite else '' }}" aria-hidden="true"></i>
       <span class="toggle-label">{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }}</span>
@@ -155,6 +156,7 @@
             data-label-on="Unbookmark"
             data-label-off="Bookmark"
             aria-pressed="{{ 'true' if diary.is_bookmarked else 'false' }}"
+            aria-label="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }}"
             title="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark entry' }}">
       <i class="bi bi-bookmark{{ '-fill' if diary.is_bookmarked else '' }}" aria-hidden="true"></i>
       <span class="toggle-label">{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }}</span>
@@ -171,6 +173,7 @@
             data-label-on="Unpin"
             data-label-off="Pin"
             aria-pressed="{{ 'true' if diary.is_pinned else 'false' }}"
+            aria-label="{{ 'Unpin' if diary.is_pinned else 'Pin' }}"
             title="{{ 'Unpin' if diary.is_pinned else 'Pin to top' }}">
       <i class="bi bi-pin{{ '-fill' if diary.is_pinned else '' }}" aria-hidden="true"></i>
       <span class="toggle-label">{{ 'Unpin' if diary.is_pinned else 'Pin' }}</span>
@@ -188,6 +191,7 @@
             data-label-on="Archive"
             data-label-off="Restore"
             aria-pressed="true"
+            aria-label="Restore"
             title="Restore from archive">
       <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
       <span class="toggle-label">Restore</span>
@@ -203,6 +207,7 @@
             data-label-on="Archive"
             data-label-off="Archive"
             aria-pressed="false"
+            aria-label="Archive"
             title="Archive this entry">
       <i class="bi bi-archive" aria-hidden="true"></i>
       <span class="toggle-label">Archive</span>
@@ -239,7 +244,7 @@
           data-confirm="Permanently delete this entry? This cannot be undone."
           style="display:contents;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <button class="btn btn-outline-danger btn-sm" type="submit" title="Delete entry">
+      <button class="btn btn-outline-danger btn-sm" type="submit" aria-label="Delete entry" title="Delete entry">
         <i class="bi bi-trash3-fill" aria-hidden="true"></i>
       </button>
     </form>
