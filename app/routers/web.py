@@ -938,7 +938,7 @@ def shared_diaries_page(
     if not current_user:
         return _redirect("/login")
     from app.models import DiaryShare, Diary
-    from sqlalchemy import select
+    from sqlalchemy import select, or_
     now = datetime.now(UTC)
     shares = db.scalars(
         select(DiaryShare)
@@ -947,13 +947,33 @@ def shared_diaries_page(
             (DiaryShare.expires_at == None) | (DiaryShare.expires_at > now)
         )
     ).all()
-    
+
+    # A diary should show up in the public feed either because its own
+    # visibility is set to "public", OR because its owner created an
+    # active, unexpired public share link for it (shared_to_user_id is
+    # NULL). Previously only the first case was checked, so creating a
+    # "leave blank for public link" share never actually surfaced the
+    # entry anywhere in the Shared & Social page for anyone to find.
+    publicly_shared_diary_ids = db.scalars(
+        select(DiaryShare.diary_id)
+        .where(
+            DiaryShare.shared_to_user_id == None,
+            (DiaryShare.expires_at == None) | (DiaryShare.expires_at > now),
+        )
+    ).all()
+
     public_diaries = db.scalars(
         select(Diary)
-        .where(Diary.visibility == "public", Diary.user_id != current_user.id)
+        .where(
+            Diary.user_id != current_user.id,
+            or_(
+                Diary.visibility == "public",
+                Diary.id.in_(publicly_shared_diary_ids),
+            ),
+        )
         .order_by(Diary.created_at.desc())
     ).all()
-    
+
     return _response_with_csrf(
         request,
         templates.TemplateResponse(

@@ -31,8 +31,15 @@
   --bg-body:      hsl(35 25% 97%);           /* Alabaster */
   --bg-surface:   hsl(0 0% 100%);            /* Pure white */
   --bg-surface-2: hsl(35 20% 94%);           /* Soft parchment */
-  --bg-sidebar:   hsl(220 30% 10%);          /* Midnight Blue */
-  --bg-sidebar-2: hsl(220 25% 14%);
+  --bg-sidebar:   hsl(35 20% 95%);           /* Light warm surface (was permanently dark) */
+  --bg-sidebar-2: hsl(35 18% 90%);
+  --chrome-text:      hsl(220 25% 18%);
+  --chrome-text-dim:  hsl(220 12% 45%);
+  --chrome-border:    hsl(35 15% 84%);
+  --chrome-hover-bg:  hsl(35 18% 89%);
+  --chrome-active-bg: hsl(38 45% 90%);
+  --chrome-accent-text: var(--clr-accent-dark);
+  --auth-side-bg: linear-gradient(160deg, hsl(35 45% 95%) 0%, hsl(35 38% 91%) 50%, hsl(38 42% 87%) 100%);
 
   /* ── Text ── */
   --txt-primary:   hsl(220 25% 15%);
@@ -88,6 +95,13 @@
   --bg-surface-2: hsl(25 15% 15%);
   --bg-sidebar:   hsl(20 30% 6%);
   --bg-sidebar-2: hsl(20 28% 9%);
+  --chrome-text:      var(--txt-on-dark);
+  --chrome-text-dim:  hsl(38 15% 68%);
+  --chrome-border:    hsl(20 25% 20%);
+  --chrome-hover-bg:  hsl(20 25% 20%);
+  --chrome-active-bg: hsl(20 28% 22%);
+  --chrome-accent-text: var(--clr-accent);
+  --auth-side-bg: linear-gradient(160deg, hsl(20 45% 12%) 0%, hsl(20 38% 18%) 50%, hsl(38 30% 22%) 100%);
   --txt-primary:   hsl(38 25% 88%);
   --txt-secondary: hsl(38 12% 60%);
   --txt-muted:     hsl(38 8% 42%);
@@ -172,7 +186,7 @@ img, video { max-width: 100%; display: block; }
 .sidebar {
   width: var(--sidebar-w);
   background: var(--bg-sidebar);
-  color: var(--txt-on-dark);
+  color: var(--chrome-text);
   position: fixed;
   top: 0; left: 0;
   height: 100vh;
@@ -181,9 +195,9 @@ img, video { max-width: 100%; display: block; }
   z-index: 300;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: transform var(--t-slow), width var(--t-base);
+  transition: transform var(--t-slow), width var(--t-base), background var(--t-base), color var(--t-base);
   scrollbar-width: thin;
-  scrollbar-color: hsl(20 30% 25%) transparent;
+  scrollbar-color: var(--chrome-border) transparent;
 }
 
 .sidebar-logo {
@@ -194,8 +208,8 @@ img, video { max-width: 100%; display: block; }
   font-family: var(--font-display);
   font-size: clamp(1rem, 2vw, 1.2rem);
   font-weight: 700;
-  color: var(--txt-on-dark);
-  border-bottom: 1px solid hsl(20 25% 20%);
+  color: var(--chrome-text);
+  border-bottom: 1px solid var(--chrome-border);
   flex-shrink: 0;
   letter-spacing: -0.01em;
 }
@@ -217,7 +231,7 @@ img, video { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border-bottom: 1px solid hsl(20 25% 20%);
+  border-bottom: 1px solid var(--chrome-border);
   flex-shrink: 0;
 }
 
@@ -240,7 +254,7 @@ img, video { max-width: 100%; display: block; }
 .sidebar-username {
   font-weight: 600;
   font-size: 0.875rem;
-  color: var(--txt-on-dark);
+  color: var(--chrome-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -248,7 +262,7 @@ img, video { max-width: 100%; display: block; }
 }
 .sidebar-email {
   font-size: 0.7rem;
-  color: hsl(38 15% 55%);
+  color: var(--chrome-text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -267,7 +281,7 @@ img, video { max-width: 100%; display: block; }
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: hsl(38 10% 45%);
+  color: var(--chrome-text-dim);
   padding: 0.75rem 0.7rem 0.2rem;
   margin-top: 0.25rem;
 }
@@ -278,7 +292,7 @@ img, video { max-width: 100%; display: block; }
   gap: 0.6rem;
   padding: 0.6rem 0.75rem;
   border-radius: var(--border-radius-sm);
-  color: hsl(38 15% 68%);
+  color: var(--chrome-text-dim);
   font-size: 0.875rem;
   font-weight: 500;
   transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast);
@@ -302,15 +316,15 @@ img, video { max-width: 100%; display: block; }
 }
 
 .nav-link-side:hover {
-  background: hsl(20 25% 20%);
-  color: var(--txt-on-dark);
+  background: var(--chrome-hover-bg);
+  color: var(--chrome-text);
 }
 
 .nav-link-side:hover::before { opacity: 1; }
 
 .nav-link-side.active {
-  background: hsl(20 28% 22%);
-  color: var(--clr-accent);
+  background: var(--chrome-active-bg);
+  color: var(--chrome-accent-text);
   border-left: 3px solid var(--clr-accent);
   padding-left: calc(0.75rem - 3px);
 }
@@ -326,7 +340,7 @@ img, video { max-width: 100%; display: block; }
 
 .sidebar-footer {
   padding: 0.75rem 0.6rem 1rem;
-  border-top: 1px solid hsl(20 25% 20%);
+  border-top: 1px solid var(--chrome-border);
   flex-shrink: 0;
 }
 
@@ -1206,6 +1220,24 @@ img, video { max-width: 100%; display: block; }
   transform: scale(0.98);
 }
 
+/* Ripple span injected by initRipple() in app.js. Must be taken out of
+   normal/flex flow (absolute) or, since .btn is display:inline-flex, the
+   span becomes a flex item and its large inline width/height forces the
+   button itself to balloon to fit it. Also needs its own animation so the
+   "animationend" listener that removes the element actually fires. */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.22;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple-expand 550ms var(--ease-out);
+}
+@keyframes ripple-expand {
+  to { transform: scale(1); opacity: 0; }
+}
+
 .btn-primary {
   background: var(--clr-ink);
   color: var(--txt-on-dark);
@@ -1702,15 +1734,16 @@ img, video { max-width: 100%; display: block; }
 }
 
 .auth-side {
-  background: linear-gradient(160deg, hsl(20 45% 12%) 0%, hsl(20 38% 18%) 50%, hsl(38 30% 22%) 100%);
+  background: var(--auth-side-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: clamp(2rem, 5vw, 4rem);
-  color: var(--txt-on-dark);
+  color: var(--chrome-text);
   position: relative;
   overflow: hidden;
+  transition: background var(--t-base), color var(--t-base);
 }
 
 .auth-side::before {
@@ -2444,7 +2477,7 @@ img, video { max-width: 100%; display: block; }
   font-family: var(--font-hand);
   font-size: clamp(1.15rem, 2.5vw, 1.35rem);
   line-height: 2;
-  color: hsl(220 40% 18%);
+  color: var(--txt-primary);
   white-space: pre-wrap;
   word-break: break-word;
   padding: 1rem 2rem 2rem 3.75rem;
@@ -2461,6 +2494,7 @@ img, video { max-width: 100%; display: block; }
       transparent 1.3em,
       transparent 2em
     );
+  background-position-y: 0.74em;
   background-attachment: local;
   min-height: 200px;
 }
@@ -2722,7 +2756,7 @@ img, video { max-width: 100%; display: block; }
   --dur-med:          420ms;
   --clr-wax:          hsl(355 58% 27%);
   --clr-wax-light:    hsl(355 55% 38%);
-  --clr-leather-tint: hsl(20 55% 13%);
+  --clr-leather-tint: hsl(35 45% 88%);
   --grain-opacity:    0.05;
 }
 [data-theme="dark"] {

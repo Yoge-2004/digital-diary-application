@@ -68,24 +68,38 @@
 
       <!-- Status toggles -->
       <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.875rem;">
+        {% if not favorite %}
         <a href="/diaries?favorite=true"
-           class="btn btn-sm {% if favorite %}btn-accent{% else %}btn-ghost{% endif %}"
+           class="btn btn-sm btn-ghost"
            style="justify-content:flex-start;">
-          <i class="bi bi-star{{ '-fill' if favorite else '' }}" aria-hidden="true"></i>
+          <i class="bi bi-star" aria-hidden="true"></i>
           Favourites only
         </a>
+        {% endif %}
+        {% if not bookmarked %}
         <a href="/diaries?bookmarked=true"
-           class="btn btn-sm {% if bookmarked %}btn-accent{% else %}btn-ghost{% endif %}"
+           class="btn btn-sm btn-ghost"
            style="justify-content:flex-start;">
-          <i class="bi bi-bookmark{{ '-fill' if bookmarked else '' }}" aria-hidden="true"></i>
+          <i class="bi bi-bookmark" aria-hidden="true"></i>
           Bookmarked
         </a>
+        {% endif %}
+        {% if not archived %}
         <a href="/diaries?archived=true"
-           class="btn btn-sm {% if archived %}btn-surface{% else %}btn-ghost{% endif %}"
+           class="btn btn-sm btn-ghost"
            style="justify-content:flex-start;">
-          <i class="bi bi-archive{{ '-fill' if archived else '' }}" aria-hidden="true"></i>
+          <i class="bi bi-archive" aria-hidden="true"></i>
           Archived
         </a>
+        {% endif %}
+        {% if favorite or bookmarked or archived %}
+        <a href="/diaries"
+           class="btn btn-sm btn-surface"
+           style="justify-content:flex-start;">
+          <i class="bi bi-x-circle" aria-hidden="true"></i>
+          Clear, show all
+        </a>
+        {% endif %}
       </div>
 
       <button class="btn btn-primary btn-sm" type="submit" style="width:100%;">

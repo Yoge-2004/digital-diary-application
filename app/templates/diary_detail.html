@@ -87,7 +87,7 @@
       {% if diary.attachments %}
       <div style="margin-top: 3rem; border-top: 1px dashed var(--border-color); padding-top: 1.5rem;">
         <div style="font-family: var(--font-hand); font-size: 1.25rem; color: var(--txt-secondary); margin-bottom: 1rem;">Memorabilia:</div>
-        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start;">
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; white-space: normal;">
           {% for att in diary.attachments %}
             {% if att.mime_type and att.mime_type.startswith('image/') %}
               {# Elegant Polaroid Frame #}
@@ -307,8 +307,8 @@
             </div>
             
             <div style="display:flex; gap:0.5rem; align-items:center;">
-              <button class="btn btn-ghost btn-sm" style="padding: 2px 6px; min-height:unset; height:auto; font-size: 0.7rem;" 
-                      onclick="navigator.clipboard.writeText(window.location.origin + '/diaries/{{ diary.id }}'); alert('Link copied to clipboard!');">
+              <button class="btn btn-ghost btn-sm copy-share-link-btn" style="padding: 2px 6px; min-height:unset; height:auto; font-size: 0.7rem;"
+                      data-diary-id="{{ diary.id }}">
                 Copy Link
               </button>
               
@@ -383,7 +383,7 @@
       <div id="attachmentList">
         {% if diary.attachments %}
         {% for att in diary.attachments %}
-        <div class="attachment-item">
+        <div class="attachment-item" data-attachment-id="{{ att.id }}" style="margin-bottom:.5rem;">
           {% if att.mime_type and att.mime_type.startswith('image/') %}
             <i class="bi bi-image-fill attachment-icon" style="color:var(--clr-slate);" aria-hidden="true"></i>
           {% elif att.mime_type == 'application/pdf' %}
@@ -398,6 +398,14 @@
             <div style="font-size:.72rem;color:var(--txt-muted);">
               {{ (att.size / 1024) | round(1) }} KB{% if att.mime_type %} · {{ att.mime_type }}{% endif %}
             </div>
+          </div>
+          <div class="att-actions">
+            <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Download {{ att.filename }}" aria-label="Download {{ att.filename }}" download>
+              <i class="bi bi-download" aria-hidden="true"></i>
+            </a>
+            <button type="button" class="btn btn-outline-danger btn-sm att-delete-btn" data-attachment-id="{{ att.id }}" data-filename="{{ att.filename }}" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Delete {{ att.filename }}" aria-label="Delete {{ att.filename }}">
+              <i class="bi bi-trash3-fill" aria-hidden="true"></i>
+            </button>
           </div>
         </div>
         {% endfor %}

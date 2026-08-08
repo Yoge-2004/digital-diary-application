@@ -891,6 +891,27 @@
   }
 
   // ══════════════════════════════════════════════════════════
+  //  Copy share link — uses the app's own toast, not alert()
+  // ══════════════════════════════════════════════════════════
+  function initCopyShareLink() {
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".copy-share-link-btn");
+      if (!btn) return;
+      const diaryId = btn.dataset.diaryId;
+      const url = `${window.location.origin}/diaries/${diaryId}`;
+
+      const done = () => showToast("Link copied to clipboard", "success", 2200);
+      const failed = () => showToast("Couldn't copy link — please copy it manually", "error", 3200);
+
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(failed);
+      } else {
+        failed();
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
   //  AJAX Toggle — favourite / pin / archive
   //  Usage: <button data-toggle-url="/diaries/ID/favorite"
   //                 data-toggle-flag="is_favorite"
@@ -1107,15 +1128,71 @@
 
       const item = document.createElement("div");
       item.className = "attachment-item";
+      item.dataset.attachmentId = att.id;
+      item.style.marginBottom = ".5rem";
       item.style.animation = "scaleIn .3s var(--ease-spring) both";
       item.innerHTML = `
         <i class="bi ${icon} attachment-icon" aria-hidden="true"></i>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${att.filename}</div>
           <div style="font-size:.72rem;color:var(--txt-muted);">${kb} KB · ${att.mime_type || ""}</div>
+        </div>
+        <div class="att-actions">
+          <a href="/attachments/${att.id}/download" class="btn btn-surface btn-sm" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Download ${att.filename}" aria-label="Download ${att.filename}" download>
+            <i class="bi bi-download" aria-hidden="true"></i>
+          </a>
+          <button type="button" class="btn btn-outline-danger btn-sm att-delete-btn" data-attachment-id="${att.id}" data-filename="${att.filename}" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Delete ${att.filename}" aria-label="Delete ${att.filename}">
+            <i class="bi bi-trash3-fill" aria-hidden="true"></i>
+          </button>
         </div>`;
       attList.appendChild(item);
+      updateAttachmentCount(1);
     }
+
+    function updateAttachmentCount(delta) {
+      const countEl = document.querySelector("#attachmentList")?.closest(".card")?.querySelector(".card-header span");
+      if (!countEl) return;
+      const match = countEl.textContent.match(/-?\d+/);
+      const current = match ? parseInt(match[0], 10) : 0;
+      countEl.textContent = `(${Math.max(0, current + delta)})`;
+    }
+
+    // Delete an attachment (event-delegated so it works for both
+    // server-rendered and AJAX-appended items)
+    attList?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".att-delete-btn");
+      if (!btn) return;
+
+      const id = btn.dataset.attachmentId;
+      const filename = btn.dataset.filename || "this file";
+      if (!window.confirm(`Delete "${filename}"? This cannot be undone.`)) return;
+
+      const item = btn.closest(".attachment-item");
+      btn.disabled = true;
+
+      fetch(`/api/attachments/${id}`, {
+        method: "DELETE",
+        headers: { "X-CSRF-Token": CSRF, "X-Requested-With": "fetch" },
+      })
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok) {
+            item?.remove();
+            updateAttachmentCount(-1);
+            showToast(`${filename} deleted`, "success");
+            if (attList && attList.children.length === 0 && attEmpty) {
+              attEmpty.style.display = "";
+            }
+          } else {
+            btn.disabled = false;
+            showToast(data?.detail || "Couldn't delete attachment", "error");
+          }
+        })
+        .catch(() => {
+          btn.disabled = false;
+          showToast("Network error while deleting attachment", "error");
+        });
+    });
   }
 
   // ══════════════════════════════════════════════════════════
@@ -1155,6 +1232,7 @@
     initRipple();
     initSidebar();
     initFlash();
+    initCopyShareLink();
     initPasswordToggle();
     initPasswordStrength();
     initRegisterForm();
