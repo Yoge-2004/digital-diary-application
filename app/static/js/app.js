@@ -15,6 +15,26 @@
   const THEME_KEY = "dd-theme";
   const DRAFT_PREFIX = "dd-draft-";
 
+  // Toggle a button's loading state, guaranteeing a .btn-spinner span
+  // exists (some templates already include one statically; for any
+  // button that doesn't, insert one) so the spinner always participates
+  // in normal flex flow next to the label instead of relying on a
+  // ::after pseudo-element, which doesn't position reliably here.
+  function setBtnLoading(btn, isLoading) {
+    if (!btn) return;
+    if (isLoading) {
+      if (!btn.querySelector(".btn-spinner")) {
+        const spinner = document.createElement("span");
+        spinner.className = "btn-spinner";
+        spinner.setAttribute("aria-hidden", "true");
+        btn.appendChild(spinner);
+      }
+      btn.classList.add("loading");
+    } else {
+      btn.classList.remove("loading");
+    }
+  }
+
   // ══════════════════════════════════════════════════════════
   //  Theme (dark / light)
   // ══════════════════════════════════════════════════════════
@@ -348,7 +368,7 @@
       // Show loading state
       const btn = form.querySelector('[type="submit"]');
       if (btn) {
-        btn.classList.add("loading");
+        setBtnLoading(btn, true);
         btn.disabled = true;
       }
     });
@@ -377,7 +397,7 @@
         return;
       }
       const btn = form.querySelector('[type="submit"]');
-      if (btn) { btn.classList.add("loading"); btn.disabled = true; }
+      if (btn) { setBtnLoading(btn, true); btn.disabled = true; }
     });
   }
 
@@ -402,7 +422,7 @@
       const eOk = validateEmail(eInput);
       if (!uOk || !eOk) { shakeForm(form); return; }
 
-      verifyBtn.classList.add("loading");
+      setBtnLoading(verifyBtn, true);
       verifyBtn.disabled = true;
 
       try {
@@ -424,7 +444,7 @@
       } catch {
         showFlash("Something went wrong. Please try again.", "error");
       } finally {
-        verifyBtn.classList.remove("loading");
+        setBtnLoading(verifyBtn, false);
         verifyBtn.disabled = false;
       }
     });
@@ -449,7 +469,7 @@
         return;
       }
 
-      resetBtn.classList.add("loading");
+      setBtnLoading(resetBtn, true);
       resetBtn.disabled = true;
 
       try {
@@ -476,7 +496,7 @@
       } catch {
         showFlash("Something went wrong. Please try again.", "error");
       } finally {
-        resetBtn.classList.remove("loading");
+        setBtnLoading(resetBtn, false);
         resetBtn.disabled = false;
       }
     });
@@ -677,7 +697,7 @@
         form.querySelector(".is-invalid")?.focus();
       } else {
         const btn = form.querySelector('[type="submit"]');
-        if (btn) { btn.classList.add("loading"); btn.disabled = true; }
+        if (btn) { setBtnLoading(btn, true); btn.disabled = true; }
       }
     });
   }
@@ -700,7 +720,7 @@
         if (!uOk || !eOk) { e.preventDefault(); shakeForm(profileForm); }
         else {
           const btn = profileForm.querySelector('[type="submit"]');
-          if (btn) { btn.classList.add("loading"); btn.disabled = true; }
+          if (btn) { setBtnLoading(btn, true); btn.disabled = true; }
         }
       });
     }
@@ -732,7 +752,7 @@
         if (!c1 || !c2 || !c3) { e.preventDefault(); shakeForm(pwForm); }
         else {
           const btn = pwForm.querySelector('[type="submit"]');
-          if (btn) { btn.classList.add("loading"); btn.disabled = true; }
+          if (btn) { setBtnLoading(btn, true); btn.disabled = true; }
         }
       });
     }

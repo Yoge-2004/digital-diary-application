@@ -367,7 +367,7 @@ img, video { max-width: 100%; display: block; }
 
 /* ── Top Bar ── */
 .topbar {
-  background: var(--bg-surface);
+  background: var(--bg-body);
   border-bottom: 1px solid var(--border-color);
   padding: 0 var(--page-pad);
   height: var(--topbar-h);
@@ -1326,15 +1326,19 @@ img, video { max-width: 100%; display: block; }
   opacity: 0.75;
 }
 
-.btn.loading::after {
-  content: '';
+.btn-spinner {
+  display: none;
   width: 14px;
   height: 14px;
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
-  margin-left: 0.4rem;
+  flex-shrink: 0;
+}
+
+.btn.loading .btn-spinner {
+  display: inline-block;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -3013,10 +3017,10 @@ img, video { max-width: 100%; display: block; }
 
 /* 15. Topbar glass + selection + scrollbar polish ---------------------- */
 .topbar {
-  background: hsl(0 0% 100% / .84);
+  background: hsl(35 25% 97% / .84);
   backdrop-filter: blur(10px) saturate(1.15);
   -webkit-backdrop-filter: blur(10px) saturate(1.15);
 }
-[data-theme="dark"] .topbar { background: hsl(220 30% 8% / .78); }
+[data-theme="dark"] .topbar { background: hsl(25 20% 7% / .78); }
 ::selection { background: hsl(38 70% 55% / .35); color: var(--clr-ink); }
 .page-content { scrollbar-width: thin; scrollbar-color: hsl(38 30% 70%) transparent; }
