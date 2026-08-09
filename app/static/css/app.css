@@ -2651,7 +2651,7 @@ img, video { max-width: 100%; display: block; }
 
 /* ── Diary form layout — single column journal ── */
 .journal-form-wrap {
-  max-width: 860px;
+  max-width: 1040px;
   margin: 0 auto;
 }
 

@@ -70,10 +70,10 @@
 </div>
 
 <!-- ── Two-column layout ── -->
-<div style="display:grid;grid-template-columns:1fr clamp(280px,30vw,340px);gap:clamp(1rem,2vw,1.5rem);align-items:start;" class="dash-grid">
+<div style="display:grid;grid-template-columns:1fr clamp(280px,30vw,340px);gap:clamp(1rem,2vw,1.5rem);align-items:stretch;" class="dash-grid">
 
   <!-- Recent entries -->
-  <div class="card card-paper">
+  <div class="card card-paper" style="display:flex;flex-direction:column;">
     <div class="card-header">
       <i class="bi bi-clock-history" aria-hidden="true"></i> Recent Entries
       <a href="/diaries" class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:.78rem;">
@@ -113,7 +113,7 @@
       {% endfor %}
     </div>
 
-    <div style="padding:.75rem 1.25rem;text-align:center;border-top:1px solid var(--border-color);">
+    <div style="padding:.75rem 1.25rem;text-align:center;border-top:1px solid var(--border-color);margin-top:auto;">
       <a href="/diaries/new" class="btn btn-accent btn-sm" style="width:100%;">
         <i class="bi bi-pencil-fill" aria-hidden="true"></i>
         {% if summary.current_streak > 0 %}
@@ -125,7 +125,7 @@
     </div>
 
     {% else %}
-    <div class="empty-state">
+    <div class="empty-state" style="margin-top:auto;margin-bottom:auto;">
       <span class="empty-icon">📝</span>
       <div class="empty-title">Your diary is empty</div>
       <p class="empty-sub">Every great journey starts with a single entry.</p>
