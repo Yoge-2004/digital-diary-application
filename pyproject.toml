@@ -14,3 +14,9 @@ dependencies = [
     "alembic>=1.16.4",
     "uvicorn>=0.51.0",
 ]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "respx>=0.22.0",
+]

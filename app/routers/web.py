@@ -45,6 +45,7 @@ def _base_context(request: Request, user):
         "csrf_token": request.cookies.get("csrf_token") or ensure_csrf_cookie(request),
         "flash": request.query_params.get("msg"),
         "flash_error": request.query_params.get("err"),
+        "google_oauth_enabled": request.app.state.settings.google_oauth_enabled,
     }
 
 

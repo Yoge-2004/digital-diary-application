@@ -900,8 +900,19 @@
   function showToast(message, type = "success", durationMs = 3200) {
     const toast = document.createElement("div");
     toast.className = `ajax-toast ${type}`;
-    const icon = type === "success" ? "✓" : "✕";
-    toast.innerHTML = `<span style="font-size:1.1em;">${icon}</span> ${message}`;
+
+    const iconEl = document.createElement("span");
+    iconEl.className = "ajax-toast-icon";
+    iconEl.textContent = type === "success" ? "✓" : "✕";
+
+    const msgEl = document.createElement("span");
+    msgEl.className = "ajax-toast-msg";
+    msgEl.textContent = message; // textContent, not innerHTML: avoids
+                                  // breaking on/leaking arbitrary HTML in
+                                  // user-controlled strings like filenames.
+
+    toast.appendChild(iconEl);
+    toast.appendChild(msgEl);
     document.body.appendChild(toast);
     setTimeout(() => {
       toast.style.animation = "toastOut 0.3s var(--ease) both";

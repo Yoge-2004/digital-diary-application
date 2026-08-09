@@ -32,8 +32,22 @@ class Settings:
     smtp_use_tls: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
     app_base_url: str = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 
+    # Google OAuth ("Sign in with Google"). Both must be set for the
+    # feature to activate; if either is blank the login/register pages
+    # simply don't render the Google button and the /auth/google/*
+    # routes return a clear error instead of silently misbehaving.
+    # Get these from https://console.cloud.google.com/apis/credentials
+    # (OAuth client ID, type "Web application"). Add
+    # {APP_BASE_URL}/auth/google/callback as an authorized redirect URI there.
+    google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
     def __post_init__(self) -> None:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def google_oauth_enabled(self) -> bool:
+        return bool(self.google_client_id and self.google_client_secret)
 
 
 settings = Settings()

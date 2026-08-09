@@ -15,6 +15,7 @@ from pathlib import Path
 
 from datetime import datetime, timedelta, UTC
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -63,6 +64,69 @@ def authenticate_user(db: Session, identifier: str, password: str) -> User:
     user = repositories.get_user_by_email(db, identifier) or repositories.get_user_by_username(db, identifier)
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    repositories.set_last_login(db, user)
+    return user
+
+
+def _unique_username_from(seed: str, db: Session) -> str:
+    """Turn an email/display-name into a valid, available username.
+
+    Google gives us an email and a display name, neither of which is
+    guaranteed to satisfy this app's username rules or be unique, so we
+    slugify it and append a short numeric suffix on collision.
+    """
+    base = "".join(ch for ch in seed.split("@")[0].lower() if ch.isalnum() or ch == "_") or "user"
+    base = base[:40]
+    candidate = base
+    suffix = 0
+    while repositories.get_user_by_username(db, candidate):
+        suffix += 1
+        candidate = f"{base}{suffix}"
+    return candidate
+
+
+def get_or_create_oauth_user(db: Session, *, provider: str, provider_user_id: str, email: str, name: str | None) -> User:
+    """Find or create the local account for an external OAuth identity.
+
+    Lookup order:
+      1. An account already linked to this exact (provider, provider_user_id).
+      2. An existing password-based account with the same email — link the
+         OAuth identity to it rather than creating a duplicate account, so
+         someone who registered with a password and later clicks
+         "Continue with Google" using the same address ends up in one
+         account, not two.
+      3. Otherwise, create a brand new account. It still gets a
+         password_hash (this app has no migration tooling to safely make
+         that column nullable on existing databases) but the value is a
+         long random string nobody can know or derive, so password login
+         can never succeed for it -- only the OAuth route can sign in.
+    """
+    user = db.scalar(select(User).where(User.oauth_provider == provider, User.oauth_id == provider_user_id))
+    if user:
+        repositories.set_last_login(db, user)
+        return user
+
+    email = email.lower().strip()
+    user = repositories.get_user_by_email(db, email)
+    if user:
+        user.oauth_provider = provider
+        user.oauth_id = provider_user_id
+        db.commit()
+        db.refresh(user)
+        repositories.set_last_login(db, user)
+        return user
+
+    username = _unique_username_from(name or email, db)
+    user = User(
+        username=username,
+        email=email,
+        password_hash=hash_password(secrets.token_urlsafe(48)),
+        oauth_provider=provider,
+        oauth_id=provider_user_id,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     repositories.set_last_login(db, user)
     return user
 

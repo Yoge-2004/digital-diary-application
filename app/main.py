@@ -13,6 +13,7 @@ from app.db.session import Base, create_engine_from_url, patch_missing_columns
 from app import models  # noqa: F401
 from app.routers.api import router as api_router
 from app.routers.web import router as web_router
+from app.routers.oauth import router as oauth_router
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     app.state.db_sessionmaker = session_factory
     app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
     app.include_router(web_router, include_in_schema=False)
+    app.include_router(oauth_router, include_in_schema=False)
     app.include_router(api_router)
 
     @app.exception_handler(Exception)

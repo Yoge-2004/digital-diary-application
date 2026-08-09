@@ -37,6 +37,16 @@ class User(Base):
     reset_token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     reset_token_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # OAuth (e.g. "google"). NULL/NULL for password-only accounts. An
+    # account can currently be linked to at most one external provider;
+    # password_hash stays NOT NULL even for OAuth-only signups (see
+    # services.get_or_create_oauth_user) rather than making the column
+    # nullable, since this app has no real migration tooling and altering
+    # an existing column's nullability isn't something patch_missing_columns
+    # (additive-only) can do safely on SQLite.
+    oauth_provider: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    oauth_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+
     diaries: Mapped[list["Diary"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     tags: Mapped[list["Tag"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="user", cascade="all, delete-orphan")
