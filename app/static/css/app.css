@@ -74,7 +74,7 @@
   --sidebar-w:   270px;
   --sidebar-w-lg:300px;
   --topbar-h:    clamp(52px, 7vh, 68px);
-  --content-max: 1280px;
+  --content-max: clamp(1280px, 75vw, 1600px);
   --content-max-4k: 1600px;
   --page-pad:    clamp(1rem, 3vw, 2.5rem);
 

@@ -55,6 +55,20 @@
       { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
     );
     targets.forEach(function (el) { io.observe(el); });
+
+    // Safety net: content that never crosses the intersection threshold
+    // (e.g. it's already fully in view before the observer attaches, or
+    // the user never scrolls that far) would otherwise stay permanently
+    // at opacity:0 -- indistinguishable from empty page space. Force-
+    // reveal anything still hidden after a few seconds regardless.
+    setTimeout(function () {
+      targets.forEach(function (el) {
+        if (!el.classList.contains("is-visible")) {
+          el.classList.add("is-visible");
+          io.unobserve(el);
+        }
+      });
+    }, 2500);
   }
 
   function initBarFills() {
