@@ -170,7 +170,7 @@ body {
 }
 
 a { color: var(--txt-primary); text-decoration: none; transition: color var(--t-fast); }
-a:hover { color: var(--clr-accent-dark); }
+a:hover:not(.btn) { color: var(--clr-accent-dark); }
 
 img, video { max-width: 100%; display: block; }
 
@@ -2293,6 +2293,11 @@ img, video { max-width: 100%; display: block; }
       transparent 2em
     );
   background-attachment: local;
+  background-position-y: 1rem; /* match padding-top exactly, in the same
+    unit, so the rule phase stays correct regardless of how large
+    font-size (and therefore 1em) currently is under the responsive
+    clamp() — an em-based offset here would only be exactly right at
+    one specific viewport width and drift slightly at every other. */
 }
 
 [data-theme="dark"] .journal-paper {
@@ -2498,7 +2503,10 @@ img, video { max-width: 100%; display: block; }
       transparent 1.3em,
       transparent 2em
     );
-  background-position-y: 0.74em;
+  background-position-y: 1rem; /* match padding-top exactly (see the
+    same note on .journal-paper) rather than approximating with em,
+    which only lines up at one specific font-size along the responsive
+    clamp() and drifts slightly everywhere else. */
   background-attachment: local;
   min-height: 200px;
 }
