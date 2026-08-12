@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Verify your email — Digital Diary{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Verify your email</div>
+</div>
+
+<div style="max-width:480px;">
+  <div class="card card-paper" style="padding:2rem;text-align:center;">
+    <div id="verifyEmailFormWrap">
+      <div style="font-size:3rem;margin-bottom:1rem;">📬</div>
+      <h2 style="font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin-bottom:.5rem;">
+        Enter your verification code
+      </h2>
+      <p style="font-family:var(--font-serif);font-style:italic;color:var(--txt-secondary);margin-bottom:1.5rem;">
+        We sent a 6-digit code to <strong>{{ current_user.email }}</strong>. It expires in 15 minutes.
+      </p>
+
+      <form id="verifyEmailForm" novalidate>
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label class="form-label" for="ve-code" style="justify-content:center;display:flex;">Verification code</label>
+          <input class="form-control" id="ve-code" inputmode="numeric" maxlength="6" placeholder="123456" required
+                 style="text-align:center;letter-spacing:0.4em;font-weight:700;font-size:1.2rem;" autocomplete="one-time-code">
+          <div class="form-feedback" id="ve-code-fb" aria-live="polite"></div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;min-height:48px;" id="verifyEmailBtn" type="button">
+          <i class="bi bi-check-circle"></i> Verify email
+        </button>
+
+        <div style="margin-top:1.25rem;font-size:.85rem;color:var(--txt-muted);">
+          Didn't get a code?
+          <button type="button" id="resendCodeBtn" class="btn btn-ghost btn-sm no-ripple" style="padding:0;min-height:unset;height:auto;text-decoration:underline;">
+            Resend it
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div id="verifyEmailSuccess" style="display:none;">
+      <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+      <h2 style="font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin-bottom:.5rem;">Email verified</h2>
+      <p style="font-family:var(--font-serif);font-style:italic;color:var(--txt-secondary);margin-bottom:1.5rem;">Thanks — your account is all set.</p>
+      <a href="/dashboard" class="btn btn-primary" style="min-height:48px;display:inline-flex;">Go to dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("verifyEmailForm");
+  const btn = document.getElementById("verifyEmailBtn");
+  const resendBtn = document.getElementById("resendCodeBtn");
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
+  btn?.addEventListener("click", async () => {
+    const codeInput = document.getElementById("ve-code");
+    if (!codeInput.value.trim()) {
+      codeInput.closest(".form-group").querySelector(".form-feedback").textContent = "Please enter the code";
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const resp = await fetch("/verify-email/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+        body: JSON.stringify({ code: codeInput.value.trim() }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.ok) {
+        document.getElementById("verifyEmailFormWrap").style.display = "none";
+        document.getElementById("verifyEmailSuccess").style.display = "block";
+      } else {
+        document.getElementById("ve-code-fb").textContent = data.detail || "Invalid code";
+      }
+    } catch {
+      document.getElementById("ve-code-fb").textContent = "Something went wrong. Please try again.";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  resendBtn?.addEventListener("click", async () => {
+    resendBtn.disabled = true;
+    resendBtn.textContent = "Sending...";
+    try {
+      const resp = await fetch("/verify-email/resend", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrf },
+      });
+      const data = await resp.json();
+      resendBtn.textContent = data.ok ? "Sent!" : "Resend it";
+    } catch {
+      resendBtn.textContent = "Resend it";
+    } finally {
+      setTimeout(() => { resendBtn.disabled = false; if (resendBtn.textContent === "Sent!") resendBtn.textContent = "Resend it"; }, 2000);
+    }
+  });
+});
+</script>
+{% endblock %}

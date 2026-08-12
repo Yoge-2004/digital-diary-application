@@ -37,12 +37,27 @@ def send_email(smtp_settings, to_email: str, subject: str, body: str) -> None:
         server.sendmail(smtp_settings.smtp_from, [to_email], msg.as_string())
 
 
-def send_password_reset_email(smtp_settings, to_email: str, reset_url: str) -> None:
-    subject = "Reset your Digital Diary password"
+def send_password_reset_email(smtp_settings, to_email: str, code: str) -> None:
+    subject = "Your Digital Diary password reset code"
     body = (
         "We received a request to reset your Digital Diary password.\n\n"
-        f"Reset it here (valid for 1 hour): {reset_url}\n\n"
+        f"Your verification code is: {code}\n\n"
+        "Enter this code on the reset password page to choose a new password. "
+        "It's valid for 15 minutes and can only be used once.\n\n"
         "If you didn't request this, you can safely ignore this email — "
         "your password won't be changed."
+    )
+    send_email(smtp_settings, to_email, subject, body)
+
+
+def send_verification_email(smtp_settings, to_email: str, code: str) -> None:
+    subject = "Verify your Digital Diary email address"
+    body = (
+        "Welcome to Digital Diary! Please verify your email address to "
+        "finish setting up your account.\n\n"
+        f"Your verification code is: {code}\n\n"
+        "Enter this code on the verify email page. It's valid for 15 minutes "
+        "and can only be used once.\n\n"
+        "If you didn't create this account, you can safely ignore this email."
     )
     send_email(smtp_settings, to_email, subject, body)

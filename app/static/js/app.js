@@ -437,6 +437,10 @@
             email: eInput.value.trim(),
           }),
         });
+        // Carry the identifier forward so the person doesn't have to type
+        // it again on the next page -- not sensitive enough to avoid
+        // sessionStorage, and it saves a step.
+        try { sessionStorage.setItem("dd-reset-identifier", uInput.value.trim()); } catch {}
         // Always show the same generic "check your email" step, whether
         // or not an account actually matched — this is deliberate, so the
         // form can't be used to check which usernames/emails exist.
@@ -451,7 +455,7 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  //  Reset password (token-gated, reached via the emailed link)
+  //  Reset password (code-gated: identifier + emailed OTP code)
   // ══════════════════════════════════════════════════════════
   function initResetPasswordForm() {
     const form = document.getElementById("resetPwForm");
@@ -459,10 +463,15 @@
 
     const resetBtn = document.getElementById("resetPwBtn");
     resetBtn?.addEventListener("click", async () => {
+      const idInput = document.getElementById("rp-identifier");
+      const codeInput = document.getElementById("rp-code");
       const npInput = document.getElementById("rp-new");
       const cnfInput = document.getElementById("rp-confirm");
+
+      const idOk = validateRequired(idInput, "Username or email");
+      const codeOk = validateRequired(codeInput, "Verification code");
       const pOk = validatePassword(npInput);
-      if (!pOk) { shakeForm(form); return; }
+      if (!idOk || !codeOk || !pOk) { shakeForm(form); return; }
       if (npInput.value !== cnfInput.value) {
         setInvalid(cnfInput, "Passwords do not match");
         shakeForm(form);
@@ -480,18 +489,20 @@
             "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || "",
           },
           body: JSON.stringify({
-            token: document.getElementById("reset-token")?.value || "",
+            identifier: idInput.value.trim(),
+            code: codeInput.value.trim(),
             new_password: npInput.value,
             confirm_new_password: cnfInput.value,
           }),
         });
         const data = await resp.json();
         if (resp.ok && data.ok) {
+          try { sessionStorage.removeItem("dd-reset-identifier"); } catch {}
           form.style.display = "none";
           const success = document.getElementById("resetPwSuccess");
           if (success) success.style.display = "block";
         } else {
-          showFlash(data.detail || "Reset failed. Please request a new link.", "error");
+          showFlash(data.detail || "That code is invalid or has expired. Please request a new one.", "error");
         }
       } catch {
         showFlash("Something went wrong. Please try again.", "error");

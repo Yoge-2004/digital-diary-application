@@ -438,6 +438,8 @@ def test_password_change_rejects_mismatched_confirmation():
 # ---------------------------------------------------------------------
 
 def _get_reset_token(tmp, username="alice"):
+    """Despite the name (kept for git-blame continuity), this now reads
+    a 6-digit OTP code, not a URL token."""
     import sqlite3
     conn = sqlite3.connect(f"{tmp.name}/test.db")
     row = conn.execute("SELECT reset_token FROM users WHERE username = ?", (username,)).fetchone()
@@ -445,7 +447,7 @@ def _get_reset_token(tmp, username="alice"):
     return row[0] if row else None
 
 
-def test_password_reset_requires_a_real_token_not_just_credentials():
+def test_password_reset_requires_a_real_code_not_just_credentials():
     client, tmp = build_client()
     with client, tmp:
         api_register(client, "alice", "alice@example.com", password="OldPass123!")
@@ -458,18 +460,28 @@ def test_password_reset_requires_a_real_token_not_just_credentials():
         )
         assert old_style.status_code == 404  # route no longer exists
 
-        # Requesting a reset with correct credentials generates a token...
+        # Requesting a reset with correct credentials generates a code...
         request = client.post("/forgot-password/verify", json={"username": "alice", "email": "alice@example.com"})
         assert request.status_code == 200
-        token = _get_reset_token(tmp)
-        assert token  # a real token was actually generated
+        code = _get_reset_token(tmp)
+        assert code and len(code) == 6 and code.isdigit()  # a real 6-digit code was actually generated
 
-        # ...a made-up token is rejected...
-        fake = client.post("/reset-password", json={"token": "not-a-real-token", "new_password": "Hacked123!", "confirm_new_password": "Hacked123!"})
+        # ...a made-up code is rejected...
+        fake = client.post("/reset-password", json={
+            "identifier": "alice", "code": "000000", "new_password": "Hacked123!", "confirm_new_password": "Hacked123!",
+        })
         assert fake.status_code == 400
 
-        # ...but the real token works...
-        real = client.post("/reset-password", json={"token": token, "new_password": "BrandNew123!", "confirm_new_password": "BrandNew123!"})
+        # ...the right code with the wrong identifier is also rejected...
+        wrong_identifier = client.post("/reset-password", json={
+            "identifier": "someone-else", "code": code, "new_password": "Hacked123!", "confirm_new_password": "Hacked123!",
+        })
+        assert wrong_identifier.status_code == 400
+
+        # ...but the real code with the right identifier works...
+        real = client.post("/reset-password", json={
+            "identifier": "alice", "code": code, "new_password": "BrandNew123!", "confirm_new_password": "BrandNew123!",
+        })
         assert real.status_code == 200
 
         # ...old password is now invalid, new one works...
@@ -478,8 +490,11 @@ def test_password_reset_requires_a_real_token_not_just_credentials():
         new_login = client.post("/api/auth/login", data={"username": "alice", "password": "BrandNew123!"})
         assert new_login.status_code == 200
 
-        # ...and the token can't be reused a second time.
-        reuse = client.post("/reset-password", json={"token": token, "new_password": "AnotherOne123!", "confirm_new_password": "AnotherOne123!"})
+        # ...and the code is now single-use: trying it again fails even
+        # with everything else correct.
+        reuse = client.post("/reset-password", json={
+            "identifier": "alice", "code": code, "new_password": "AnotherOne123!", "confirm_new_password": "AnotherOne123!",
+        })
         assert reuse.status_code == 400
 
 

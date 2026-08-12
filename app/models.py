@@ -47,6 +47,18 @@ class User(Base):
     oauth_provider: Mapped[str | None] = mapped_column(String(30), nullable=True)
     oauth_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
+    # Email verification (OTP-style: a short numeric code, not a link).
+    # email_verified defaults to None/falsy for both pre-existing accounts
+    # (backfilled by patch_missing_columns with NULL, since it can't apply
+    # an ORM-level default retroactively) and brand-new ones -- this is
+    # intentionally never used to block login or any feature; it only
+    # drives a dismissible-until-verified reminder banner. Gating real
+    # functionality on it would lock out every account that existed
+    # before this column did.
+    email_verified: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    verification_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    verification_code_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     diaries: Mapped[list["Diary"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     tags: Mapped[list["Tag"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="user", cascade="all, delete-orphan")

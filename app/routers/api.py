@@ -40,6 +40,10 @@ router = APIRouter(prefix="/api")
 def register(response: Response, payload: UserCreate, db: Session = Depends(get_db)):
     """Register a new user and log them in via httponly cookies."""
     user = services.register_user(db, payload)
+    try:
+        services.send_verification_code(db, user)
+    except Exception:
+        pass  # never let a flaky SMTP server block registration itself
     access_token, refresh_token = services.issue_tokens(user)
     response.set_cookie("access_token", access_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=60 * 60 * 24)
     response.set_cookie("refresh_token", refresh_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=60 * 60 * 24 * 30)

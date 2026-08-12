@@ -171,6 +171,12 @@
     </div>
 
     <main class="page-content" id="main-content">
+      {% if current_user and not current_user.email_verified and request.url.path != '/verify-email' %}
+      <div class="flash" style="position:static;background:var(--bg-surface-2);border:1px solid var(--border-color);color:var(--txt-primary);margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <span><i class="bi bi-envelope-exclamation" aria-hidden="true"></i> Please verify your email address to secure your account.</span>
+        <a href="/verify-email" class="btn btn-surface btn-sm no-ripple" style="flex-shrink:0;">Verify now</a>
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
 

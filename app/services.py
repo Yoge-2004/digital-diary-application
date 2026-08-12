@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.email import send_password_reset_email
+from app.core.email import send_password_reset_email, send_verification_email
 from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app import repositories
 from app.models import Attachment, Diary, Tag, User
@@ -111,6 +111,7 @@ def get_or_create_oauth_user(db: Session, *, provider: str, provider_user_id: st
     if user:
         user.oauth_provider = provider
         user.oauth_id = provider_user_id
+        user.email_verified = True  # Google just proved they control this address
         db.commit()
         db.refresh(user)
         repositories.set_last_login(db, user)
@@ -123,6 +124,7 @@ def get_or_create_oauth_user(db: Session, *, provider: str, provider_user_id: st
         password_hash=hash_password(secrets.token_urlsafe(48)),
         oauth_provider=provider,
         oauth_id=provider_user_id,
+        email_verified=True,  # Google already verified this address for us
     )
     db.add(user)
     db.commit()
@@ -166,48 +168,86 @@ def delete_account(db: Session, user: User) -> None:
     repositories.delete_user(db, user)
 
 
-def request_password_reset(db: Session, request_base_url: str, username: str, email: str) -> None:
-    """Start a password reset: if username+email match an account, email
-    them a single-use, 1-hour reset link. Deliberately returns nothing and
-    never raises for 'no such account' — the caller should always show the
-    same generic message regardless of whether a match was found, so this
-    can't be used to enumerate which usernames/emails have accounts.
+OTP_TTL_MINUTES = 15
 
-    This replaces the old behaviour where matching username+email alone
-    would let you reset the password directly, with no verification that
-    you actually control that email address.
+
+def _generate_otp() -> str:
+    """A 6-digit numeric code, zero-padded (e.g. "004821"), not a token
+    embedded in a URL -- the person types this in themselves."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def _is_expired(expires: datetime | None) -> bool:
+    if not expires:
+        return True
+    now = datetime.now(UTC)
+    # Safely compare tz-naive or tz-aware depending on SQLite vs Postgres.
+    now_cmp = now.replace(tzinfo=None) if not expires.tzinfo else now
+    expires_cmp = expires.replace(tzinfo=None) if not expires.tzinfo else expires
+    return expires_cmp < now_cmp
+
+
+def request_password_reset(db: Session, username: str, email: str) -> None:
+    """Start a password reset: if username+email match an account, email
+    them a single-use, 15-minute numeric code. Deliberately returns
+    nothing and never raises for 'no such account' — the caller should
+    always show the same generic message regardless of whether a match
+    was found, so this can't be used to enumerate which usernames/emails
+    have accounts.
     """
     user = repositories.get_user_by_username(db, username)
     if not user or user.email.lower() != email.strip().lower():
         return
-    token = secrets.token_urlsafe(32)
-    repositories.set_password_reset_token(db, user, token, datetime.now(UTC) + timedelta(hours=1))
-    reset_url = f"{request_base_url.rstrip('/')}/reset-password?token={token}"
-    send_password_reset_email(settings, user.email, reset_url)
+    code = _generate_otp()
+    repositories.set_password_reset_token(db, user, code, datetime.now(UTC) + timedelta(minutes=OTP_TTL_MINUTES))
+    send_password_reset_email(settings, user.email, code)
 
 
-def get_user_by_reset_token(db: Session, token: str) -> User:
-    """Return the user for a still-valid reset token, else raise 400."""
-    user = repositories.get_user_by_reset_token(db, token) if token else None
-    if not user or not user.reset_token_expires:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This reset link is invalid or has expired")
-    # Safely compare tz-naive or tz-aware depending on SQLite vs Postgres
-    now = datetime.now(UTC)
-    expires = user.reset_token_expires
-    now_cmp = now.replace(tzinfo=None) if not expires.tzinfo else now
-    expires_cmp = expires.replace(tzinfo=None) if not expires.tzinfo else expires
-    if expires_cmp < now_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This reset link is invalid or has expired")
+def verify_reset_code(db: Session, identifier: str, code: str) -> User:
+    """Look a user up by username or email and check their stored,
+    still-valid password-reset code matches what they typed in."""
+    identifier = identifier.strip()
+    user = repositories.get_user_by_username(db, identifier) or repositories.get_user_by_email(db, identifier)
+    if (
+        not user
+        or not user.reset_token
+        or not code
+        or user.reset_token != code.strip()
+        or _is_expired(user.reset_token_expires)
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="That code is invalid or has expired")
     return user
 
 
-def reset_password_with_token(db: Session, token: str, new_password: str) -> User:
-    """Verify the token once more and reset the password, then invalidate
-    the token so it can't be reused (e.g. if the email got forwarded)."""
-    user = get_user_by_reset_token(db, token)
+def reset_password_with_code(db: Session, identifier: str, code: str, new_password: str) -> User:
+    """Verify the code once more and reset the password, then invalidate
+    it so it can't be reused."""
+    user = verify_reset_code(db, identifier, code)
     repositories.update_user_password(db, user, hash_password(new_password))
     repositories.set_password_reset_token(db, user, None, None)
     return user
+
+
+def send_verification_code(db: Session, user: User) -> None:
+    """(Re)send the email-verification code for a signed-in but
+    not-yet-verified account."""
+    code = _generate_otp()
+    repositories.set_verification_code(db, user, code, datetime.now(UTC) + timedelta(minutes=OTP_TTL_MINUTES))
+    send_verification_email(settings, user.email, code)
+
+
+def verify_email_with_code(db: Session, user: User, code: str) -> User:
+    """Check a submitted verification code and, if valid, mark the
+    account verified. Never blocks login or any feature either way --
+    this only clears the "please verify your email" reminder."""
+    if (
+        not user.verification_code
+        or not code
+        or user.verification_code != code.strip()
+        or _is_expired(user.verification_code_expires)
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="That code is invalid or has expired")
+    return repositories.mark_email_verified(db, user)
 
 
 def _resolve_created_at(entry_date) -> datetime | None:

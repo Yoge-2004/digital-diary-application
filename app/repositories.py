@@ -59,6 +59,23 @@ def get_user_by_reset_token(db: Session, token: str) -> User | None:
     return db.scalar(select(User).where(User.reset_token == token))
 
 
+def set_verification_code(db: Session, user: User, code: str | None, expires_at) -> User:
+    user.verification_code = code
+    user.verification_code_expires = expires_at
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def mark_email_verified(db: Session, user: User) -> User:
+    user.email_verified = True
+    user.verification_code = None
+    user.verification_code_expires = None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def set_last_login(db: Session, user: User) -> User:
     user.last_login = datetime.now(UTC)
     db.commit()

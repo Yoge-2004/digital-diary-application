@@ -102,6 +102,10 @@ def register(
         user = services.register_user(db, UserCreate(username=username, email=email, password=password))
     except Exception as exc:
         return _redirect(f"/register?err={_safe_msg(exc)}")
+    try:
+        services.send_verification_code(db, user)
+    except Exception:
+        pass  # never let a flaky SMTP server block registration itself
     access_token, refresh_token = services.issue_tokens(user)
     response = _redirect("/dashboard")
     _set_auth_cookies(response, access_token, refresh_token)
@@ -170,34 +174,29 @@ async def forgot_password_request(request: Request, db: Session = Depends(get_db
     """Request a password reset. Always responds with the same generic
     success message regardless of whether the account exists, so this
     can't be used to check which usernames/emails are registered. If
-    there's a match, emails a real single-use reset link (or logs it to
+    there's a match, emails a real single-use 6-digit code (or logs it to
     the server console if SMTP isn't configured — see core/email.py)."""
     from fastapi.responses import JSONResponse
     try:
         body = await request.json()
         username = body.get("username", "").strip()
         email = body.get("email", "").strip()
-        services.request_password_reset(db, str(request.base_url), username, email)
+        services.request_password_reset(db, username, email)
     except Exception:
         pass
-    return JSONResponse({"ok": True, "detail": "If that account exists, we've sent a reset link to its email address."})
+    return JSONResponse({"ok": True, "detail": "If that account exists, we've sent a verification code to its email address."})
 
 
 @router.get("/reset-password", response_class=HTMLResponse)
-def reset_password_page(request: Request, token: str = "", db: Session = Depends(get_db), current_user=Depends(get_optional_user)):
+def reset_password_page(request: Request, current_user=Depends(get_optional_user)):
     if current_user:
         return _redirect("/dashboard")
-    token_valid = True
-    try:
-        services.get_user_by_reset_token(db, token)
-    except Exception:
-        token_valid = False
     return _response_with_csrf(
         request,
         templates.TemplateResponse(
             request,
             "reset_password.html",
-            _base_context(request, None) | {"token": token, "token_valid": token_valid},
+            _base_context(request, None),
         ),
     )
 
@@ -207,14 +206,17 @@ async def reset_password_submit(request: Request, db: Session = Depends(get_db))
     from fastapi.responses import JSONResponse
     try:
         body = await request.json()
-        token = body.get("token", "")
+        identifier = body.get("identifier", "")
+        code = body.get("code", "")
         new_password = body.get("new_password", "")
         confirm_new_password = body.get("confirm_new_password", "")
+        if not identifier.strip() or not code.strip():
+            return JSONResponse({"ok": False, "detail": "Please enter your username/email and the code we sent you"}, status_code=400)
         if len(new_password) < 8:
             return JSONResponse({"ok": False, "detail": "Password must be at least 8 characters"}, status_code=400)
         if new_password != confirm_new_password:
             return JSONResponse({"ok": False, "detail": "Passwords do not match"}, status_code=400)
-        services.reset_password_with_token(db, token, new_password)
+        services.reset_password_with_code(db, identifier, code, new_password)
         return JSONResponse({"ok": True})
     except HTTPException as exc:
         return JSONResponse({"ok": False, "detail": exc.detail}, status_code=exc.status_code)
@@ -769,6 +771,52 @@ async def upload_attachment(
             return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
         return _redirect(f"/diaries/{diary_id}?err={_safe_msg(exc)}")
     return _redirect(f"/diaries/{diary_id}?msg=File+uploaded")
+
+
+# ──────────────────────────────────────────
+# Email verification (non-blocking OTP reminder)
+# ──────────────────────────────────────────
+
+@router.get("/verify-email", response_class=HTMLResponse)
+def verify_email_page(request: Request, current_user=Depends(get_optional_user)):
+    if not current_user:
+        return _redirect("/login")
+    if current_user.email_verified:
+        return _redirect("/dashboard?msg=Your+email+is+already+verified")
+    return _response_with_csrf(
+        request,
+        templates.TemplateResponse(request, "verify_email.html", _base_context(request, current_user)),
+    )
+
+
+@router.post("/verify-email/resend")
+def verify_email_resend(current_user=Depends(get_optional_user), db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    if not current_user:
+        return JSONResponse({"ok": False, "detail": "Please sign in first"}, status_code=401)
+    if current_user.email_verified:
+        return JSONResponse({"ok": True, "detail": "Your email is already verified"})
+    try:
+        services.send_verification_code(db, current_user)
+    except Exception:
+        pass
+    return JSONResponse({"ok": True, "detail": "A new code has been sent to your email"})
+
+
+@router.post("/verify-email/confirm")
+async def verify_email_confirm(request: Request, current_user=Depends(get_optional_user), db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    if not current_user:
+        return JSONResponse({"ok": False, "detail": "Please sign in first"}, status_code=401)
+    try:
+        body = await request.json()
+        code = body.get("code", "")
+        services.verify_email_with_code(db, current_user, code)
+        return JSONResponse({"ok": True})
+    except HTTPException as exc:
+        return JSONResponse({"ok": False, "detail": exc.detail}, status_code=exc.status_code)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "detail": _safe_msg(exc)}, status_code=400)
 
 
 # ──────────────────────────────────────────
