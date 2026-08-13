@@ -38,6 +38,19 @@ def _response_with_csrf(request: Request, response: RedirectResponse | HTMLRespo
     return response
 
 
+def _canonical_url(request: Request) -> str:
+    """The canonical URL should identify the *content*, not the response
+    that happened to render it. Our own flash-message params (?msg=...,
+    ?err=...) are transient UI signaling, not distinct content, so they're
+    stripped; any other query param (e.g. ?favorite=true on /diaries,
+    ?q=... on /search) genuinely reflects different content and is kept.
+    """
+    from urllib.parse import urlencode
+    params = {k: v for k, v in request.query_params.items() if k not in ("msg", "err")}
+    base = str(request.url).split("?")[0]
+    return f"{base}?{urlencode(params)}" if params else base
+
+
 def _base_context(request: Request, user):
     return {
         "request": request,
@@ -46,6 +59,16 @@ def _base_context(request: Request, user):
         "flash": request.query_params.get("msg"),
         "flash_error": request.query_params.get("err"),
         "google_oauth_enabled": request.app.state.settings.google_oauth_enabled,
+        "canonical_url": _canonical_url(request),
+        # Every authenticated page is a private, personal-journal page --
+        # dashboard, diary entries (even ones the owner has marked
+        # "public" for sharing via a direct link), settings, search
+        # results, and so on. None of that belongs in search results, so
+        # anything rendered with a logged-in user gets noindex by default.
+        # Only genuinely public marketing/entry pages (landing, login,
+        # register), which are always rendered with user=None, keep the
+        # default index/follow.
+        "robots_meta": "noindex, nofollow, noarchive" if user else "index, follow",
     }
 
 
@@ -61,6 +84,62 @@ def _redirect_with_msg(location: str, msg: str | None = None, err: str | None = 
         sep = "&" if "?" in location else "?"
         location = f"{location}{sep}msg={msg}"
     return RedirectResponse(location, status_code=303)
+
+
+# ──────────────────────────────────────────
+# SEO: robots.txt & sitemap.xml
+# ──────────────────────────────────────────
+
+@router.get("/robots.txt", response_class=Response)
+def robots_txt(request: Request):
+    base = str(request.base_url).rstrip("/")
+    # Only the genuinely public marketing/entry pages should be crawled.
+    # Everything else here is either an authenticated personal-journal
+    # page (dashboard, diary entries, settings, search, ...) or a
+    # transient action page (password reset, email verification) --
+    # neither belongs in a search index.
+    lines = [
+        "User-agent: *",
+        "Allow: /$",
+        "Allow: /login$",
+        "Allow: /register$",
+        "Disallow: /dashboard",
+        "Disallow: /diaries",
+        "Disallow: /calendar",
+        "Disallow: /statistics",
+        "Disallow: /stats",
+        "Disallow: /search",
+        "Disallow: /settings",
+        "Disallow: /shared",
+        "Disallow: /verify-email",
+        "Disallow: /forgot-password",
+        "Disallow: /reset-password",
+        "Disallow: /api/",
+        "Disallow: /auth/",
+        "Disallow: /attachments/",
+        "",
+        f"Sitemap: {base}/sitemap.xml",
+    ]
+    return Response("\n".join(lines), media_type="text/plain")
+
+
+@router.get("/sitemap.xml", response_class=Response)
+def sitemap_xml(request: Request):
+    base = str(request.base_url).rstrip("/")
+    # Deliberately minimal: only pages that are public, indexable, and
+    # the same for every visitor. Everything else in the app is
+    # per-user, behind auth, and marked noindex (see _base_context).
+    urls = [
+        (f"{base}/", "weekly", "1.0"),
+        (f"{base}/login", "monthly", "0.3"),
+        (f"{base}/register", "monthly", "0.5"),
+    ]
+    entries = "\n".join(
+        f"  <url><loc>{loc}</loc><changefreq>{freq}</changefreq><priority>{prio}</priority></url>"
+        for loc, freq, prio in urls
+    )
+    xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{entries}\n</urlset>'
+    return Response(xml, media_type="application/xml")
 
 
 # ──────────────────────────────────────────

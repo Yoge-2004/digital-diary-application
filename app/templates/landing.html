@@ -2,6 +2,25 @@
 {% block title %}Digital Diary — Your Private Journal Online{% endblock %}
 {% block meta_desc %}A secure, beautiful digital diary to capture your thoughts, track your moods, and build your writing streak — completely private and always yours.{% endblock %}
 
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Digital Diary",
+  "url": "{{ canonical_url }}",
+  "description": "A secure, beautiful digital diary to capture your thoughts, track your moods, and build your writing streak.",
+  "applicationCategory": "LifestyleApplication",
+  "operatingSystem": "Any (web-based)",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 
 <!-- ══════════════════════════════════════
