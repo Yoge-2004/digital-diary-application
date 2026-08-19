@@ -275,9 +275,11 @@
             <label class="form-label" for="login-password" style="margin-bottom:0;">
               <i class="bi bi-lock" aria-hidden="true"></i> Password
             </label>
+            {% if email_service_enabled %}
             <a href="/forgot-password" style="font-size:0.78rem;color:var(--clr-accent-dark);">
               Forgot password?
             </a>
+            {% endif %}
           </div>
           <div class="password-wrap input-icon-wrap">
             <i class="bi bi-lock input-icon-prefix" aria-hidden="true"></i>

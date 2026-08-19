@@ -58,6 +58,7 @@ def _base_context(request: Request, user):
         "csrf_token": request.cookies.get("csrf_token") or ensure_csrf_cookie(request),
         "flash": request.query_params.get("msg"),
         "flash_error": request.query_params.get("err"),
+        "email_service_enabled": request.app.state.settings.email_service_enabled,
         "google_oauth_enabled": request.app.state.settings.google_oauth_enabled,
         "canonical_url": _canonical_url(request),
         # Every authenticated page is a private, personal-journal page --
@@ -181,10 +182,11 @@ def register(
         user = services.register_user(db, UserCreate(username=username, email=email, password=password))
     except Exception as exc:
         return _redirect(f"/register?err={_safe_msg(exc)}")
-    try:
-        services.send_verification_code(db, user)
-    except Exception:
-        pass  # never let a flaky SMTP server block registration itself
+    if request.app.state.settings.email_service_enabled:
+        try:
+            services.send_verification_code(db, user)
+        except Exception:
+            pass  # never let a flaky SMTP server block registration itself
     access_token, refresh_token = services.issue_tokens(user)
     response = _redirect("/dashboard")
     _set_auth_cookies(response, access_token, refresh_token)
@@ -236,6 +238,8 @@ def logout(request: Request, csrf_token: str = Form(...)):
 
 @router.get("/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request, current_user=Depends(get_optional_user)):
+    if not request.app.state.settings.email_service_enabled:
+        raise HTTPException(status_code=404)
     if current_user:
         return _redirect("/dashboard")
     return _response_with_csrf(
@@ -256,6 +260,8 @@ async def forgot_password_request(request: Request, db: Session = Depends(get_db
     there's a match, emails a real single-use 6-digit code (or logs it to
     the server console if SMTP isn't configured — see core/email.py)."""
     from fastapi.responses import JSONResponse
+    if not request.app.state.settings.email_service_enabled:
+        raise HTTPException(status_code=404)
     try:
         body = await request.json()
         username = body.get("username", "").strip()
@@ -268,6 +274,8 @@ async def forgot_password_request(request: Request, db: Session = Depends(get_db
 
 @router.get("/reset-password", response_class=HTMLResponse)
 def reset_password_page(request: Request, current_user=Depends(get_optional_user)):
+    if not request.app.state.settings.email_service_enabled:
+        raise HTTPException(status_code=404)
     if current_user:
         return _redirect("/dashboard")
     return _response_with_csrf(
@@ -283,6 +291,8 @@ def reset_password_page(request: Request, current_user=Depends(get_optional_user
 @router.post("/reset-password")
 async def reset_password_submit(request: Request, db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
+    if not request.app.state.settings.email_service_enabled:
+        raise HTTPException(status_code=404)
     try:
         body = await request.json()
         identifier = body.get("identifier", "")
@@ -858,6 +868,8 @@ async def upload_attachment(
 
 @router.get("/verify-email", response_class=HTMLResponse)
 def verify_email_page(request: Request, current_user=Depends(get_optional_user)):
+    if not request.app.state.settings.email_service_enabled:
+        raise HTTPException(status_code=404)
     if not current_user:
         return _redirect("/login")
     if current_user.email_verified:
@@ -869,8 +881,10 @@ def verify_email_page(request: Request, current_user=Depends(get_optional_user))
 
 
 @router.post("/verify-email/resend")
-def verify_email_resend(current_user=Depends(get_optional_user), db: Session = Depends(get_db)):
+def verify_email_resend(request: Request, current_user=Depends(get_optional_user), db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
+    if not request.app.state.settings.email_service_enabled:
+        raise HTTPException(status_code=404)
     if not current_user:
         return JSONResponse({"ok": False, "detail": "Please sign in first"}, status_code=401)
     if current_user.email_verified:
@@ -885,6 +899,8 @@ def verify_email_resend(current_user=Depends(get_optional_user), db: Session = D
 @router.post("/verify-email/confirm")
 async def verify_email_confirm(request: Request, current_user=Depends(get_optional_user), db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
+    if not request.app.state.settings.email_service_enabled:
+        raise HTTPException(status_code=404)
     if not current_user:
         return JSONResponse({"ok": False, "detail": "Please sign in first"}, status_code=401)
     try:

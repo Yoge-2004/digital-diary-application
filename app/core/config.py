@@ -32,6 +32,20 @@ class Settings:
     smtp_use_tls: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
     app_base_url: str = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 
+    # Master switch for the whole email subsystem. Defaults on. Turn this
+    # off (EMAIL_SERVICE_ENABLED=false) for a deployment that has no SMTP
+    # story at all and doesn't want the OTP-gated flows around at all --
+    # not degraded, not logged-to-console-as-a-fallback, just absent:
+    # registration never generates or expects a verification code, no
+    # "please verify your email" banner ever renders, /verify-email
+    # redirects away, and "Forgot password?" / the whole reset-password
+    # flow disappears from the UI and its routes refuse to run. This is
+    # a different, stronger switch than "is SMTP configured" (smtp_host
+    # above) -- that one silently falls back to console-logging codes,
+    # which is a reasonable *development* default but still presents the
+    # OTP UI/copy to the user. This one removes that UI entirely.
+    email_service_enabled: bool = os.getenv("EMAIL_SERVICE_ENABLED", "true").lower() == "true"
+
     # Google OAuth ("Sign in with Google"). Both must be set for the
     # feature to activate; if either is blank the login/register pages
     # simply don't render the Google button and the /auth/google/*
