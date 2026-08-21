@@ -529,3 +529,20 @@ def test_location_round_trips_through_api_and_page():
 
         detail_html = client.get(f"/diaries/{diary_id}").text
         assert "Paris, France" in detail_html
+
+
+def test_standalone_pages_have_a_flash_container_for_js_error_toasts():
+    """auth.html, forgot_password.html, and reset_password.html don't
+    extend base.html, so they have their own standalone <head>/<body> --
+    which meant they'd been missing the #flashContainer element that
+    showFlash() (used for e.g. "that code is invalid" on a failed
+    password reset) needs to render into. Without it, showFlash() was a
+    silent no-op: the request failed but the page gave no visible
+    feedback at all. This just checks the element exists on each page;
+    tests/test_security_and_features's browser-driven flows already
+    cover that submitting a wrong code fails server-side."""
+    client, tmp = build_client()
+    with client, tmp:
+        for path in ["/login", "/register", "/forgot-password", "/reset-password"]:
+            resp = client.get(path)
+            assert 'id="flashContainer"' in resp.text, f"{path} is missing #flashContainer"
