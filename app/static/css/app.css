@@ -2113,7 +2113,7 @@ img, video { max-width: 100%; display: block; }
   }
 
   .diary-card { flex-direction: column; gap: 0.6rem; }
-  .diary-card-mood-strip { width: 100%; height: 4px; align-self: auto; border-radius: 0; margin: 0 -0.9rem; width: calc(100% + 1.8rem); }
+  .diary-card .diary-card-mood-strip { width: 100%; height: 4px; align-self: auto; border-radius: 0; margin: 0 -0.9rem; width: calc(100% + 1.8rem); }
   .diary-card:hover .diary-card-mood-strip { width: calc(100% + 1.8rem); }
   .diary-card-actions { opacity: 1; }
 
@@ -2705,7 +2705,15 @@ img, video { max-width: 100%; display: block; }
 /* ── Share form grid responsive ── */
 @media (max-width: 639px) {
   .diary-actions-bar { flex-wrap: wrap; }
-  .diary-actions-bar .toggle-label { display: none; }
+  /* Previously hid .toggle-label here, leaving these buttons as
+     icon-only on narrow screens. That's fine as long as the icon font
+     loads, but if it doesn't (CDN blocked, offline, ad-blocker, etc.)
+     the button has zero visible content -- no text, no icon, nothing,
+     despite aria-label/title still being correct for a screen reader.
+     The container already wraps (flex-wrap:wrap right above), so
+     there was no actual space constraint forcing icon-only mode --
+     just let the full-text buttons wrap onto more rows instead of
+     making them depend on a third-party font to be visibly usable. */
 }
 
 /* ── Journal page responsive: hide spiral binding on mobile ── */
