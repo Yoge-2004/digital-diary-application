@@ -74,7 +74,7 @@
   --sidebar-w:   270px;
   --sidebar-w-lg:300px;
   --topbar-h:    clamp(52px, 7vh, 68px);
-  --content-max: clamp(1280px, 75vw, 1600px);
+  --content-max: clamp(1280px, 90vw, 1760px);
   --content-max-4k: 1600px;
   --page-pad:    clamp(1rem, 3vw, 2.5rem);
 
@@ -1658,7 +1658,14 @@ img, video { max-width: 100%; display: block; }
   align-items: center;
   position: relative;
   overflow: hidden;
-  padding: clamp(2rem, 6vw, 5rem) var(--page-pad);
+  /* Vertical padding only: this section already sits inside
+     .page-content, which supplies its own edge padding + max-width, and
+     .hero-grid (the direct child here) applies its own max-width +
+     margin:auto for readable line-length. Adding a horizontal padding
+     here too was a third, redundant layer of the same constraint,
+     which is why the hero looked more inset than the features grid
+     below it despite both nominally using --content-max. */
+  padding: clamp(2rem, 6vw, 5rem) 0;
 }
 
 .hero-bg {
