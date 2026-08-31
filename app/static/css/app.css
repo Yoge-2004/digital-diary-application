@@ -9,6 +9,17 @@
    Design Tokens
    ============================================================ */
 :root {
+  /* Tie native form-control rendering (date pickers, scrollbars, etc.)
+     to the app's own light/dark toggle, not the OS-level preference.
+     The <meta name="color-scheme" content="light dark"> in base.html
+     lets the browser pick based on system preference -- which is a
+     mismatch if someone's OS is dark but they've picked light in the
+     app's own toggle (or vice versa), making native icons like the
+     date-input's calendar glyph render with the wrong-theme's
+     assumptions and become low-contrast/invisible against the actual
+     background. */
+  color-scheme: light;
+
   /* Fonts */
   --font-sans:   'Inter', system-ui, -apple-system, sans-serif;
   --font-serif:  'Lora', Georgia, 'Times New Roman', serif;
@@ -44,7 +55,7 @@
   /* ── Text ── */
   --txt-primary:   hsl(220 25% 15%);
   --txt-secondary: hsl(220 15% 40%);
-  --txt-muted:     hsl(220 10% 60%);
+  --txt-muted:     hsl(220 10% 42%);
   --txt-on-dark:   hsl(35 30% 94%);
   --txt-on-accent: #fff;
 
@@ -74,8 +85,7 @@
   --sidebar-w:   270px;
   --sidebar-w-lg:300px;
   --topbar-h:    clamp(52px, 7vh, 68px);
-  --content-max: clamp(1280px, 90vw, 1760px);
-  --content-max-4k: 1600px;
+  --content-max: clamp(1280px, 90vw, 2200px);
   --page-pad:    clamp(1rem, 3vw, 2.5rem);
 
   /* ── Transitions ── */
@@ -90,6 +100,7 @@
 
 /* ── Dark Mode ── */
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg-body:      hsl(25 20% 7%);
   --bg-surface:   hsl(25 18% 11%);
   --bg-surface-2: hsl(25 15% 15%);
@@ -466,11 +477,6 @@ img, video { max-width: 100%; display: block; }
 @keyframes pageEnter {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-/* 4K full-width */
-@media (min-width: 2560px) {
-  .page-content { max-width: var(--content-max-4k); }
 }
 
 /* ============================================================
@@ -2054,7 +2060,6 @@ img, video { max-width: 100%; display: block; }
 /* ── Large displays (1440+) ── */
 @media (min-width: 1440px) {
   :root { --sidebar-w: var(--sidebar-w-lg); }
-  .page-content { padding: 2.5rem 3rem; }
 }
 
 /* ── 4K / ultra-wide (2560+) ── */
@@ -2281,44 +2286,22 @@ img, video { max-width: 100%; display: block; }
   padding: 1rem 2rem 1rem 3.75rem; /* left room for margin line */
   min-height: 400px;
 
-  /* Ruled horizontal lines — matches line-height: 2 at 1.1rem ≈ 35px.
-     The rule sits at ~1.3em into each 2em line box (not at the very
-     bottom, i.e. 2em) because that's roughly where a line-height:2 box
-     actually places the text baseline — drawing it at the box's bottom
-     edge left a visible gap between the handwriting and the line. */
+  /* Red margin line only -- the horizontal ruled lines live on
+     .journal-textarea itself now (see below), not here. This element
+     contains header content (date/title/location) above the textarea
+     whose height isn't a clean multiple of the line-height, so a
+     repeating pattern anchored here would drift out of phase with the
+     textarea's own line boxes by however much that header's height
+     spills over the nearest line-height multiple -- which is exactly
+     what was causing the rule to land a few px away from the actual
+     text baseline instead of under it. */
   background-image:
-    /* red margin line */
-    linear-gradient(90deg, transparent 3.25rem, hsl(5 65% 65% / 0.25) 3.25rem, hsl(5 65% 65% / 0.25) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
-    /* ruled horizontal lines */
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(1.3em - 1px),
-      hsl(220 30% 88% / 0.50) calc(1.3em - 1px),
-      hsl(220 30% 88% / 0.50) 1.3em,
-      transparent 1.3em,
-      transparent 2em
-    );
-  background-attachment: local;
-  background-position-y: 1rem; /* match padding-top exactly, in the same
-    unit, so the rule phase stays correct regardless of how large
-    font-size (and therefore 1em) currently is under the responsive
-    clamp() — an em-based offset here would only be exactly right at
-    one specific viewport width and drift slightly at every other. */
+    linear-gradient(90deg, transparent 3.25rem, hsl(5 65% 65% / 0.25) 3.25rem, hsl(5 65% 65% / 0.25) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px));
 }
 
 [data-theme="dark"] .journal-paper {
   background-image:
-    linear-gradient(90deg, transparent 3.25rem, hsl(5 50% 45% / 0.20) 3.25rem, hsl(5 50% 45% / 0.20) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(1.3em - 1px),
-      hsl(220 15% 25% / 0.55) calc(1.3em - 1px),
-      hsl(220 15% 25% / 0.55) 1.3em,
-      transparent 1.3em,
-      transparent 2em
-    );
+    linear-gradient(90deg, transparent 3.25rem, hsl(5 50% 45% / 0.20) 3.25rem, hsl(5 50% 45% / 0.20) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px));
 }
 
 /* ── Auto-resize journal textarea ── */
@@ -2337,6 +2320,45 @@ img, video { max-width: 100%; display: block; }
   padding: 0;
   min-height: 400px;
   letter-spacing: 0.02em;
+
+  /* Horizontal ruled lines live here, not on .journal-paper, so the
+     pattern's coordinate origin is the textarea's own top -- which has
+     zero padding and no header content above it -- instead of
+     .journal-paper's top, which sits behind the date/title/location
+     row first. That header's height isn't a clean multiple of
+     line-height, so anchoring the pattern up there let it drift out
+     of phase with the textarea's actual line boxes by the header's
+     height modulo line-height. background-position-y below was
+     measured directly (a temporary same-font/size clone element +
+     Range.getBoundingClientRect() on the text, not eyeballed) against
+     a completely fresh textarea with no ancestor offset to get the
+     real baseline-from-top distance, then expressed in em so it
+     scales correctly across the responsive font-size clamp() instead
+     of only being exactly right at one specific viewport width. */
+  background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(2em - 1px),
+      hsl(220 30% 88% / 0.50) calc(2em - 1px),
+      hsl(220 30% 88% / 0.50) 2em,
+      transparent 2em,
+      transparent 2em
+    );
+  background-position-y: 1.53em;
+  background-attachment: local;
+}
+
+[data-theme="dark"] .journal-textarea {
+  color: hsl(38 30% 82%);
+  background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(2em - 1px),
+      hsl(220 15% 25% / 0.55) calc(2em - 1px),
+      hsl(220 15% 25% / 0.55) 2em,
+      transparent 2em,
+      transparent 2em
+    );
 }
 
 .journal-textarea::placeholder {
@@ -2349,10 +2371,6 @@ img, video { max-width: 100%; display: block; }
 .journal-textarea:focus {
   outline: none;
   box-shadow: none;
-}
-
-[data-theme="dark"] .journal-textarea {
-  color: hsl(38 30% 82%);
 }
 
 

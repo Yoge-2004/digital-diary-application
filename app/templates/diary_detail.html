@@ -40,7 +40,7 @@
             <time datetime="{{ diary.created_at.isoformat() }}">
               {{ diary.created_at.strftime('%A, %B %-d, %Y') }}
             </time>
-            <span style="color:var(--border-color-2);font-family:var(--font-sans);font-size:.8rem;">
+            <span style="color:var(--txt-muted);font-family:var(--font-sans);font-size:.8rem;">
               {{ diary.created_at.strftime('%I:%M %p') }}
             </span>
             {% if diary.updated_at and diary.updated_at != diary.created_at %}

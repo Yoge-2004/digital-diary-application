@@ -126,9 +126,9 @@
       ("🔒","Uncompromising Privacy","Bank-grade security ensures your private thoughts remain exactly that — private and protected."),
     ] %}
     {% for icon, title, desc in features %}
-    <div class="card" style="padding: 2.5rem; border-radius: 0; background: #fff; border: 1px solid var(--border-color); transition: all 0.4s var(--ease);">
+    <div class="card" style="padding: 2.5rem; border-radius: 0; background: var(--bg-surface); border: 1px solid var(--border-color); transition: all 0.4s var(--ease);">
       <div style="font-size:1.5rem;margin-bottom:1.5rem; color: var(--clr-accent);" aria-hidden="true">{{ icon }}</div>
-      <h3 style="font-family:var(--font-display);font-size:1.25rem;font-weight:700;margin-bottom:1rem; color: var(--clr-ink);">{{ title }}</h3>
+      <h3 style="font-family:var(--font-display);font-size:1.25rem;font-weight:700;margin-bottom:1rem; color: var(--txt-primary);">{{ title }}</h3>
       <p style="font-family:var(--font-serif);font-size:0.95rem;color:var(--txt-secondary);line-height:1.8;margin:0;">{{ desc }}</p>
     </div>
     {% endfor %}
