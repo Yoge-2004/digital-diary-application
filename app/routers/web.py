@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import calendar as cal_module
 import json
+import logging
 import re
 from datetime import UTC, date, datetime
 
@@ -18,6 +19,8 @@ from app.schemas import DiaryCreate, DiaryUpdate, PasswordUpdate, UserCreate, Us
 
 
 router = APIRouter(tags=["web"])
+
+logger = logging.getLogger("app.web")
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
 
@@ -186,7 +189,15 @@ def register(
         try:
             services.send_verification_code(db, user)
         except Exception:
-            pass  # never let a flaky SMTP server block registration itself
+            # Never let a flaky SMTP server block registration itself --
+            # the account still gets created either way. But swallowing
+            # this *silently* meant a broken SMTP config (wrong creds,
+            # unreachable host, whatever) left zero trail anywhere: the
+            # user just never got a code and nobody -- not them, not
+            # whoever runs this deployment -- had any way to know why.
+            # Logging it costs nothing and turns "mysterious missing
+            # email" into "grep the log for this user's id."
+            logger.exception("Failed to send verification email to user %s during registration", user.id)
     access_token, refresh_token = services.issue_tokens(user)
     response = _redirect("/dashboard")
     _set_auth_cookies(response, access_token, refresh_token)
@@ -258,17 +269,29 @@ async def forgot_password_request(request: Request, db: Session = Depends(get_db
     success message regardless of whether the account exists, so this
     can't be used to check which usernames/emails are registered. If
     there's a match, emails a real single-use 6-digit code (or logs it to
-    the server console if SMTP isn't configured — see core/email.py)."""
+    the server console if SMTP isn't configured — see core/email.py).
+
+    The response to the browser is deliberately the same generic message
+    whether the account didn't exist OR the send itself failed (e.g. SMTP
+    misconfigured/unreachable) -- returning a different message for send
+    failures would leak account existence just as much as returning a
+    different message outright. But those two cases used to be
+    indistinguishable server-side too (bare `except Exception: pass`),
+    which meant a broken SMTP config could silently break password reset
+    for every real account, forever, with nothing anywhere to notice it.
+    Logging the failure (not the browser response) fixes that without
+    reopening the enumeration risk."""
     from fastapi.responses import JSONResponse
     if not request.app.state.settings.email_service_enabled:
         raise HTTPException(status_code=404)
+    username = None
     try:
         body = await request.json()
         username = body.get("username", "").strip()
         email = body.get("email", "").strip()
         services.request_password_reset(db, username, email)
     except Exception:
-        pass
+        logger.exception("Password reset request failed for username=%r", username)
     return JSONResponse({"ok": True, "detail": "If that account exists, we've sent a verification code to its email address."})
 
 
@@ -892,7 +915,7 @@ def verify_email_resend(request: Request, current_user=Depends(get_optional_user
     try:
         services.send_verification_code(db, current_user)
     except Exception:
-        pass
+        logger.exception("Failed to resend verification email to user %s", current_user.id)
     return JSONResponse({"ok": True, "detail": "A new code has been sent to your email"})
 
 
