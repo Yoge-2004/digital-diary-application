@@ -32,19 +32,35 @@ class Settings:
     smtp_use_tls: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
     app_base_url: str = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 
-    # Master switch for the whole email subsystem. Defaults on. Turn this
-    # off (EMAIL_SERVICE_ENABLED=false) for a deployment that has no SMTP
-    # story at all and doesn't want the OTP-gated flows around at all --
-    # not degraded, not logged-to-console-as-a-fallback, just absent:
-    # registration never generates or expects a verification code, no
-    # "please verify your email" banner ever renders, /verify-email
-    # redirects away, and "Forgot password?" / the whole reset-password
-    # flow disappears from the UI and its routes refuse to run. This is
-    # a different, stronger switch than "is SMTP configured" (smtp_host
-    # above) -- that one silently falls back to console-logging codes,
-    # which is a reasonable *development* default but still presents the
-    # OTP UI/copy to the user. This one removes that UI entirely.
-    email_service_enabled: bool = os.getenv("EMAIL_SERVICE_ENABLED", "true").lower() == "true"
+    # Master switch for the whole email subsystem. Turn this off
+    # (EMAIL_SERVICE_ENABLED=false) -- or just leave SMTP unconfigured --
+    # for a deployment that doesn't want the OTP-gated flows around at
+    # all: not degraded, not logged-to-console-as-a-fallback, just
+    # absent. Registration never generates or expects a verification
+    # code, no "please verify your email" banner ever renders,
+    # /verify-email redirects away, and "Forgot password?" / the whole
+    # reset-password flow disappears from the UI and its routes refuse
+    # to run.
+    #
+    # Default is derived from smtp_host, NOT hardcoded true: with no SMTP
+    # configured, there's no real way to deliver a verification/reset
+    # email, so presenting that UI out of the box is misleading -- it
+    # promises an email that never arrives. Set EMAIL_SERVICE_ENABLED
+    # explicitly (true/false) to override this in either direction, e.g.
+    # to keep the OTP flow running with codes logged to the server
+    # console for local development despite no SMTP, or to force it off
+    # even with SMTP configured.
+    #
+    # This is resolved in __post_init__ (not as a plain field default)
+    # deliberately: a plain `= os.getenv(...)` default expression is
+    # evaluated exactly once, at class-definition/import time, and then
+    # reused for every Settings() call afterwards -- so it can never see
+    # self.smtp_host (which may itself have been passed explicitly to a
+    # given instance) and can't be exercised by tests that set env vars
+    # at runtime. Resolving it per-instance, from the actual smtp_host
+    # this instance ended up with, is both correct in production and
+    # testable.
+    email_service_enabled: bool | None = None
 
     # Google OAuth ("Sign in with Google"). Both must be set for the
     # feature to activate; if either is blank the login/register pages
@@ -58,6 +74,14 @@ class Settings:
 
     def __post_init__(self) -> None:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+        if self.email_service_enabled is None:
+            env_val = os.getenv("EMAIL_SERVICE_ENABLED")
+            resolved = (
+                env_val.lower() == "true"
+                if env_val is not None
+                else bool(self.smtp_host)
+            )
+            object.__setattr__(self, "email_service_enabled", resolved)
 
     @property
     def google_oauth_enabled(self) -> bool:
