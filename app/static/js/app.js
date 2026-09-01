@@ -1057,6 +1057,75 @@
   }
 
   // ══════════════════════════════════════════════════════════
+  //  Ruled-paper line alignment
+  //
+  //  .diary-reading (view page) and .journal-textarea (edit page) both
+  //  paint horizontal ruled lines as a repeating-linear-gradient
+  //  background and need that pattern's vertical offset to land exactly
+  //  on the real text baseline. A hardcoded em value for that offset
+  //  only ever matches one specific font at one specific size — it
+  //  silently drifts out of alignment the moment font-size shifts (this
+  //  app uses clamp() for both, so it's *always* shifting across
+  //  viewport widths), which is why this kept coming back. Measuring
+  //  the actual baseline in the user's actual browser, live, removes
+  //  the guesswork entirely: the offset is always correct because it's
+  //  read from the real rendered line box, not assumed.
+  // ══════════════════════════════════════════════════════════
+  function initRuledLineAlignment() {
+    const targets = $$(".diary-reading, .journal-textarea");
+    if (!targets.length) return;
+
+    // Classic baseline-detection trick: an inline-block span with
+    // vertical-align:top marks the line box's own top edge; a second
+    // zero-size span with vertical-align:baseline sits exactly on the
+    // text baseline. The gap between their top edges, measured with
+    // getBoundingClientRect (sub-pixel accurate, already accounts for
+    // font hinting/metrics quirks per-browser), is the true
+    // top-of-line-box → baseline distance for this font/size.
+    function measureBaselineOffset(el) {
+      const cs = getComputedStyle(el);
+      const wrap = document.createElement("span");
+      wrap.style.cssText =
+        "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;" +
+        "font-family:" + cs.fontFamily + ";" +
+        "font-size:" + cs.fontSize + ";" +
+        "font-weight:" + cs.fontWeight + ";" +
+        "line-height:" + cs.lineHeight + ";" +
+        "letter-spacing:" + cs.letterSpacing + ";";
+      const topMark = document.createElement("span");
+      topMark.style.cssText = "display:inline-block;width:0;height:0;vertical-align:top;";
+      const baselineMark = document.createElement("span");
+      baselineMark.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline;";
+      wrap.appendChild(topMark);
+      wrap.appendChild(baselineMark);
+      wrap.appendChild(document.createTextNode("Mg")); // real glyphs so metrics are real
+      document.body.appendChild(wrap);
+      const offset = baselineMark.getBoundingClientRect().top - topMark.getBoundingClientRect().top;
+      document.body.removeChild(wrap);
+      return offset;
+    }
+
+    function align() {
+      targets.forEach((el) => {
+        const offset = measureBaselineOffset(el);
+        if (offset > 0) el.style.setProperty("--rule-offset", offset.toFixed(2) + "px");
+      });
+    }
+
+    let resizeTimer;
+    align();
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(align, 150);
+    }, { passive: true });
+    // Web fonts (Lora / Caveat) can finish loading after first paint,
+    // which changes the real metrics out from under an earlier measurement.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(align);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
   //  AJAX File Upload — drag-drop zone with progress
   // ══════════════════════════════════════════════════════════
   function initAjaxUpload() {
@@ -1297,6 +1366,7 @@
     initAjaxToggles();
     initAutoResize();
     initAjaxUpload();
+    initRuledLineAlignment();
   });
 })();
 

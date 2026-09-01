@@ -33,12 +33,33 @@ def build_client_with_email():
     return TestClient(app), tmp
 
 
-# ── Sanity: the toggle defaults on, and the "on" behavior from earlier
-#    sessions still works when explicitly enabled ──────────────────────
+# ── Sanity: the toggle's default follows whether SMTP is actually
+#    configured, and can still be overridden explicitly either way ─────
 
-def test_email_service_enabled_by_default():
+def test_email_service_disabled_by_default_with_no_smtp_configured(monkeypatch):
     from app.core.config import Settings as S
-    assert S(database_url="sqlite:///:memory:", secret_key="x" * 32).email_service_enabled is True
+    monkeypatch.delenv("EMAIL_SERVICE_ENABLED", raising=False)
+    settings = S(database_url="sqlite:///:memory:", secret_key="x" * 32, smtp_host="")
+    assert settings.email_service_enabled is False
+
+
+def test_email_service_enabled_by_default_when_smtp_is_configured(monkeypatch):
+    from app.core.config import Settings as S
+    monkeypatch.delenv("EMAIL_SERVICE_ENABLED", raising=False)
+    settings = S(database_url="sqlite:///:memory:", secret_key="x" * 32, smtp_host="smtp.example.com")
+    assert settings.email_service_enabled is True
+
+
+def test_email_service_explicit_override_wins_over_smtp_presence(monkeypatch):
+    from app.core.config import Settings as S
+    # Explicit true, no SMTP -- dev console-log fallback opted into on purpose.
+    monkeypatch.setenv("EMAIL_SERVICE_ENABLED", "true")
+    settings = S(database_url="sqlite:///:memory:", secret_key="x" * 32, smtp_host="")
+    assert settings.email_service_enabled is True
+    # Explicit false, SMTP present -- forced off despite having SMTP.
+    monkeypatch.setenv("EMAIL_SERVICE_ENABLED", "false")
+    settings = S(database_url="sqlite:///:memory:", secret_key="x" * 32, smtp_host="smtp.example.com")
+    assert settings.email_service_enabled is False
 
 
 def test_with_email_enabled_forgot_password_and_verify_email_still_work():

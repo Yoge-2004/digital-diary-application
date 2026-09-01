@@ -162,6 +162,11 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   transition: background var(--t-slow), color var(--t-slow);
+  /* Backstop: some piece of user content (a long URL, an unbroken run of
+     characters, etc.) can always slip past a component-level word-break
+     fix. This guarantees it clips instead of ever reopening a page-wide
+     horizontal scrollbar. */
+  overflow-x: hidden;
 }
 
 /* View Transition fade */
@@ -699,6 +704,8 @@ img, video { max-width: 100%; display: block; }
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: break-word;
+  word-break: break-word;
   line-height: 1.3;
   transition: color var(--t-fast);
 }
@@ -713,6 +720,15 @@ img, video { max-width: 100%; display: block; }
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* A single very long unbroken run of characters (no spaces — e.g. someone
+     mashing one key) has no natural break point. Without these, that one
+     "word" refuses to wrap and instead pushes .diary-card-body wider than
+     its flex column, which pushes .diary-card wider than .diaries-layout,
+     which pushes the whole page wider than the viewport -- producing a
+     horizontal scrollbar on My Diaries / Search / Bookmarks / Favourites
+     any time an entry contains a long unbroken token. */
+  overflow-wrap: break-word;
+  word-break: break-word;
   line-height: 1.65;
 }
 
@@ -1482,7 +1498,14 @@ img, video { max-width: 100%; display: block; }
   color: var(--txt-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  /* Subtle ruled-line feel */
+  padding: 0.5rem 0;
+  /* Subtle ruled-line feel. --rule-offset is measured live from the
+     real rendered text baseline by initRuledLineAlignment() in app.js
+     (see that function for why: a hardcoded value here always drifts
+     the moment font-size/line-height/padding change, which is exactly
+     what kept putting the line a few px away from the actual text).
+     The em fallback below only paints for the instant before that JS
+     runs on first load. */
   background-image: repeating-linear-gradient(
     to bottom,
     transparent,
@@ -1490,8 +1513,8 @@ img, video { max-width: 100%; display: block; }
     hsl(38 25% 90% / 0.5) calc(1.9em - 1px),
     hsl(38 25% 90% / 0.5) 1.9em
   );
+  background-position-y: var(--rule-offset, 1.45em);
   background-attachment: local;
-  padding: 0.5rem 0;
 }
 
 [data-theme="dark"] .diary-reading {
@@ -1658,6 +1681,35 @@ img, video { max-width: 100%; display: block; }
 /* ============================================================
    Landing
    ============================================================ */
+
+/* .page-content (shared with every app page) is deliberately narrow +
+   padded + centered, like a document. A marketing landing page reads as
+   "broken/unfinished" inside that box: on any screen wider than
+   --content-max there's a dead, unstyled strip of plain body colour
+   between the true browser edge and where the hero/feature/CTA
+   backgrounds actually start -- on *every* device, because even the
+   inner padding alone (page-pad) creates the same framing at smaller
+   widths. The fix is the standard "full-bleed section, constrained
+   content" pattern: let each landing section's *background* reach the
+   real viewport edge (ignoring page-content's own max-width/padding via
+   the 100vw breakout below), while a `.landing-container` inside it
+   re-applies the readable max-width for the actual text/cards.
+   `overflow-x:hidden` on body (see Base Reset) is the safety net for
+   the 100vw-includes-scrollbar rounding some browsers do. */
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-left: var(--page-pad);
+  padding-right: var(--page-pad);
+}
+
+.landing-container {
+  max-width: var(--content-max);
+  width: 100%;
+  margin: 0 auto;
+}
+
 .landing-hero {
   min-height: calc(100vh - var(--topbar-h));
   display: flex;
@@ -2328,13 +2380,14 @@ img, video { max-width: 100%; display: block; }
      row first. That header's height isn't a clean multiple of
      line-height, so anchoring the pattern up there let it drift out
      of phase with the textarea's actual line boxes by the header's
-     height modulo line-height. background-position-y below was
-     measured directly (a temporary same-font/size clone element +
-     Range.getBoundingClientRect() on the text, not eyeballed) against
-     a completely fresh textarea with no ancestor offset to get the
-     real baseline-from-top distance, then expressed in em so it
-     scales correctly across the responsive font-size clamp() instead
-     of only being exactly right at one specific viewport width. */
+     height modulo line-height.
+     background-position-y: --rule-offset is measured live, in the
+     user's actual browser, from the real rendered text baseline (see
+     initRuledLineAlignment() in app.js) rather than a fixed em value —
+     a fixed value only matches one exact font-size, and this element's
+     font-size is a clamp() that changes with viewport width, so any
+     hardcoded number is only ever correct at one screen width. The em
+     fallback below just covers the instant before that JS runs. */
   background-image: repeating-linear-gradient(
       to bottom,
       transparent 0,
@@ -2344,7 +2397,7 @@ img, video { max-width: 100%; display: block; }
       transparent 2em,
       transparent 2em
     );
-  background-position-y: 1.53em;
+  background-position-y: var(--rule-offset, 1.53em);
   background-attachment: local;
 }
 

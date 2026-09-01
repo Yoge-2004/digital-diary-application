@@ -27,6 +27,14 @@ def build_app():
     settings = Settings(
         database_url=f"sqlite:///{tmp.name}/test.db",
         secret_key="dev-secret-key-with-32-chars-minimum!!",
+        # This shared fixture backs most of the suite, including the
+        # verification/reset-password flow tests, which predate (and
+        # assume) email being on. Production's *default* now correctly
+        # follows whether SMTP is configured (see Settings.__post_init__
+        # in app/core/config.py) -- this is the test suite explicitly
+        # opting back in, the same way a real deployment would via
+        # EMAIL_SERVICE_ENABLED=true.
+        email_service_enabled=True,
     )
     app = create_app(settings)
     return app, tmp
