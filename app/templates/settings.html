@@ -172,12 +172,41 @@
       <p style="font-size:0.875rem;color:var(--txt-secondary);margin:0 0 1rem;line-height:1.6;">
         Permanently deletes your account and <strong>all diary entries, tags and attachments</strong>. This action cannot be undone.
       </p>
-      <form method="post" action="/settings/delete" data-confirm="Permanently delete your account and all data? This cannot be undone.">
+      <form method="post" action="/settings/delete" id="deleteAccountForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button class="btn btn-danger" type="submit">
+        <button class="btn btn-danger" type="button" id="openDeleteAccountModal">
           <i class="bi bi-trash3-fill"></i> Delete my account
         </button>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+<div class="modal-overlay" id="deleteAccountOverlay" aria-hidden="true">
+  <div class="modal-panel" role="alertdialog" aria-modal="true" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountDesc">
+    <div class="modal-icon"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i></div>
+    <h2 class="modal-title" id="deleteAccountTitle">Delete your account?</h2>
+    <p class="modal-desc" id="deleteAccountDesc">
+      This permanently deletes your account and <strong>every diary entry, tag, and attachment</strong> you have. There's no undo and no recovery — once you confirm, it's gone.
+    </p>
+    <label class="modal-confirm-label" for="deleteAccountConfirmInput">
+      Type <strong>DELETE</strong> to confirm
+    </label>
+    <input
+      type="text"
+      id="deleteAccountConfirmInput"
+      class="modal-confirm-input"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      placeholder="DELETE"
+    >
+    <div class="modal-actions">
+      <button type="button" class="btn btn-surface" id="cancelDeleteAccount">Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirmDeleteAccount" disabled>
+        <i class="bi bi-trash3-fill"></i> Delete my account permanently
+      </button>
     </div>
   </div>
 </div>

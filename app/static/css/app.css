@@ -2014,6 +2014,123 @@ img, video { max-width: 100%; display: block; }
   border-color: hsl(4 50% 28%);
 }
 
+/* ── Confirmation modal (currently used for delete-account, but
+   deliberately generic so it can back any future type-to-confirm
+   destructive action) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: hsl(220 30% 8% / 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--t-base), visibility 0s var(--t-base);
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--t-base), visibility 0s;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: 1.75rem;
+  transform: translateY(12px) scale(0.98);
+  opacity: 0;
+  transition: transform var(--t-base) var(--ease-spring), opacity var(--t-base);
+}
+
+.modal-overlay.open .modal-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.modal-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(4 60% 94%);
+  color: var(--clr-danger);
+  font-size: 1.2rem;
+  margin-bottom: 0.9rem;
+}
+
+[data-theme="dark"] .modal-icon { background: hsl(4 40% 16%); }
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--txt-primary);
+  margin: 0 0 0.5rem;
+}
+
+.modal-desc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--txt-secondary);
+  margin: 0 0 1.25rem;
+}
+
+.modal-confirm-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--txt-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.modal-confirm-label strong {
+  color: var(--clr-danger);
+  letter-spacing: 0.04em;
+}
+
+.modal-confirm-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid var(--border-color-2);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-body);
+  color: var(--txt-primary);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.modal-confirm-input:focus {
+  outline: none;
+  border-color: var(--clr-danger);
+  box-shadow: 0 0 0 3px hsl(10 60% 50% / 0.15);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.modal-actions .btn { flex: 1; justify-content: center; }
+
+.modal-actions .btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
 /* ── Autosave indicator ── */
 .autosave-indicator {
   font-family: var(--font-hand);

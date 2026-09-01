@@ -807,6 +807,76 @@
   }
 
   // ══════════════════════════════════════════════════════════
+  //  Delete-account confirmation modal
+  //
+  //  A native window.confirm() OK/Cancel takes one click and is easy to
+  //  dismiss on reflex without reading it -- not enough friction for an
+  //  action that permanently destroys every diary entry with no undo.
+  //  Require typing the word DELETE (case-sensitive, exact match) before
+  //  the actual delete button becomes clickable at all.
+  // ══════════════════════════════════════════════════════════
+  function initDeleteAccountModal() {
+    const openBtn = $("#openDeleteAccountModal");
+    const overlay = $("#deleteAccountOverlay");
+    if (!openBtn || !overlay) return;
+
+    const panel = $(".modal-panel", overlay);
+    const input = $("#deleteAccountConfirmInput", overlay);
+    const confirmBtn = $("#confirmDeleteAccount", overlay);
+    const cancelBtn = $("#cancelDeleteAccount", overlay);
+    const form = $("#deleteAccountForm");
+    let lastFocused = null;
+
+    function open() {
+      lastFocused = document.activeElement;
+      overlay.classList.add("open");
+      overlay.setAttribute("aria-hidden", "false");
+      input.value = "";
+      confirmBtn.disabled = true;
+      document.body.style.overflow = "hidden";
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function close() {
+      overlay.classList.remove("open");
+      overlay.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      if (lastFocused) lastFocused.focus();
+    }
+
+    openBtn.addEventListener("click", open);
+    cancelBtn.addEventListener("click", close);
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && overlay.classList.contains("open")) close();
+    });
+
+    input.addEventListener("input", () => {
+      confirmBtn.disabled = input.value !== "DELETE";
+    });
+
+    // Enter in the input submits as soon as it's valid, same as clicking
+    // the button -- no reason to force a second click once they've typed it.
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !confirmBtn.disabled) {
+        e.preventDefault();
+        confirmBtn.click();
+      }
+    });
+
+    confirmBtn.addEventListener("click", () => {
+      if (input.value !== "DELETE") return;
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Deleting…';
+      form.submit();
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
   //  Active sidebar nav link
   // ══════════════════════════════════════════════════════════
   function initActiveNav() {
@@ -1360,6 +1430,7 @@
     initSettingsValidation();
     initSettingsTabs();
     initConfirmForms();
+    initDeleteAccountModal();
     initActiveNav();
     initCountUp();
     initTopbarSearch();
