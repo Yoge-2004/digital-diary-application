@@ -4,12 +4,12 @@
 
 {% block content %}
 <div class="page-header">
-  <div class="page-title">
+  <h1 class="page-title">
     Search
     {% if query or filters.tag or filters.mood %}
     <small>{{ entries | length }} result{{ 's' if entries | length != 1 else '' }} found</small>
     {% endif %}
-  </div>
+  </h1>
 </div>
 
 <!-- Search form -->

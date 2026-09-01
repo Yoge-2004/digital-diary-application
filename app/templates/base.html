@@ -13,8 +13,11 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='favicon.svg') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='favicon-16x16.png') }}">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.svg') }}">
-  <link rel="apple-touch-icon" href="{{ url_for('static', path='favicon.svg') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ url_for('static', path='site.webmanifest') }}">
 
   <!-- Open Graph -->
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
@@ -26,12 +29,14 @@
   <meta property="og:image" content="{{ request.url_for('static', path='og-image.png') }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Digital Diary — a secure, beautiful digital diary">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ self.title() }}">
   <meta name="twitter:description" content="{{ self.meta_desc() }}">
   <meta name="twitter:image" content="{{ request.url_for('static', path='og-image.png') }}">
+  <meta name="twitter:image:alt" content="Digital Diary — a secure, beautiful digital diary">
 
   {% block structured_data %}{% endblock %}
 

@@ -70,6 +70,33 @@
     }
   });
 
+  // A page reached via the browser's Back/Forward buttons is very often
+  // restored from the back-forward cache (bfcache) instead of actually
+  // reloading -- the browser freezes the page's exact DOM/JS state when
+  // you navigate away and thaws that same snapshot back rather than
+  // re-running any scripts. initTheme() above only ever runs once, at
+  // the moment this script first executes, so a bfcache-restored page
+  // keeps showing whatever theme was true *when it was cached* even if
+  // the theme was changed on a different page (or a different tab) in
+  // the meantime and localStorage has since moved on. `pageshow` fires
+  // on every page view including bfcache restores, and its `persisted`
+  // flag is exactly how to tell the two apart -- re-run initTheme()
+  // only for the restore case, since a normal fresh load already got it
+  // right the first time.
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) initTheme();
+  });
+
+  // Same underlying problem, different trigger: two tabs open on this
+  // app, theme changed in one, the other tab's DOM never hears about it
+  // either (it's not bfcache-frozen, it's just sitting there with no
+  // reason to re-check localStorage). The `storage` event fires in
+  // *other* tabs/windows whenever localStorage changes (never in the
+  // tab that made the change), so this is the missing other half.
+  window.addEventListener("storage", (event) => {
+    if (event.key === THEME_KEY && event.newValue) applyTheme(event.newValue);
+  });
+
   // ══════════════════════════════════════════════════════════
   //  Button ripple effect
   // ══════════════════════════════════════════════════════════

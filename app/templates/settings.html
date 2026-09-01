@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="page-header">
-  <div class="page-title">Settings</div>
+  <h1 class="page-title">Settings</h1>
 </div>
 
 <!-- Tabs -->
@@ -213,14 +213,11 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-function applyThemeBtn(theme) {
-  if (theme === null) {
-    const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    theme = preferred;
-  }
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('dd-theme', theme);
-}
-</script>
+{# applyThemeBtn is defined once, globally, in app.js -- it already
+   handles localStorage + the sidebar theme-toggle icon/label sync. A
+   second definition used to live here and silently overwrite that one
+   (script tags execute in order; this block renders after app.js's
+   <script> tag), so choosing a theme from these buttons updated the
+   page's actual colours but left the sidebar toggle's icon/label
+   showing the old state until the next full page load. #}
 {% endblock %}
