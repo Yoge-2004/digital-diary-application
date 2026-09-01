@@ -14,6 +14,8 @@
                   data-active-class="is-favorited"
                   data-icon-on="bi-star-fill"
                   data-icon-off="bi-star"
+                  data-label-on="Unfavourite {{ diary.title }}"
+                  data-label-off="Favourite {{ diary.title }}"
                   aria-pressed="{{ 'true' if diary.is_favorite else 'false' }}"
                   title="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }}"
                   aria-label="{{ 'Unfavourite' if diary.is_favorite else 'Favourite' }} {{ diary.title }}">
@@ -26,6 +28,8 @@
                   data-active-class="is-bookmarked"
                   data-icon-on="bi-bookmark-fill"
                   data-icon-off="bi-bookmark"
+                  data-label-on="Unbookmark {{ diary.title }}"
+                  data-label-off="Bookmark {{ diary.title }}"
                   aria-pressed="{{ 'true' if diary.is_bookmarked else 'false' }}"
                   title="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }}"
                   aria-label="{{ 'Unbookmark' if diary.is_bookmarked else 'Bookmark' }} {{ diary.title }}">
@@ -38,6 +42,8 @@
                   data-active-class="is-pinned"
                   data-icon-on="bi-pin-fill"
                   data-icon-off="bi-pin"
+                  data-label-on="Unpin {{ diary.title }}"
+                  data-label-off="Pin {{ diary.title }}"
                   aria-pressed="{{ 'true' if diary.is_pinned else 'false' }}"
                   title="{{ 'Unpin' if diary.is_pinned else 'Pin' }}"
                   aria-label="{{ 'Unpin' if diary.is_pinned else 'Pin' }} {{ diary.title }}">

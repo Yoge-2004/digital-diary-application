@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -427,7 +427,17 @@ def calendar_page(
 @router.get("/diaries", response_class=HTMLResponse)
 def diaries(
     request: Request,
-    search: str | None = None,
+    # The filter form's search box is `name="q"` (matching /search's own
+    # `q` param, for a consistent URL convention across both search
+    # surfaces) -- this used to be bound to a plain `search` parameter,
+    # which only ever matches `?search=...` in the URL and never the
+    # `?q=...` the form (and every link that reads the current filter
+    # back out via the "q" context var below) actually sends. That
+    # silently made the My Diaries search box a no-op: it always
+    # returned every entry regardless of what was typed. The `alias`
+    # here is what actually fixes it; keeping the Python-side name as
+    # `search` avoids touching every other line in this function.
+    search: str | None = Query(None, alias="q"),
     tag: str | None = None,
     mood: str | None = None,
     favorite: bool | None = None,

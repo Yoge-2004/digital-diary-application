@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, UTC
 from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, Response, UploadFile, status
 from sqlalchemy.orm import Session
@@ -27,6 +28,8 @@ from app.schemas import (
 
 router = APIRouter(prefix="/api")
 
+logger = logging.getLogger("app.api")
+
 
 @router.post(
     "/auth/register",
@@ -44,7 +47,10 @@ def register(request: Request, response: Response, payload: UserCreate, db: Sess
         try:
             services.send_verification_code(db, user)
         except Exception:
-            pass  # never let a flaky SMTP server block registration itself
+            # Same reasoning as the equivalent site in routers/web.py:
+            # never block account creation on a flaky SMTP server, but
+            # don't let the failure vanish with zero trail either.
+            logger.exception("Failed to send verification email to user %s during API registration", user.id)
     access_token, refresh_token = services.issue_tokens(user)
     response.set_cookie("access_token", access_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=60 * 60 * 24)
     response.set_cookie("refresh_token", refresh_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=60 * 60 * 24 * 30)

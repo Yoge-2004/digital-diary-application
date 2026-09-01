@@ -20,3 +20,17 @@ test = [
     "pytest>=8.0.0",
     "respx>=0.22.0",
 ]
+e2e = [
+    "pytest>=8.0.0",
+    "playwright>=1.48.0",
+    "pytest-playwright>=0.5.2",
+]
+
+[tool.pytest.ini_options]
+# Only the fast, in-process TestClient suite runs by default (`pytest`
+# with no args). tests/e2e boots a real server + real Chromium per test
+# and takes minutes, not seconds -- run it explicitly with
+# `pytest tests/e2e` (see tests/e2e/README.md), not as a side effect of
+# a routine `pytest` during normal development.
+testpaths = ["tests"]
+addopts = "--ignore=tests/e2e"
