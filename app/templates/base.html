@@ -54,6 +54,7 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
 <div class="grain-overlay" aria-hidden="true"></div>
 <div class="ambient-glow g1" aria-hidden="true"></div>
@@ -178,7 +179,7 @@
       {% endif %}
     </div>
 
-    <main class="page-content" id="main-content">
+    <main class="page-content" id="main-content" tabindex="-1">
       {% if email_service_enabled and current_user and not current_user.email_verified and request.url.path != '/verify-email' %}
       <div class="flash" style="position:static;background:var(--bg-surface-2);border:1px solid var(--border-color);color:var(--txt-primary);margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
         <span><i class="bi bi-envelope-exclamation" aria-hidden="true"></i> Please verify your email address to secure your account.</span>

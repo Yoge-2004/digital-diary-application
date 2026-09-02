@@ -145,8 +145,29 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
-  /* View Transitions API */
-  view-transition-name: root;
+}
+
+/* Cross-document View Transitions (the animated "page turn" effect
+   defined further down, under "Page turn — upgrades the existing
+   view-transition fade"): opting in via this at-rule is the correct
+   mechanism for same-origin navigations. The previous approach set
+   `view-transition-name: root` directly on <html> as a permanent,
+   always-on property -- which, near as I can tell, is also *why* the
+   effect never actually played: nothing was ever calling
+   document.startViewTransition() and there's no bare
+   view-transition-name property that auto-fires cross-document
+   transitions on its own, so this was dead code from day one. Worse,
+   permanently tagging the root element this way measurably breaks
+   unrelated same-page :focus/:hover-triggered CSS transitions
+   elsewhere on the page in Chromium (confirmed directly: toggling this
+   one property on/off is what flips a stuck vs. working CSS
+   transition, reproduced with both `top` and `transform`-based
+   transitions, unrelated elements, unrelated triggers). This at-rule
+   only engages the transition machinery during an actual same-origin
+   navigation, which both fixes that side effect and is what finally
+   makes the page-turn animation fire at all. */
+@view-transition {
+  navigation: auto;
 }
 
 /* Fluid base font for 4K */
@@ -167,6 +188,35 @@ body {
      fix. This guarantees it clips instead of ever reopening a page-wide
      horizontal scrollbar. */
   overflow-x: hidden;
+}
+
+/* Skip-to-content link: invisible off-screen by default (so it costs
+   sighted mouse users nothing), snaps into view at the very top-left
+   the moment it receives keyboard focus. Every page currently makes a
+   keyboard or screen-reader user tab through the entire sidebar nav
+   (a dozen-plus links) before reaching the actual page content, on
+   every single page load -- this is the standard fix, and it's cheap. */
+.skip-link {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 300;
+  background: var(--clr-ink);
+  color: var(--txt-on-dark);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--border-radius-sm);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transform: translateY(-150px);
+  opacity: 0;
+  transition: transform var(--t-fast), opacity var(--t-fast);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 /* View Transition fade */

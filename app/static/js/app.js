@@ -871,6 +871,31 @@
       if (lastFocused) lastFocused.focus();
     }
 
+    // Focus trap: while this modal is open, Tab/Shift+Tab must cycle
+    // only among its own focusable elements. Without this, focus can
+    // walk right out onto sidebar links and other page content sitting
+    // behind the visual backdrop -- still technically focusable, just
+    // invisible and completely disorienting for a keyboard/screen-reader
+    // user, and a real WAI-ARIA dialog-pattern violation for a modal
+    // confirming a destructive, irreversible action.
+    const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    panel.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab") return;
+      const focusable = Array.from(panel.querySelectorAll(FOCUSABLE)).filter(
+        (el) => !el.disabled && el.offsetParent !== null
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
     openBtn.addEventListener("click", open);
     cancelBtn.addEventListener("click", close);
 
