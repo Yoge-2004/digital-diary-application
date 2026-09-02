@@ -162,6 +162,17 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  /* Belt-and-suspenders alongside body's overflow-x:hidden below: a
+     purely decorative position:fixed element (.ambient-glow) with a
+     negative offset + fixed pixel width was measured contributing to
+     the document's scrollWidth at narrow viewports (confirmed via
+     automated overflow sweep at 320px), even though position:fixed
+     elements are visually anchored to the viewport and shouldn't
+     normally do this. Setting it explicitly on the actual document
+     scrolling element removes the ambiguity about which element
+     (html vs body) the browser treats as authoritative for that,
+     rather than relying on only one of them being set. */
+  overflow-x: hidden;
 }
 
 /* Cross-document View Transitions (the animated "page turn" effect
