@@ -1,9 +1,22 @@
 /* ============================================================
-   Digital Diary — Design System v2  (Warm Paper Edition)
-   ============================================================ */
+   Digital Diary — Design System v3  (Confession Ink Edition)
+   ============================================================
+   Moved off the warm-cream + serif + muted-gold palette (v2, "Warm
+   Paper") deliberately: that combination -- soft cream background,
+   high-contrast serif display, a muted terracotta/gold accent -- is
+   one of the most common AI-generated-design defaults, not a choice
+   made for this brief specifically. This pass keeps the serif display
+   type (still a deliberate, distinctive choice vs. an all-sans-Inter
+   default) but replaces the palette: near-black ink on a crisp white
+   page instead of soft-grey-on-cream, and one fully-saturated accent
+   used with total confidence instead of a muted, tinted one. The
+   mood-colour system (already in this app) is where multiple vivid
+   colours actually belong -- moods are inherently expressive, so
+   pushing those toward genuinely vivid rather than pastel is
+   content-justified, not just decoration for its own sake. */
 
 /* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Caveat:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Caveat:wght@400;600;700&display=swap');
 
 /* ============================================================
    Design Tokens
@@ -26,59 +39,61 @@
   --font-display:'Playfair Display', Georgia, serif;
   --font-hand:   'Caveat', cursive;
 
-  /* ── Luxury Palette ── */
-  --clr-ink:          hsl(220 30% 12%);      /* Deep charcoal blue-black */
-  --clr-ink-dark:     hsl(220 35% 8%);
-  --clr-ink-light:    hsl(220 15% 96%);      /* Very soft grey-blue tint */
-  --clr-accent:       hsl(38 45% 48%);       /* Refined Old Gold */
-  --clr-accent-dark:  hsl(38 50% 36%);
-  --clr-accent-light: hsl(38 40% 96%);
-  --clr-rose:         hsl(340 30% 45%);      /* Muted Rose */
-  --clr-sage:         hsl(160 25% 40%);      /* Deep Sage green */
-  --clr-slate:        hsl(215 15% 45%);      /* Steel blue-grey */
-  --clr-danger:       hsl(10 40% 45%);       /* Muted terracotta red */
+  /* ── Confession Ink Palette ── */
+  --clr-ink:          hsl(252 24% 9%);       /* Near-black, cool violet undertone */
+  --clr-ink-dark:     hsl(252 30% 5%);
+  --clr-ink-light:    hsl(240 20% 96%);      /* Cool grey-blue tint */
+  --clr-accent:       hsl(342 82% 46%);      /* Confession crimson -- full saturation, tuned to clear 4.5:1 with white button text */
+  --clr-accent-dark:  hsl(342 85% 37%);
+  --clr-accent-light: hsl(342 75% 96%);
+  --clr-gold:         hsl(40 100% 54%);      /* Vivid amber-gold -- secondary accent */
+  --clr-gold-dark:    hsl(36 95% 44%);
+  --clr-rose:         hsl(340 65% 52%);      /* Vivid rose (was muted) */
+  --clr-sage:         hsl(155 55% 36%);      /* Vivid sage green (was muted) */
+  --clr-slate:        hsl(215 30% 42%);      /* Steel blue-grey */
+  --clr-danger:       hsl(4 78% 52%);        /* Clear, saturated red -- distinct from accent crimson (hue 4 vs 342) */
 
-  /* ── Luxury surfaces ── */
-  --bg-body:      hsl(35 25% 97%);           /* Alabaster */
+  /* ── Surfaces ── */
+  --bg-body:      hsl(240 20% 98%);          /* Crisp cool white -- the blank page */
   --bg-surface:   hsl(0 0% 100%);            /* Pure white */
-  --bg-surface-2: hsl(35 20% 94%);           /* Soft parchment */
-  --bg-sidebar:   hsl(35 20% 95%);           /* Light warm surface (was permanently dark) */
-  --bg-sidebar-2: hsl(35 18% 90%);
-  --chrome-text:      hsl(220 25% 18%);
-  --chrome-text-dim:  hsl(220 12% 45%);
-  --chrome-border:    hsl(35 15% 84%);
-  --chrome-hover-bg:  hsl(35 18% 89%);
-  --chrome-active-bg: hsl(38 45% 90%);
+  --bg-surface-2: hsl(240 18% 95%);          /* Soft cool-grey surface */
+  --bg-sidebar:   hsl(240 15% 97%);
+  --bg-sidebar-2: hsl(240 14% 92%);
+  --chrome-text:      hsl(252 20% 14%);
+  --chrome-text-dim:  hsl(240 10% 45%);
+  --chrome-border:    hsl(240 12% 87%);
+  --chrome-hover-bg:  hsl(240 15% 92%);
+  --chrome-active-bg: hsl(342 75% 95%);
   --chrome-accent-text: var(--clr-accent-dark);
-  --auth-side-bg: linear-gradient(160deg, hsl(35 45% 95%) 0%, hsl(35 38% 91%) 50%, hsl(38 42% 87%) 100%);
+  --auth-side-bg: linear-gradient(160deg, hsl(342 70% 96%) 0%, hsl(342 55% 90%) 50%, hsl(40 85% 88%) 100%);
 
   /* ── Text ── */
-  --txt-primary:   hsl(220 25% 15%);
-  --txt-secondary: hsl(220 15% 40%);
-  --txt-muted:     hsl(220 10% 42%);
-  --txt-on-dark:   hsl(35 30% 94%);
+  --txt-primary:   hsl(252 20% 12%);
+  --txt-secondary: hsl(240 12% 38%);
+  --txt-muted:     hsl(240 8% 45%);
+  --txt-on-dark:   hsl(240 20% 96%);
   --txt-on-accent: #fff;
 
   /* ── Borders ── */
-  --border-color:    hsl(35 15% 88%);
-  --border-color-2:  hsl(35 15% 80%);
+  --border-color:    hsl(240 12% 89%);
+  --border-color-2:  hsl(240 12% 80%);
   --border-radius:   0.875rem;
   --border-radius-sm:0.5rem;
   --border-radius-lg:1.5rem;
   --border-radius-xl:2rem;
 
-  /* ── Shadows (warm-tinted) ── */
-  --shadow-xs:  0 1px 2px  hsl(25 30% 20% / 0.06);
-  --shadow-sm:  0 2px 6px  hsl(25 30% 20% / 0.08), 0 1px 2px hsl(25 30% 20% / 0.04);
-  --shadow-md:  0 6px 20px hsl(25 30% 20% / 0.10), 0 2px 6px  hsl(25 30% 20% / 0.06);
-  --shadow-lg:  0 16px 48px hsl(25 30% 20% / 0.14), 0 6px 16px hsl(25 30% 20% / 0.08);
-  --shadow-xl:  0 32px 80px hsl(25 30% 20% / 0.18);
-  --shadow-glow:0 0 0 3px hsl(38 85% 52% / 0.30);
-  --shadow-focus:0 0 0 3px hsl(25 60% 18% / 0.20);
+  /* ── Shadows (cool-tinted) ── */
+  --shadow-xs:  0 1px 2px  hsl(250 30% 10% / 0.06);
+  --shadow-sm:  0 2px 6px  hsl(250 30% 10% / 0.08), 0 1px 2px hsl(250 30% 10% / 0.04);
+  --shadow-md:  0 6px 20px hsl(250 30% 10% / 0.10), 0 2px 6px  hsl(250 30% 10% / 0.06);
+  --shadow-lg:  0 16px 48px hsl(250 30% 10% / 0.14), 0 6px 16px hsl(250 30% 10% / 0.08);
+  --shadow-xl:  0 32px 80px hsl(250 30% 10% / 0.18);
+  --shadow-glow:0 0 0 3px hsl(342 82% 52% / 0.30);
+  --shadow-focus:0 0 0 3px hsl(342 82% 42% / 0.25);
   --shadow-paper:
-    0 1px 1px hsl(25 30% 20% / 0.04),
-    0 4px 12px hsl(25 30% 20% / 0.08),
-    0 0 0 1px hsl(38 20% 84% / 0.6),
+    0 1px 1px hsl(250 30% 10% / 0.04),
+    0 4px 12px hsl(250 30% 10% / 0.08),
+    0 0 0 1px hsl(240 15% 86% / 0.6),
     inset 0 1px 0 hsl(0 0% 100% / 0.7);
 
   /* ── Spacing system ── */
@@ -101,25 +116,27 @@
 /* ── Dark Mode ── */
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg-body:      hsl(25 20% 7%);
-  --bg-surface:   hsl(25 18% 11%);
-  --bg-surface-2: hsl(25 15% 15%);
-  --bg-sidebar:   hsl(20 30% 6%);
-  --bg-sidebar-2: hsl(20 28% 9%);
+  --bg-body:      hsl(252 28% 7%);
+  --bg-surface:   hsl(252 22% 11%);
+  --bg-surface-2: hsl(252 18% 15%);
+  --bg-sidebar:   hsl(255 32% 6%);
+  --bg-sidebar-2: hsl(255 28% 9%);
   --chrome-text:      var(--txt-on-dark);
-  --chrome-text-dim:  hsl(38 15% 68%);
-  --chrome-border:    hsl(20 25% 20%);
-  --chrome-hover-bg:  hsl(20 25% 20%);
-  --chrome-active-bg: hsl(20 28% 22%);
-  --chrome-accent-text: var(--clr-accent);
-  --auth-side-bg: linear-gradient(160deg, hsl(20 45% 12%) 0%, hsl(20 38% 18%) 50%, hsl(38 30% 22%) 100%);
-  --txt-primary:   hsl(38 25% 88%);
-  --txt-secondary: hsl(38 12% 60%);
-  --txt-muted:     hsl(38 8% 42%);
-  --border-color:  hsl(38 10% 20%);
-  --border-color-2:hsl(38 10% 26%);
-  --clr-ink-light: hsl(25 30% 18%);
-  --clr-accent-light: hsl(38 30% 18%);
+  --chrome-text-dim:  hsl(240 15% 65%);
+  --chrome-border:    hsl(250 20% 20%);
+  --chrome-hover-bg:  hsl(250 20% 20%);
+  --chrome-active-bg: hsl(342 45% 22%);
+  --chrome-accent-text: hsl(342 82% 62%);
+  --auth-side-bg: linear-gradient(160deg, hsl(342 45% 14%) 0%, hsl(255 35% 16%) 50%, hsl(40 55% 18%) 100%);
+  --txt-primary:   hsl(240 25% 92%);
+  --txt-secondary: hsl(240 12% 65%);
+  --txt-muted:     hsl(240 8% 46%);
+  --border-color:  hsl(250 15% 20%);
+  --border-color-2:hsl(250 15% 26%);
+  --clr-accent:       hsl(342 85% 46%);
+  --clr-accent-dark:  hsl(342 82% 38%);
+  --clr-ink-light: hsl(250 25% 18%);
+  --clr-accent-light: hsl(342 40% 20%);
   --shadow-xs:  0 1px 2px  rgba(0,0,0,.25);
   --shadow-sm:  0 2px 6px  rgba(0,0,0,.30);
   --shadow-md:  0 6px 20px rgba(0,0,0,.40);
@@ -128,7 +145,7 @@
   --shadow-paper:
     0 1px 1px rgba(0,0,0,.2),
     0 4px 12px rgba(0,0,0,.40),
-    0 0 0 1px hsl(38 10% 20%),
+    0 0 0 1px hsl(250 15% 20%),
     inset 0 1px 0 hsl(0 0% 100% / 0.04);
 }
 
@@ -539,11 +556,11 @@ img, video { max-width: 100%; display: block; }
    ============================================================ */
 .page-title {
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 2.5vw, 2rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--txt-primary);
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
 .page-title small {
@@ -655,7 +672,8 @@ img, video { max-width: 100%; display: block; }
 
 .stat-card-icon {
   font-size: clamp(1.25rem, 2vw, 1.5rem);
-  opacity: 0.65;
+  color: var(--clr-accent);
+  opacity: 0.85;
 }
 
 .stat-label {
@@ -1817,22 +1835,11 @@ img, video { max-width: 100%; display: block; }
 
 .hero-title {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2.75rem, 7vw, 5.5rem);
   font-weight: 800;
   letter-spacing: -0.04em;
-  line-height: 1.1;
+  line-height: 1.02;
   color: var(--txt-primary);
-}
-
-.hero-title .accent-word {
-  background: linear-gradient(135deg, var(--clr-accent), hsl(38 90% 40%));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-title .italic-word {
-  font-style: italic;
 }
 
 .hero-lead {

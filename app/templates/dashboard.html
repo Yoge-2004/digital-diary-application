@@ -21,7 +21,7 @@
 <!-- ── Stat grid ── -->
 <div class="stat-grid stagger" style="margin-bottom:1.75rem;">
   <div class="stat-card">
-    <div class="stat-card-icon">📝</div>
+    <div class="stat-card-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
     <div class="stat-label">Total Entries</div>
     <div class="stat-value" data-count="{{ summary.total_entries }}">{{ summary.total_entries }}</div>
     <div class="stat-sub">
@@ -33,7 +33,7 @@
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-card-icon">🔥</div>
+    <div class="stat-card-icon"><i class="bi bi-fire" aria-hidden="true"></i></div>
     <div class="stat-label">Writing Streak</div>
     <div class="stat-value" data-count="{{ summary.current_streak }}">{{ summary.current_streak }}</div>
     <div class="stat-sub">
@@ -45,7 +45,7 @@
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-card-icon">⭐</div>
+    <div class="stat-card-icon"><i class="bi bi-star-fill" aria-hidden="true"></i></div>
     <div class="stat-label">Favourites</div>
     <div class="stat-value" data-count="{{ summary.favorites }}">{{ summary.favorites }}</div>
     <div class="stat-sub">
@@ -57,7 +57,7 @@
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-card-icon">📅</div>
+    <div class="stat-card-icon"><i class="bi bi-calendar3" aria-hidden="true"></i></div>
     <div class="stat-label">This Month</div>
     <div class="stat-value" data-count="{{ summary.monthly_entries }}">{{ summary.monthly_entries }}</div>
     <div class="stat-sub">
@@ -127,7 +127,7 @@
 
     {% else %}
     <div class="empty-state" style="margin-top:auto;margin-bottom:auto;">
-      <span class="empty-icon">📝</span>
+      <span class="empty-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></span>
       <div class="empty-title">Your diary is empty</div>
       <p class="empty-sub">Every great journey starts with a single entry.</p>
       <a href="/diaries/new" class="btn btn-accent" style="margin-top:1rem;">
