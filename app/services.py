@@ -9,9 +9,12 @@ stays a thin, dumb data-access layer underneath this.
 
 from __future__ import annotations
 
+import logging
+import re
 import secrets
 from collections.abc import Iterable
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from datetime import datetime, timedelta, UTC
 from fastapi import HTTPException, UploadFile, status
@@ -24,6 +27,8 @@ from app.core.security import create_access_token, create_refresh_token, hash_pa
 from app import repositories
 from app.models import Attachment, Diary, Tag, User
 from app.schemas import DiaryCreate, DiaryUpdate, PasswordUpdate, UserCreate, UserUpdate
+
+logger = logging.getLogger("app.services")
 
 
 def _normalize_tags(tags: Iterable[str] | None) -> list[str]:
@@ -473,3 +478,79 @@ def remove_attachment(db: Session, attachment: Attachment) -> None:
     if path.exists():
         path.unlink()
     repositories.delete_attachment(db, attachment)
+
+
+# ── Daily reminder / Web Push ────────────────────────────────────────
+
+def update_reminder_settings(db: Session, user: User, enabled: bool, time_str: str | None, timezone_str: str | None) -> User:
+    """Save the user's daily-reminder preference.
+
+    Validates time_str/timezone_str rather than trusting the client --
+    this is a plain POST endpoint, not something only the reminder UI's
+    own JS can hit, and an invalid stored timezone would silently break
+    the scheduler's per-user "is it their time yet" check for this user
+    every single day rather than failing loudly once, now, at save time.
+    """
+    if enabled:
+        if not time_str or not _is_valid_hhmm(time_str):
+            raise HTTPException(status_code=400, detail="reminder_time must be in HH:MM 24-hour format")
+        if not timezone_str:
+            raise HTTPException(status_code=400, detail="reminder_timezone is required to enable reminders")
+        try:
+            ZoneInfo(timezone_str)
+        except ZoneInfoNotFoundError:
+            raise HTTPException(status_code=400, detail=f"Unrecognized timezone: {timezone_str}")
+        user.reminder_enabled = True
+        user.reminder_time = time_str
+        user.reminder_timezone = timezone_str
+    else:
+        user.reminder_enabled = False
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def _is_valid_hhmm(value: str) -> bool:
+    return bool(re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", value))
+
+
+def subscribe_push(db: Session, user: User, endpoint: str, p256dh: str, auth: str) -> None:
+    repositories.upsert_push_subscription(db, user.id, endpoint, p256dh, auth)
+
+
+def unsubscribe_push(db: Session, user: User, endpoint: str) -> None:
+    repositories.delete_push_subscription_by_endpoint(db, user.id, endpoint)
+
+
+def send_reminder_push(app_settings, db: Session, user: User) -> int:
+    """Send the daily reminder to every device this user has subscribed
+    from. Returns how many actually succeeded. A subscription the push
+    service reports as gone (uninstalled browser, cleared site data,
+    etc.) gets deleted rather than retried -- that's an expected,
+    routine outcome, not a failure worth logging. Any other failure is
+    logged but doesn't stop delivery to this user's *other* devices;
+    one stale/misbehaving subscription shouldn't silently swallow the
+    reminder on their phone too."""
+    from app.core.push import PushSubscriptionGone, send_push_notification
+
+    subs = repositories.list_push_subscriptions(db, user.id)
+    sent = 0
+    for sub in subs:
+        subscription_info = {
+            "endpoint": sub.endpoint,
+            "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+        }
+        try:
+            send_push_notification(
+                app_settings,
+                subscription_info,
+                title="Time to write \u2014 Digital Diary",
+                body="A quiet moment for today's entry, whenever you're ready.",
+                url="/diaries/new",
+            )
+            sent += 1
+        except PushSubscriptionGone:
+            repositories.delete_push_subscription(db, sub)
+        except Exception:
+            logger.exception("Failed to send reminder push to user %s (subscription %s)", user.id, sub.id)
+    return sent

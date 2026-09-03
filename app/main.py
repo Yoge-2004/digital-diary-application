@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
 
@@ -9,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import BASE_DIR, Settings, settings
+from app.core.scheduler import run_reminder_scheduler
 from app.db.session import Base, create_engine_from_url, patch_missing_columns
 from app import models  # noqa: F401
 from app.routers.api import router as api_router
@@ -38,7 +41,13 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        yield
+        scheduler_task = asyncio.create_task(run_reminder_scheduler(app_settings, session_factory))
+        try:
+            yield
+        finally:
+            scheduler_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await scheduler_task
 
     app = FastAPI(
         title=app_settings.app_name,

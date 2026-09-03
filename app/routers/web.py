@@ -63,6 +63,8 @@ def _base_context(request: Request, user):
         "flash_error": request.query_params.get("err"),
         "email_service_enabled": request.app.state.settings.email_service_enabled,
         "google_oauth_enabled": request.app.state.settings.google_oauth_enabled,
+        "push_notifications_enabled": request.app.state.settings.push_notifications_enabled,
+        "vapid_public_key": request.app.state.settings.vapid_public_key,
         "canonical_url": _canonical_url(request),
         # Every authenticated page is a private, personal-journal page --
         # dashboard, diary entries (even ones the owner has marked
@@ -88,6 +90,17 @@ def _redirect_with_msg(location: str, msg: str | None = None, err: str | None = 
         sep = "&" if "?" in location else "?"
         location = f"{location}{sep}msg={msg}"
     return RedirectResponse(location, status_code=303)
+
+
+@router.get("/sw.js", response_class=Response)
+def service_worker():
+    """Served at the root path (not /static/sw.js) so its default scope
+    covers the whole app -- a service worker's scope defaults to its own
+    directory and below, and this needs to receive push events and
+    control notification clicks regardless of which page the user was on
+    when the browser delivers them."""
+    sw_path = BASE_DIR / "app" / "static" / "sw.js"
+    return Response(sw_path.read_text(), media_type="application/javascript")
 
 
 # ──────────────────────────────────────────
@@ -978,6 +991,30 @@ def update_profile(
     except Exception as exc:
         return _redirect(f"/settings?err={_safe_msg(exc)}")
     return _redirect("/settings?msg=Profile+updated")
+
+
+@router.post("/settings/notifications")
+def update_notifications(
+    request: Request,
+    csrf_token: str = Form(...),
+    reminder_enabled: str | None = Form(None),
+    reminder_time: str | None = Form(None),
+    reminder_timezone: str | None = Form(None),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_optional_user),
+):
+    if not current_user:
+        return _redirect("/login")
+    if not request.app.state.settings.push_notifications_enabled:
+        raise HTTPException(status_code=404)
+    try:
+        verify_csrf(request, csrf_token)
+        services.update_reminder_settings(
+            db, current_user, enabled=reminder_enabled == "true", time_str=reminder_time, timezone_str=reminder_timezone
+        )
+    except Exception as exc:
+        return _redirect(f"/settings?err={_safe_msg(exc)}")
+    return _redirect("/settings?msg=Reminder+preferences+saved")
 
 
 @router.post("/settings/password")

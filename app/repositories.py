@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import and_, desc, extract, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Attachment, Diary, Tag, User
+from app.models import Attachment, Diary, PushSubscription, Tag, User
 
 
 def get_user_by_id(db: Session, user_id: str) -> User | None:
@@ -393,3 +393,66 @@ def _calculate_longest_streak(dates: list[date]) -> int:
         else:
             current = 1
     return longest
+
+
+# ── Push subscriptions (daily reminder) ─────────────────────────────
+
+def upsert_push_subscription(
+    db: Session, user_id: str, endpoint: str, p256dh: str, auth: str
+) -> PushSubscription:
+    """Insert a new subscription, or update the keys on an existing one
+    for the same (user, endpoint) pair -- the browser can and does
+    re-subscribe with fresh keys against the same endpoint (e.g. after
+    the underlying push service rotates something), and the UNIQUE
+    constraint on (user_id, endpoint) means a plain insert would fail
+    on the second one."""
+    existing = db.scalar(
+        select(PushSubscription).where(
+            PushSubscription.user_id == user_id, PushSubscription.endpoint == endpoint
+        )
+    )
+    if existing:
+        existing.p256dh = p256dh
+        existing.auth = auth
+        db.commit()
+        db.refresh(existing)
+        return existing
+    sub = PushSubscription(user_id=user_id, endpoint=endpoint, p256dh=p256dh, auth=auth)
+    db.add(sub)
+    db.commit()
+    db.refresh(sub)
+    return sub
+
+
+def delete_push_subscription_by_endpoint(db: Session, user_id: str, endpoint: str) -> None:
+    sub = db.scalar(
+        select(PushSubscription).where(
+            PushSubscription.user_id == user_id, PushSubscription.endpoint == endpoint
+        )
+    )
+    if sub:
+        db.delete(sub)
+        db.commit()
+
+
+def delete_push_subscription(db: Session, subscription: PushSubscription) -> None:
+    db.delete(subscription)
+    db.commit()
+
+
+def list_push_subscriptions(db: Session, user_id: str) -> list[PushSubscription]:
+    return list(db.scalars(select(PushSubscription).where(PushSubscription.user_id == user_id)))
+
+
+def list_users_with_reminders_enabled(db: Session) -> list[User]:
+    """Every user who's opted into the daily reminder at all. The
+    scheduler (app/core/scheduler.py) still has to work out, per user,
+    whether *right now* is actually their chosen local time -- this
+    just narrows the table scan to people who could possibly be due,
+    instead of the scheduler loading every user in the database every
+    minute."""
+    return list(
+        db.scalars(
+            select(User).where(User.reminder_enabled == True, User.reminder_time.isnot(None))  # noqa: E712
+        )
+    )

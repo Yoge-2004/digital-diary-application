@@ -834,6 +834,149 @@
   }
 
   // ══════════════════════════════════════════════════════════
+  //  Daily reminder / Web Push notification settings
+  // ══════════════════════════════════════════════════════════
+  function initNotificationSettings() {
+    const panel = $("#notifications");
+    if (!panel) return; // push not configured server-side, or not on settings page
+
+    const toggle = $("#reminderToggle", panel);
+    const timeInput = $("#reminderTime", panel);
+    const timeRow = $("#reminderTimeRow", panel);
+    const statusText = $("#reminderStatusText", panel);
+    const permissionNote = $("#reminderPermissionNote", panel);
+    const vapidPublicKey = panel.dataset.vapidPublicKey;
+    const csrfToken = panel.dataset.csrfToken;
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+      return outputArray;
+    }
+
+    function setUiState(enabled) {
+      toggle.checked = enabled;
+      statusText.textContent = enabled ? "On" : "Off";
+      timeRow.style.opacity = enabled ? "1" : "0.5";
+      timeInput.disabled = !enabled;
+    }
+
+    function saveReminderPrefs(enabled) {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const body = new URLSearchParams({
+        csrf_token: csrfToken,
+        reminder_enabled: enabled ? "true" : "false",
+        reminder_time: timeInput.value || "20:00",
+        reminder_timezone: timezone,
+      });
+      return fetch("/settings/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      });
+    }
+
+    async function enableReminders() {
+      if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        alert("This browser doesn't support notifications.");
+        setUiState(false);
+        return;
+      }
+
+      if (Notification.permission === "denied") {
+        permissionNote.style.display = "block";
+        setUiState(false);
+        return;
+      }
+
+      let permission = Notification.permission;
+      if (permission === "default") {
+        permission = await Notification.requestPermission();
+      }
+      if (permission !== "granted") {
+        permissionNote.style.display = "block";
+        setUiState(false);
+        return;
+      }
+      permissionNote.style.display = "none";
+
+      try {
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+        }
+
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(subscription.toJSON()),
+        });
+
+        await saveReminderPrefs(true);
+        setUiState(true);
+      } catch (err) {
+        console.error("Failed to enable reminders:", err);
+        alert("Couldn't enable notifications. Please try again.");
+        setUiState(false);
+      }
+    }
+
+    async function disableReminders() {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+          if (registration) {
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) {
+              await fetch("/api/push/unsubscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endpoint: subscription.endpoint }),
+              });
+              await subscription.unsubscribe();
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to unsubscribe cleanly:", err);
+        // Still save the "off" preference server-side even if the browser-side
+        // unsubscribe had trouble -- the scheduler checks reminder_enabled
+        // first, so this alone stops future reminders regardless.
+      }
+      await saveReminderPrefs(false);
+      setUiState(false);
+    }
+
+    toggle.addEventListener("change", () => {
+      if (toggle.checked) {
+        enableReminders();
+      } else {
+        disableReminders();
+      }
+    });
+
+    timeInput.addEventListener("change", () => {
+      if (toggle.checked) saveReminderPrefs(true);
+    });
+
+    // Initial UI state from what the server rendered (the DB's actual
+    // reminder_enabled), not from browser subscription state -- those
+    // two can legitimately disagree (e.g. site data cleared on this
+    // device while still enabled on another), and the DB value is
+    // what the scheduler actually acts on.
+    setUiState(toggle.dataset.initial === "true");
+  }
+
+  // ══════════════════════════════════════════════════════════
   //  Delete-account confirmation modal
   //
   //  A native window.confirm() OK/Cancel takes one click and is easy to
@@ -1483,6 +1626,7 @@
     initSettingsTabs();
     initConfirmForms();
     initDeleteAccountModal();
+    initNotificationSettings();
     initActiveNav();
     initCountUp();
     initTopbarSearch();

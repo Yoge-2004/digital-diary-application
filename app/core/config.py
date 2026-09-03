@@ -72,6 +72,24 @@ class Settings:
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
     google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
+    # Web Push (daily "write today" reminders). Needs a VAPID key pair --
+    # generate one with:
+    #   python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); \
+    #     print(v.public_key.public_bytes(...))"
+    # or more simply `vapid --gen` from the py-vapid package (installed as
+    # a pywebpush dependency). Both keys must be set for the feature to
+    # activate; if either is blank, the Settings > Notifications UI
+    # doesn't render the toggle at all rather than showing a broken
+    # control that can never actually deliver anything, and the
+    # subscribe/unsubscribe API routes return a clear error instead of
+    # silently failing. Same reasoning as google_oauth_enabled above.
+    vapid_public_key: str = os.getenv("VAPID_PUBLIC_KEY", "")
+    vapid_private_key: str = os.getenv("VAPID_PRIVATE_KEY", "")
+    # VAPID requires a contact URI (mailto: or https:) in the JWT claims
+    # so a push service operator has a way to reach whoever's sending
+    # through them if something goes wrong.
+    vapid_claims_sub: str = os.getenv("VAPID_CLAIMS_SUB", "mailto:no-reply@example.com")
+
     def __post_init__(self) -> None:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         if self.email_service_enabled is None:
@@ -86,6 +104,10 @@ class Settings:
     @property
     def google_oauth_enabled(self) -> bool:
         return bool(self.google_client_id and self.google_client_secret)
+
+    @property
+    def push_notifications_enabled(self) -> bool:
+        return bool(self.vapid_public_key and self.vapid_private_key)
 
 
 settings = Settings()

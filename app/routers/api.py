@@ -449,3 +449,47 @@ def dashboard_stats(db: Session = Depends(get_db), current_user=Depends(get_curr
         mood_distribution=summary["mood_distribution"],
         recent_diaries=summary["recent_diaries"],
     )
+
+
+# ── Daily reminder / Web Push ────────────────────────────────────────
+
+@router.get("/push/vapid-public-key", tags=["Notifications"], summary="Get the VAPID public key for Web Push subscription")
+def push_vapid_public_key(request: Request):
+    app_settings = request.app.state.settings
+    if not app_settings.push_notifications_enabled:
+        raise HTTPException(status_code=404, detail="Push notifications are not configured on this server")
+    return {"publicKey": app_settings.vapid_public_key}
+
+
+@router.post("/push/subscribe", response_model=APIMessage, tags=["Notifications"], summary="Register a browser for push notifications")
+def push_subscribe(
+    request: Request,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """payload is the subscription object exactly as PushManager.subscribe()
+    produces it in the browser: {endpoint, keys: {p256dh, auth}}."""
+    app_settings = request.app.state.settings
+    if not app_settings.push_notifications_enabled:
+        raise HTTPException(status_code=404, detail="Push notifications are not configured on this server")
+    endpoint = payload.get("endpoint")
+    keys = payload.get("keys") or {}
+    p256dh, auth = keys.get("p256dh"), keys.get("auth")
+    if not endpoint or not p256dh or not auth:
+        raise HTTPException(status_code=400, detail="Malformed subscription payload")
+    services.subscribe_push(db, current_user, endpoint, p256dh, auth)
+    return APIMessage(message="Subscribed")
+
+
+@router.post("/push/unsubscribe", response_model=APIMessage, tags=["Notifications"], summary="Remove a browser's push subscription")
+def push_unsubscribe(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    endpoint = payload.get("endpoint")
+    if not endpoint:
+        raise HTTPException(status_code=400, detail="endpoint is required")
+    services.unsubscribe_push(db, current_user, endpoint)
+    return APIMessage(message="Unsubscribed")

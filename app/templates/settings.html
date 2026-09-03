@@ -18,6 +18,11 @@
   <button class="settings-tab" data-panel="appearance">
     <i class="bi bi-palette-fill"></i> Appearance
   </button>
+  {% if push_notifications_enabled %}
+  <button class="settings-tab" data-panel="notifications">
+    <i class="bi bi-bell-fill"></i> Notifications
+  </button>
+  {% endif %}
   <button class="settings-tab" data-panel="danger">
     <i class="bi bi-exclamation-triangle-fill"></i> Danger Zone
   </button>
@@ -161,6 +166,42 @@
     </div>
   </div>
 </div>
+
+{% if push_notifications_enabled %}
+<!-- Notifications Panel -->
+<div class="settings-panel" id="notifications" data-vapid-public-key="{{ vapid_public_key }}" data-csrf-token="{{ csrf_token }}">
+  <div style="max-width:520px;">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-bell-fill"></i> Daily Reminder</div>
+      <div class="card-body">
+        <p style="color:var(--txt-secondary);font-size:0.9rem;margin-bottom:1.25rem;">
+          Get a gentle notification each day to write your entry. You can turn this off any time.
+        </p>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.9rem 0;border-bottom:1px solid var(--border-color);">
+          <div>
+            <label for="reminderToggle" style="font-weight:600;font-size:0.9rem;display:block;">Daily writing reminder</label>
+            <span id="reminderStatusText" style="font-size:0.8rem;color:var(--txt-muted);">Off</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="reminderToggle" role="switch" data-initial="{{ 'true' if current_user.reminder_enabled else 'false' }}">
+            <span class="toggle-switch-track" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <div id="reminderTimeRow" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.9rem 0;">
+          <label for="reminderTime" style="font-weight:600;font-size:0.9rem;">Remind me at</label>
+          <input type="time" id="reminderTime" class="form-control" style="width:auto;" value="{{ current_user.reminder_time or '20:00' }}">
+        </div>
+
+        <p id="reminderPermissionNote" style="font-size:0.8rem;color:var(--clr-danger);display:none;margin-top:0.5rem;">
+          Notifications are blocked for this site in your browser. Allow notifications in your browser's site settings, then try again.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- Danger Zone Panel -->
 <div class="settings-panel" id="danger">
