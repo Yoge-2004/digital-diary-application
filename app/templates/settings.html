@@ -215,7 +215,7 @@
       </p>
       <form method="post" action="/settings/delete" id="deleteAccountForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button class="btn btn-danger" type="button" id="openDeleteAccountModal">
+        <button class="btn btn-danger" type="button" id="openDeleteAccountModal" onclick="if(window.__openDeleteAccountModal){window.__openDeleteAccountModal();}else{var o=document.getElementById('deleteAccountOverlay');if(o){o.style.display='flex';o.classList.add('open');o.setAttribute('aria-hidden','false');}}">
           <i class="bi bi-trash3-fill"></i> Delete my account
         </button>
       </form>
@@ -224,7 +224,7 @@
 </div>
 
 <!-- Delete Account Confirmation Modal -->
-<div class="modal-overlay" id="deleteAccountOverlay" aria-hidden="true">
+<div class="modal-overlay" id="deleteAccountOverlay" aria-hidden="true" style="display: none;">
   <div class="modal-panel" role="alertdialog" aria-modal="true" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountDesc">
     <div class="modal-icon"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i></div>
     <h2 class="modal-title" id="deleteAccountTitle">Delete your account?</h2>
@@ -244,7 +244,7 @@
       placeholder="DELETE"
     >
     <div class="modal-actions">
-      <button type="button" class="btn btn-surface" id="cancelDeleteAccount">Cancel</button>
+      <button type="button" class="btn btn-surface" id="cancelDeleteAccount" onclick="if(window.__closeDeleteAccountModal){window.__closeDeleteAccountModal();}else{var o=document.getElementById('deleteAccountOverlay');if(o){o.style.display='none';o.classList.remove('open');o.setAttribute('aria-hidden','true');}}">Cancel</button>
       <button type="button" class="btn btn-danger" id="confirmDeleteAccount" disabled>
         <i class="bi bi-trash3-fill"></i> Delete my account permanently
       </button>

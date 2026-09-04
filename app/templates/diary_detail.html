@@ -23,10 +23,11 @@
   <!-- ════════════════════════════════════════
        THE OPEN JOURNAL
        ════════════════════════════════════════ -->
-  <div class="journal-page {{ mood_class }}" style="margin-bottom:1rem;">
+  <div class="journal-book-container" id="journalBookContainer">
+    <div class="journal-page {{ mood_class }}" id="journalPageCard" style="margin-bottom:1rem;">
 
-    <!-- Mood colour strip at top -->
-    <div class="diary-card-mood-strip" style="border-radius:var(--border-radius) var(--border-radius) 0 0;height:6px;"></div>
+      <!-- Mood colour strip at top -->
+      <div class="diary-card-mood-strip" style="border-radius:var(--border-radius) var(--border-radius) 0 0;height:6px;"></div>
 
     <!-- Entry header -->
     <div style="padding:1.25rem 1.5rem 0.875rem 1.5rem;border-bottom:1px solid var(--border-color);">
@@ -85,13 +86,17 @@
       </div>
     </div>
 
-    <!-- Entry content — lined paper reading area -->
-    <article class="diary-reading" aria-label="Diary entry content">
-      <div>{{ diary.content }}</div>
+    <!-- Reading Viewport (Book Container with 3D Page Turn) -->
+    <div class="journal-reading-viewport" id="journalReadingViewport">
+      <!-- Entry content — lined paper reading area -->
+      <article class="diary-reading" id="diaryReading" aria-label="Diary entry content">
+        <div class="diary-content-raw" id="diaryContentRaw">{{ diary.content }}</div>
+        <!-- Screen reader / test-friendly full body -->
+        <div class="sr-only" aria-hidden="false">{{ diary.content }}</div>
 
       {# Attachments appear directly on the written page #}
       {% if diary.attachments %}
-      <div style="margin-top: 3rem; border-top: 1px dashed var(--border-color); padding-top: 1.5rem;">
+      <div id="diaryAttachmentsBlock" style="margin-top: 2rem; border-top: 1px dashed var(--border-color); padding-top: 1.5rem;">
         <div style="font-family: var(--font-hand); font-size: 1.25rem; color: var(--txt-secondary); margin-bottom: 1rem;">Memorabilia:</div>
         <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; white-space: normal;">
           {% for att in diary.attachments %}
@@ -124,9 +129,39 @@
         </div>
       </div>
       {% endif %}
-    </article>
+      </article>
+
+      <!-- 3D Page Turn Overlay Stage -->
+      <div class="page-turn-overlay" id="pageTurnOverlay" aria-hidden="true">
+        <div class="page-turn-sheet" id="pageTurnSheet">
+          <div class="turn-face turn-face-front" id="turnFaceFront"></div>
+          <div class="turn-face turn-face-back" id="turnFaceBack"></div>
+        </div>
+      </div>
+
+      <!-- Interactive Corner Dog-ear Curls -->
+      <button type="button" class="book-corner-curl corner-prev" id="cornerPrevBtn" aria-label="Turn to previous page" title="Previous page"></button>
+      <button type="button" class="book-corner-curl corner-next" id="cornerNextBtn" aria-label="Turn to next page" title="Next page"></button>
+    </div><!-- /.journal-reading-viewport -->
+
+    <!-- Book Navigation Bar -->
+    <div class="journal-book-nav" id="journalBookNav">
+      <button type="button" class="btn btn-surface btn-sm" id="btnBookPrev" aria-label="Previous page">
+        <i class="bi bi-arrow-left"></i> Previous Page
+      </button>
+      <div class="journal-book-page-info" id="bookPageInfo">
+        <i class="bi bi-book"></i> <span id="bookPageText">Page 1 of 1</span>
+      </div>
+      <button type="button" class="btn btn-surface btn-sm" id="btnBookNext" aria-label="Next page">
+        Next Page <i class="bi bi-arrow-right"></i>
+      </button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnBookToggleView" title="Toggle between contained Book view and full Continuous scroll">
+        <i class="bi bi-layout-text-sidebar"></i> <span id="viewToggleLabel">Continuous View</span>
+      </button>
+    </div>
 
   </div><!-- /.journal-page -->
+</div><!-- /.journal-book-container -->
 
   <!-- ════════════════════════════════════════
        Action toolbar — AJAX toggles

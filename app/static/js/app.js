@@ -999,6 +999,7 @@
 
     function open() {
       lastFocused = document.activeElement;
+      overlay.style.display = "flex";
       overlay.classList.add("open");
       overlay.setAttribute("aria-hidden", "false");
       input.value = "";
@@ -1010,9 +1011,13 @@
     function close() {
       overlay.classList.remove("open");
       overlay.setAttribute("aria-hidden", "true");
+      overlay.style.display = "none";
       document.body.style.overflow = "";
       if (lastFocused) lastFocused.focus();
     }
+
+    window.__openDeleteAccountModal = open;
+    window.__closeDeleteAccountModal = close;
 
     // Focus trap: while this modal is open, Tab/Shift+Tab must cycle
     // only among its own focusable elements. Without this, focus can
@@ -1050,8 +1055,13 @@
       if (e.key === "Escape" && overlay.classList.contains("open")) close();
     });
 
+    function isDeleteMatch(val) {
+      const v = (val || '').trim();
+      return v === 'DELETE' || v.toUpperCase() === 'DELETE';
+    }
+
     input.addEventListener("input", () => {
-      confirmBtn.disabled = input.value !== "DELETE";
+      confirmBtn.disabled = !isDeleteMatch(input.value);
     });
 
     // Enter in the input submits as soon as it's valid, same as clicking
@@ -1064,7 +1074,7 @@
     });
 
     confirmBtn.addEventListener("click", () => {
-      if (input.value !== "DELETE") return;
+      if (!isDeleteMatch(input.value)) return;
       confirmBtn.disabled = true;
       confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Deleting…';
       form.submit();
@@ -1633,7 +1643,234 @@
     initAjaxToggles();
     initAutoResize();
     initAjaxUpload();
+
+  // ════════════════════════════════════════════════════════════
+  //  Diary Book Container & 3D Page Turn Engine
+  // ════════════════════════════════════════════════════════════
+  function initDiaryBookPaging() {
+    const container = document.getElementById("journalBookContainer");
+    const pageCard = document.getElementById("journalPageCard");
+    const rawContent = document.getElementById("diaryContentRaw");
+    if (!container || !pageCard || !rawContent) return;
+
+    const viewport = document.getElementById("journalReadingViewport");
+    const readingArea = document.getElementById("diaryReading");
+    const attachments = document.getElementById("diaryAttachmentsBlock");
+    const btnPrev = document.getElementById("btnBookPrev");
+    const btnNext = document.getElementById("btnBookNext");
+    const pageText = document.getElementById("bookPageText");
+    const cornerPrev = document.getElementById("cornerPrevBtn");
+    const cornerNext = document.getElementById("cornerNextBtn");
+    const btnToggleView = document.getElementById("btnBookToggleView");
+    const viewToggleLabel = document.getElementById("viewToggleLabel");
+    const overlay = document.getElementById("pageTurnOverlay");
+    const sheet = document.getElementById("pageTurnSheet");
+    const turnFront = document.getElementById("turnFaceFront");
+    const turnBack = document.getElementById("turnFaceBack");
+
+    let isContinuous = false;
+    let isFlipping = false;
+    let currentPage = 1;
+    let pages = [];
+
+    const fullText = (rawContent.textContent || "").trim();
+
+    function paginate() {
+      pages = [];
+      if (!fullText) {
+        pages.push({ text: "", hasAttachments: !!attachments });
+        return;
+      }
+
+      // Responsive words & characters threshold per physical page
+      const isMobile = window.innerWidth <= 640;
+      const WORDS_PER_PAGE = isMobile ? 80 : 130;
+      const CHARS_PER_PAGE = isMobile ? 480 : 780;
+
+      // Split into paragraphs or line breaks
+      const rawBlocks = fullText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+      
+      let currentWords = 0;
+      let currentChars = 0;
+      let currentBatch = [];
+
+      for (let i = 0; i < rawBlocks.length; i++) {
+        const block = rawBlocks[i];
+        const blockWords = block.split(/\s+/).filter(Boolean).length;
+        const blockChars = block.length;
+
+        // If a single paragraph is too large for one page, divide into smaller sentences
+        if (blockWords > WORDS_PER_PAGE || blockChars > CHARS_PER_PAGE) {
+          const sentences = block.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [block];
+          for (let j = 0; j < sentences.length; j++) {
+            const sent = sentences[j].trim();
+            if (!sent) continue;
+            const sentWords = sent.split(/\s+/).filter(Boolean).length;
+            const sentChars = sent.length;
+
+            if (currentBatch.length > 0 && ((currentWords + sentWords) > WORDS_PER_PAGE || (currentChars + sentChars) > CHARS_PER_PAGE)) {
+              pages.push({ text: currentBatch.join("\n\n"), hasAttachments: false });
+              currentBatch = [sent];
+              currentWords = sentWords;
+              currentChars = sentChars;
+            } else {
+              if (currentBatch.length > 0) {
+                currentBatch[currentBatch.length - 1] += ' ' + sent;
+              } else {
+                currentBatch.push(sent);
+              }
+              currentWords += sentWords;
+              currentChars += sentChars;
+            }
+          }
+          continue;
+        }
+
+        if (currentBatch.length > 0 && ((currentWords + blockWords) > WORDS_PER_PAGE || (currentChars + blockChars) > CHARS_PER_PAGE)) {
+          pages.push({ text: currentBatch.join("\n\n"), hasAttachments: false });
+          currentBatch = [block];
+          currentWords = blockWords;
+          currentChars = blockChars;
+        } else {
+          currentBatch.push(block);
+          currentWords += blockWords;
+          currentChars += blockChars;
+        }
+      }
+
+      if (currentBatch.length > 0) {
+        if (attachments && (currentWords > 40 || currentChars > 250)) {
+          pages.push({ text: currentBatch.join("\n\n"), hasAttachments: false });
+          pages.push({ text: "", hasAttachments: true });
+        } else {
+          pages.push({ text: currentBatch.join("\n\n"), hasAttachments: !!attachments });
+        }
+      } else if (attachments) {
+        pages.push({ text: "", hasAttachments: true });
+      }
+
+      if (pages.length === 0) {
+        pages.push({ text: fullText, hasAttachments: !!attachments });
+      }
+    }
+
+    paginate();
+
+    function renderPage(pageNum) {
+      if (pageNum < 1) pageNum = 1;
+      if (pageNum > pages.length) pageNum = pages.length;
+      currentPage = pageNum;
+
+      const pageData = pages[currentPage - 1];
+      rawContent.textContent = pageData.text;
+      rawContent.style.display = pageData.text ? "block" : "none";
+
+      if (attachments) {
+        attachments.style.display = pageData.hasAttachments ? "block" : "none";
+      }
+
+      if (pageText) pageText.textContent = "Page " + currentPage + " of " + pages.length;
+      if (btnPrev) btnPrev.disabled = (currentPage === 1);
+      if (btnNext) btnNext.disabled = (currentPage === pages.length);
+
+      if (cornerPrev) cornerPrev.style.display = (currentPage > 1 && !isContinuous) ? "block" : "none";
+      if (cornerNext) cornerNext.style.display = (currentPage < pages.length && !isContinuous) ? "block" : "none";
+
+      if (readingArea) readingArea.scrollTop = 0;
+    }
+
+    function turnPage(direction) {
+      if (isFlipping || isContinuous) return;
+      const targetPage = direction === "next" ? currentPage + 1 : currentPage - 1;
+      if (targetPage < 1 || targetPage > pages.length) return;
+
+      isFlipping = true;
+
+      // Prepare 3D turning faces
+      const curData = pages[currentPage - 1];
+      const targetData = pages[targetPage - 1];
+
+      if (turnFront) turnFront.textContent = curData.text;
+      if (turnBack) turnBack.textContent = targetData.text;
+
+      if (overlay) overlay.classList.add("flipping");
+      if (sheet) {
+        sheet.classList.remove("flip-forward", "flip-backward");
+        void sheet.offsetWidth; // Force reflow
+        sheet.classList.add(direction === "next" ? "flip-forward" : "flip-backward");
+      }
+
+      // Update actual page content underneath halfway through
+      setTimeout(() => {
+        renderPage(targetPage);
+      }, 240);
+
+      const onEnd = () => {
+        sheet.removeEventListener("animationend", onEnd);
+        if (overlay) overlay.classList.remove("flipping");
+        if (sheet) sheet.classList.remove("flip-forward", "flip-backward");
+        isFlipping = false;
+      };
+      if (sheet) sheet.addEventListener("animationend", onEnd, { once: true });
+    }
+
+    btnNext?.addEventListener("click", () => turnPage("next"));
+    btnPrev?.addEventListener("click", () => turnPage("prev"));
+    cornerNext?.addEventListener("click", () => turnPage("next"));
+    cornerPrev?.addEventListener("click", () => turnPage("prev"));
+
+    window.addEventListener("keydown", (e) => {
+      if (isContinuous) return;
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.key === "ArrowRight") turnPage("next");
+      else if (e.key === "ArrowLeft") turnPage("prev");
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    viewport?.addEventListener("touchstart", (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    viewport?.addEventListener("touchend", (e) => {
+      if (isContinuous) return;
+      const diffX = e.changedTouches[0].screenX - touchStartX;
+      const diffY = e.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(diffX) > 40 && Math.abs(diffY) < 55) {
+        if (diffX < 0) turnPage("next");
+        else turnPage("prev");
+      }
+    }, { passive: true });
+
+    btnToggleView?.addEventListener("click", () => {
+      isContinuous = !isContinuous;
+      if (isContinuous) {
+        pageCard.classList.add("continuous-view");
+        rawContent.textContent = fullText;
+        rawContent.style.display = "block";
+        if (attachments) attachments.style.display = "block";
+        if (btnPrev) btnPrev.style.display = "none";
+        if (btnNext) btnNext.style.display = "none";
+        if (pageText) pageText.textContent = "Continuous Scroll View";
+        if (viewToggleLabel) viewToggleLabel.textContent = "Book View";
+        if (cornerPrev) cornerPrev.style.display = "none";
+        if (cornerNext) cornerNext.style.display = "none";
+      } else {
+        pageCard.classList.remove("continuous-view");
+        if (btnPrev) btnPrev.style.display = "";
+        if (btnNext) btnNext.style.display = "";
+        if (viewToggleLabel) viewToggleLabel.textContent = "Continuous View";
+        renderPage(currentPage);
+      }
+    });
+
+    // Initial display
+    renderPage(1);
+  }
+
     initRuledLineAlignment();
+    initDiaryBookPaging();
   });
 })();
 
