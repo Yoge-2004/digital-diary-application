@@ -90,8 +90,15 @@
     <div class="journal-reading-viewport" id="journalReadingViewport">
       <!-- Entry content — lined paper reading area -->
       <article class="diary-reading" id="diaryReading" aria-label="Diary entry content">
-        <div class="diary-content-raw" id="diaryContentRaw">{{ diary.content }}</div>
-        <!-- Screen reader / test-friendly full body -->
+        <div class="diary-content-raw" id="diaryContentRaw" aria-hidden="true">{{ diary.content }}</div>
+        <!-- Screen reader / test-friendly full body: the div above is
+             re-sliced into "pages" by the book-paging JS below, so a
+             screen reader user tabbing/reading through it would only
+             ever get one page-sized fragment of the entry. This
+             visually-hidden copy carries the complete, unsliced text
+             so assistive tech always gets the whole entry; aria-hidden
+             on the visible div above stops the two from both being
+             announced. -->
         <div class="sr-only" aria-hidden="false">{{ diary.content }}</div>
 
       {# Attachments appear directly on the written page #}
