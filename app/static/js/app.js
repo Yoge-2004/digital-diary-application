@@ -1073,8 +1073,7 @@
     });
 
     function isDeleteMatch(val) {
-      const v = (val || '').trim();
-      return v === 'DELETE' || v.toUpperCase() === 'DELETE';
+      return val === 'DELETE';
     }
 
     input.addEventListener("input", () => {
