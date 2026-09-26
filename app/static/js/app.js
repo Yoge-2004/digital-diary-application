@@ -223,10 +223,20 @@
     return ["", "#e55", "#f90", "#8bc34a", "#4caf50"][score] || "";
   }
 
-  function initPasswordStrength() {
-    const pwInput = document.getElementById("reg-password");
-    const fill = document.getElementById("pwStrengthFill");
-    const label = document.getElementById("pwStrengthLabel");
+  // Wires one password-strength meter instance to its input/fill/label.
+  // Pulled out as its own function (rather than the hardcoded
+  // "reg-password" ids this used to be stuck with) because the exact
+  // same meter markup -- .pw-strength > .pw-strength-bar > .pw-strength-fill
+  // plus a .pw-strength-label -- shows up on three different pages
+  // (register, settings > change password, reset password), each with
+  // its own input/fill/label ids. Register was the only one actually
+  // getting wired up before; settings and reset-password rendered a
+  // meter that just... never moved, since nothing was listening on
+  // their inputs.
+  function wireStrengthMeter(inputId, fillId, labelId) {
+    const pwInput = document.getElementById(inputId);
+    const fill = document.getElementById(fillId);
+    const label = labelId ? document.getElementById(labelId) : null;
     if (!pwInput || !fill) return;
 
     // Requirement items
@@ -259,10 +269,17 @@
       mark(reqLower, /[a-z]/.test(pw));
       mark(reqNum,   /[0-9]/.test(pw));
 
-      // Also trigger confirm match if filled
+      // Also trigger confirm match if filled (register page only --
+      // harmless no-op elsewhere since #reg-confirm won't exist there)
       const confirm = document.getElementById("reg-confirm");
       if (confirm && confirm.value) validateConfirmPassword();
     });
+  }
+
+  function initPasswordStrength() {
+    wireStrengthMeter("reg-password", "pwStrengthFill", "pwStrengthLabel"); // Register
+    wireStrengthMeter("new-pw", "pwStrengthFill", "pwStrengthLabel");       // Settings > change password
+    wireStrengthMeter("rp-new", "rp-strength-fill", "rp-strength-label");  // Reset password
   }
 
   // ══════════════════════════════════════════════════════════
@@ -1056,8 +1073,7 @@
     });
 
     function isDeleteMatch(val) {
-      const v = (val || '').trim();
-      return v === 'DELETE' || v.toUpperCase() === 'DELETE';
+      return val === 'DELETE';
     }
 
     input.addEventListener("input", () => {
@@ -1505,32 +1521,71 @@
 
     function appendAttachment(att) {
       if (attEmpty) attEmpty.style.display = "none";
-
       if (!attList) return;
+
       const kb = (att.size / 1024).toFixed(1);
       let icon = "bi-file-earmark-text-fill";
       if (att.mime_type?.startsWith("image/")) icon = "bi-image-fill";
       else if (att.mime_type === "application/pdf") icon = "bi-file-pdf-fill";
 
+      // Built with createElement/textContent rather than one big
+      // innerHTML template string -- att.filename is the visitor's own
+      // upload filename (attacker-controlled, in principle: nothing
+      // stops someone naming a file <img src=x onerror=...>), and this
+      // runs right after their own upload. showToast() a few lines up
+      // already treats filenames this carefully; this just brings
+      // appendAttachment() in line with that.
       const item = document.createElement("div");
       item.className = "attachment-item";
       item.dataset.attachmentId = att.id;
       item.style.marginBottom = ".5rem";
       item.style.animation = "scaleIn .3s var(--ease-spring) both";
-      item.innerHTML = `
-        <i class="bi ${icon} attachment-icon" aria-hidden="true"></i>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${att.filename}</div>
-          <div style="font-size:.72rem;color:var(--txt-muted);">${kb} KB · ${att.mime_type || ""}</div>
-        </div>
-        <div class="att-actions">
-          <a href="/attachments/${att.id}/download" class="btn btn-surface btn-sm" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Download ${att.filename}" aria-label="Download ${att.filename}" download>
-            <i class="bi bi-download" aria-hidden="true"></i>
-          </a>
-          <button type="button" class="btn btn-outline-danger btn-sm att-delete-btn" data-attachment-id="${att.id}" data-filename="${att.filename}" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Delete ${att.filename}" aria-label="Delete ${att.filename}">
-            <i class="bi bi-trash3-fill" aria-hidden="true"></i>
-          </button>
-        </div>`;
+
+      const iconEl = document.createElement("i");
+      iconEl.className = `bi ${icon} attachment-icon`;
+      iconEl.setAttribute("aria-hidden", "true");
+
+      const meta = document.createElement("div");
+      meta.style.cssText = "flex:1;min-width:0;";
+      const nameEl = document.createElement("div");
+      nameEl.style.cssText = "font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+      nameEl.textContent = att.filename;
+      const sizeEl = document.createElement("div");
+      sizeEl.style.cssText = "font-size:.72rem;color:var(--txt-muted);";
+      sizeEl.textContent = `${kb} KB · ${att.mime_type || ""}`;
+      meta.append(nameEl, sizeEl);
+
+      const actions = document.createElement("div");
+      actions.className = "att-actions";
+
+      const dlLink = document.createElement("a");
+      dlLink.href = `/attachments/${att.id}/download`;
+      dlLink.className = "btn btn-surface btn-sm att-download-btn";
+      dlLink.setAttribute("download", "");
+      dlLink.dataset.filename = att.filename;
+      dlLink.style.cssText = "padding:.3rem .5rem;min-height:unset;height:auto;";
+      dlLink.title = `Download ${att.filename}`;
+      dlLink.setAttribute("aria-label", `Download ${att.filename}`);
+      const dlIcon = document.createElement("i");
+      dlIcon.className = "bi bi-download";
+      dlIcon.setAttribute("aria-hidden", "true");
+      dlLink.appendChild(dlIcon);
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "btn btn-outline-danger btn-sm att-delete-btn";
+      delBtn.dataset.attachmentId = att.id;
+      delBtn.dataset.filename = att.filename;
+      delBtn.style.cssText = "padding:.3rem .5rem;min-height:unset;height:auto;";
+      delBtn.title = `Delete ${att.filename}`;
+      delBtn.setAttribute("aria-label", `Delete ${att.filename}`);
+      const delIcon = document.createElement("i");
+      delIcon.className = "bi bi-trash3-fill";
+      delIcon.setAttribute("aria-hidden", "true");
+      delBtn.appendChild(delIcon);
+
+      actions.append(dlLink, delBtn);
+      item.append(iconEl, meta, actions);
       attList.appendChild(item);
       updateAttachmentCount(1);
     }
@@ -1579,6 +1634,99 @@
           showToast("Network error while deleting attachment", "error");
         });
     });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  Attachment download progress
+  // ══════════════════════════════════════════════════════════
+  // A plain <a download> gives no feedback at all while it's in flight
+  // -- the browser's own download indicator lives outside the page,
+  // and most attachments here are small enough that "nothing visibly
+  // happens" reads as normal right up until it doesn't. This streams
+  // the response instead so a real progress bar can track bytes-
+  // received against Content-Length (which the download route already
+  // sends via FileResponse), then assembles the bytes into a Blob and
+  // triggers the actual save. Falls back to a plain navigation on any
+  // failure -- enhancement, not a hard dependency.
+  //
+  // Deliberately its own top-level init, not folded into
+  // initAjaxUpload(): that function returns early when #uploadZone
+  // isn't on the page, which is exactly the case for a public/shared
+  // viewer who can still see a Download button but never an upload
+  // dropzone. Nesting this in there would have quietly disabled
+  // download progress for every non-owner viewer.
+  function initDownloadProgress() {
+    document.addEventListener("click", (e) => {
+      const link = e.target.closest(".att-download-btn");
+      if (!link || link.dataset.downloading === "1") return;
+      if (!window.fetch || !window.ReadableStream) return; // let the native <a download> handle it
+      e.preventDefault();
+      downloadWithProgress(link);
+    });
+  }
+
+  function downloadWithProgress(link) {
+    const url = link.getAttribute("href");
+    const filename = link.dataset.filename || "download";
+    link.dataset.downloading = "1";
+
+    let bar = link.nextElementSibling;
+    if (!bar || !bar.classList.contains("dl-progress-bar")) {
+      bar = document.createElement("div");
+      bar.className = "dl-progress-bar";
+      const fillEl = document.createElement("div");
+      fillEl.className = "dl-progress-fill";
+      bar.appendChild(fillEl);
+      link.insertAdjacentElement("afterend", bar);
+    }
+    const fill = bar.querySelector(".dl-progress-fill");
+    bar.classList.add("active");
+    fill.style.width = "0%";
+
+    const finish = () => {
+      delete link.dataset.downloading;
+      bar.classList.remove("active");
+      fill.style.width = "0%";
+    };
+
+    fetch(url)
+      .then((resp) => {
+        if (!resp.ok || !resp.body) throw new Error("download response not ok");
+        const total = Number(resp.headers.get("Content-Length")) || 0;
+        const reader = resp.body.getReader();
+        const chunks = [];
+        let loaded = 0;
+
+        function pump() {
+          return reader.read().then(({ done, value }) => {
+            if (done) return;
+            chunks.push(value);
+            loaded += value.length;
+            if (total > 0) {
+              fill.style.width = Math.min(100, Math.round((loaded / total) * 100)) + "%";
+            }
+            return pump();
+          });
+        }
+
+        return pump().then(() => {
+          fill.style.width = "100%";
+          const blob = new Blob(chunks, { type: resp.headers.get("Content-Type") || "application/octet-stream" });
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+        });
+      })
+      .catch(() => {
+        showToast("Couldn't show download progress — downloading normally…", "error", 2500);
+        window.location.href = url;
+      })
+      .finally(finish);
   }
 
   // ══════════════════════════════════════════════════════════
@@ -1643,6 +1791,7 @@
     initAjaxToggles();
     initAutoResize();
     initAjaxUpload();
+    initDownloadProgress();
 
   // ════════════════════════════════════════════════════════════
   //  Diary Book Container & 3D Page Turn Engine

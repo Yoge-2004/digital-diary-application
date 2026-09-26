@@ -90,8 +90,15 @@
     <div class="journal-reading-viewport" id="journalReadingViewport">
       <!-- Entry content — lined paper reading area -->
       <article class="diary-reading" id="diaryReading" aria-label="Diary entry content">
-        <div class="diary-content-raw" id="diaryContentRaw">{{ diary.content }}</div>
-        <!-- Screen reader / test-friendly full body -->
+        <div class="diary-content-raw" id="diaryContentRaw" aria-hidden="true">{{ diary.content }}</div>
+        <!-- Screen reader / test-friendly full body: the div above is
+             re-sliced into "pages" by the book-paging JS below, so a
+             screen reader user tabbing/reading through it would only
+             ever get one page-sized fragment of the entry. This
+             visually-hidden copy carries the complete, unsliced text
+             so assistive tech always gets the whole entry; aria-hidden
+             on the visible div above stops the two from both being
+             announced. -->
         <div class="sr-only" aria-hidden="false">{{ diary.content }}</div>
 
       {# Attachments appear directly on the written page #}
@@ -120,7 +127,7 @@
                 <div style="font-size: 0.68rem; color: var(--txt-muted); margin-bottom: 8px;">
                   {{ (att.size / 1024) | round(1) }} KB
                 </div>
-                <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm" style="font-size: 0.7rem; padding: 2px 6px; min-height: unset; height: auto;" download>
+                <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm att-download-btn" data-filename="{{ att.filename }}" style="font-size: 0.7rem; padding: 2px 6px; min-height: unset; height: auto;" download>
                   Download
                 </a>
               </div>
@@ -441,7 +448,7 @@
             </div>
           </div>
           <div class="att-actions">
-            <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Download {{ att.filename }}" aria-label="Download {{ att.filename }}" download>
+            <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm att-download-btn" data-filename="{{ att.filename }}" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Download {{ att.filename }}" aria-label="Download {{ att.filename }}" download>
               <i class="bi bi-download" aria-hidden="true"></i>
             </a>
             <button type="button" class="btn btn-outline-danger btn-sm att-delete-btn" data-attachment-id="{{ att.id }}" data-filename="{{ att.filename }}" style="padding:.3rem .5rem;min-height:unset;height:auto;" title="Delete {{ att.filename }}" aria-label="Delete {{ att.filename }}">

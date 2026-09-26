@@ -221,7 +221,64 @@ body {
   overflow-x: hidden;
 }
 
-/* Skip link removed to prevent mobile layout interference */
+/* Skip-to-content link: invisible off-screen by default (so it costs
+   sighted mouse users nothing), snaps into view at the very top-left
+   the moment it receives keyboard focus. Every page currently makes a
+   keyboard or screen-reader user tab through the entire sidebar nav
+   (a dozen-plus links) before reaching the actual page content, on
+   every single page load -- this is the standard fix, and it's cheap.
+   A previous pass removed this outright over a suspected mobile
+   layout conflict; the real fix is just to make sure the off-screen
+   state can never contribute to horizontal scroll or sit on top of
+   anything while hidden -- max-width keeps its box from ever being
+   wider than the viewport, and pointer-events:none while unfocused
+   means it can't intercept a tap/click even if a transform is still
+   settling. */
+.skip-link {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 300;
+  max-width: calc(100vw - 2rem);
+  background: var(--clr-ink);
+  color: var(--txt-on-dark);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--border-radius-sm);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateY(-150px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--t-fast), opacity var(--t-fast);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Visually hidden, but still exposed to assistive tech -- the standard
+   "sr-only" utility pattern. Clipping to a 1px box (rather than
+   display:none/visibility:hidden, which would remove it from the
+   accessibility tree too) is what keeps content readable by screen
+   readers while taking up no visible space for sighted users. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* View Transition fade */
 @supports (view-transition-name: root) {
@@ -3229,6 +3286,31 @@ img, video { max-width: 100%; display: block; }
   border-radius: 999px;
   width: 0%;
   transition: width 0.25s var(--ease-out);
+}
+
+/* Download progress -- same visual language as .upload-progress-bar/
+   -fill above, just slimmer since it sits under a small icon button
+   rather than the whole dropzone. Created and inserted by JS right
+   after the download link/button it belongs to, one per attachment
+   row, and removed again once the download finishes or fails. */
+.dl-progress-bar {
+  height: 3px;
+  background: var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.35rem;
+  display: none;
+  width: 100%;
+}
+
+.dl-progress-bar.active { display: block; }
+
+.dl-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--clr-accent), var(--clr-ink));
+  border-radius: 999px;
+  width: 0%;
+  transition: width 0.2s var(--ease-out);
 }
 
 /* Skeleton shimmer for attachment list placeholder */

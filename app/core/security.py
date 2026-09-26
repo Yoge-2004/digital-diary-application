@@ -35,7 +35,23 @@ def create_refresh_token(subject: str) -> str:
 
 
 def decode_token(token: str, expected_type: str) -> str:
-    payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+    # jwt.decode raises jwt.PyJWTError (ExpiredSignatureError,
+    # DecodeError, InvalidSignatureError, ...) for an expired, malformed,
+    # or tampered token. PyJWTError is a plain Exception subclass, not a
+    # ValueError -- every caller of this function only catches ValueError
+    # (that's the contract this function is supposed to uphold), so
+    # without this translation, the single most common case of all --
+    # a normal user's access token simply expiring after
+    # access_token_minutes, or their refresh token after
+    # refresh_token_days -- fell through as an unhandled exception. On
+    # web routes that meant get_optional_user's caller crashed instead
+    # of quietly treating the visitor as logged-out; on /api/auth/refresh
+    # it meant a 500 instead of the 401 an API client actually needs to
+    # know to send the user back through login.
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+    except jwt.PyJWTError as exc:
+        raise ValueError("Invalid or expired token") from exc
     if payload.get("typ") != expected_type:
         raise ValueError("Invalid token type")
     subject = payload.get("sub")

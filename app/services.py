@@ -453,9 +453,40 @@ def attach_file(db: Session, user: User, diary: Diary, file: UploadFile, upload_
     on the module-level settings default, so tests/alternate app
     instances with their own Settings don't write into the real
     uploads/ folder on disk.
+
+    The on-disk filename is fully server-generated (diary id + a random
+    token, plus a short whitelisted extension) rather than derived from
+    the visitor's original filename. Two things this fixes:
+
+    1. Uniqueness: this used to be f"{diary.id}-{file.filename}" --
+       deterministic, so uploading a second file with the same original
+       name (e.g. two photos both called "IMG_0001.jpg", which happens
+       constantly) silently overwrote the first one's bytes on disk.
+       The earlier Attachment row kept pointing at the same path, so
+       downloading it served the second file's content under the
+       first's recorded size/id -- silent, permanent data loss with no
+       error at any point.
+    2. Path safety: file.filename comes straight from the multipart
+       Content-Disposition header, so it's fully visitor-controlled. It
+       used to flow into target_dir / filename unsanitized; a value
+       containing "/" segments (e.g. "a/../../x") is not neutralized by
+       string concatenation, only by this diary-id prefix accidentally
+       forcing the first path segment to a nonexistent directory in
+       *this* flat layout. That's not a real control -- storing
+       attachments in per-diary subfolders later (a perfectly normal
+       refactor) would silently undo it. Not deriving the disk name
+       from attacker input at all removes the whole class of risk
+       regardless of how the storage layout evolves. The visitor's
+       original filename is kept as `Attachment.filename` for display
+       and for the Content-Disposition name on download -- this only
+       changes what's written to disk.
     """
     target_dir = upload_dir or settings.upload_dir
-    filename = f"{diary.id}-{file.filename or 'attachment'}"
+    original_name = file.filename or "attachment"
+    suffix = Path(original_name).suffix
+    if not re.fullmatch(r"\.[A-Za-z0-9]{1,10}", suffix or ""):
+        suffix = ""
+    filename = f"{diary.id}-{secrets.token_hex(16)}{suffix}"
     target = target_dir / filename
     data = file.file.read()
     if len(data) > 10 * 1024 * 1024:
@@ -465,7 +496,7 @@ def attach_file(db: Session, user: User, diary: Diary, file: UploadFile, upload_
         db,
         diary=diary,
         user_id=user.id,
-        filename=file.filename or "attachment",
+        filename=original_name,
         path=str(target),
         mime_type=file.content_type or "application/octet-stream",
         size=len(data),

@@ -14,9 +14,10 @@ import datetime as dt
 import re
 import tempfile
 
+import jwt
 from fastapi.testclient import TestClient
 
-from app.core.config import Settings
+from app.core.config import Settings, settings as global_settings
 from app.main import create_app
 
 CSRF_META_RE = re.compile(r'name="csrf-token"\s+content="([^"]+)"')
@@ -280,6 +281,44 @@ def test_attachment_upload_and_visibility_on_page():
         # Only the uploader (not just the diary owner in general, though here
         # they're the same person) can delete it.
         assert bob.delete(f"/api/attachments/{attachment_id}").status_code == 404
+
+
+def test_two_attachments_with_the_same_original_filename_dont_collide():
+    """The on-disk filename used to be f"{diary.id}-{file.filename}" --
+    deterministic, so a second upload with the same original filename
+    (e.g. two photos both called "IMG_0001.jpg", which happens
+    constantly) silently overwrote the first one's bytes on disk. The
+    first Attachment row kept pointing at that now-overwritten path, so
+    downloading "attachment #1" served attachment #2's content instead
+    -- silent, permanent loss of the first file with no error anywhere.
+    """
+    app, tmp = build_app()
+    client = TestClient(app)
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+        diary_id = client.post(
+            "/api/diaries", json={"title": "Two photos", "content": "...", "visibility": "private"}
+        ).json()["id"]
+
+        assert client.post(
+            f"/api/diaries/{diary_id}/attachments",
+            files={"file": ("photo.jpg", b"FIRST PHOTO BYTES", "image/jpeg")},
+        ).status_code == 201
+        assert client.post(
+            f"/api/diaries/{diary_id}/attachments",
+            files={"file": ("photo.jpg", b"SECOND, DIFFERENT PHOTO BYTES", "image/jpeg")},
+        ).status_code == 201
+
+        attachments = client.get(f"/api/diaries/{diary_id}").json()["attachments"]
+        assert len(attachments) == 2, "both uploads should produce their own attachment row"
+        att1, att2 = attachments[0], attachments[1]
+        assert att1["id"] != att2["id"]
+
+        body1 = client.get(f"/attachments/{att1['id']}/download").content
+        body2 = client.get(f"/attachments/{att2['id']}/download").content
+        assert body1 == b"FIRST PHOTO BYTES", "attachment #1 should still hold its own original bytes"
+        assert body2 == b"SECOND, DIFFERENT PHOTO BYTES"
+        assert body1 != body2
 
 
 # ---------------------------------------------------------------------
@@ -554,3 +593,65 @@ def test_standalone_pages_have_a_flash_container_for_js_error_toasts():
         for path in ["/login", "/register", "/forgot-password", "/reset-password"]:
             resp = client.get(path)
             assert 'id="flashContainer"' in resp.text, f"{path} is missing #flashContainer"
+
+
+def test_expired_or_tampered_token_is_treated_as_logged_out_not_a_500():
+    """decode_token() used to only catch ValueError, but PyJWT raises its
+    own exceptions for an expired, malformed, or tampered token
+    (ExpiredSignatureError, DecodeError, InvalidSignatureError, ...) --
+    plain Exception subclasses, not ValueErrors. Every caller of
+    decode_token only catches ValueError, so those fell straight through
+    as unhandled exceptions.
+
+    That's not a rare edge case: an access token expiring is the single
+    most ordinary thing that can happen to a signed-in visitor over
+    time. Before this fix, simply having a stale cookie turned every
+    page load into a 500 "something went wrong" page instead of a clean
+    bounce to /login. Same root cause hit /api/auth/refresh with an
+    expired refresh token, returning 500 instead of 401.
+    """
+    client, tmp = build_client()
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+
+        # security.py signs/verifies against the process-wide
+        # app.core.config.settings singleton (imported at module scope),
+        # not the per-app Settings instance build_app() constructs --
+        # so forging a token has to use that same global secret.
+        valid_access = client.cookies.get("access_token")
+        payload = jwt.decode(valid_access, global_settings.secret_key, algorithms=["HS256"])
+        user_id = payload["sub"]
+
+        expired_access = jwt.encode(
+            {"sub": user_id, "typ": "access", "exp": dt.datetime.now(dt.UTC) - dt.timedelta(minutes=5)},
+            global_settings.secret_key,
+            algorithm="HS256",
+        )
+        client.cookies.set("access_token", expired_access)
+        resp = client.get("/dashboard", follow_redirects=False)
+        assert resp.status_code == 303, f"expired token should redirect, got {resp.status_code}"
+        assert resp.headers["location"] == "/login"
+
+        tampered_access = valid_access[:-3] + "xyz"
+        client.cookies.set("access_token", tampered_access)
+        resp = client.get("/dashboard", follow_redirects=False)
+        assert resp.status_code == 303, f"tampered token should redirect, got {resp.status_code}"
+        assert resp.headers["location"] == "/login"
+
+        # A logged-out visitor (no token at all) should behave the same
+        # way -- confirms the fix didn't just special-case the error
+        # paths above, it made them match the already-correct baseline.
+        client.cookies.delete("access_token")
+        resp = client.get("/dashboard", follow_redirects=False)
+        assert resp.status_code == 303
+        assert resp.headers["location"] == "/login"
+
+        # Same bug, same fix, on the API's token-refresh endpoint.
+        expired_refresh = jwt.encode(
+            {"sub": user_id, "typ": "refresh", "exp": dt.datetime.now(dt.UTC) - dt.timedelta(days=1)},
+            global_settings.secret_key,
+            algorithm="HS256",
+        )
+        client.cookies.set("refresh_token", expired_refresh)
+        resp = client.post("/api/auth/refresh")
+        assert resp.status_code == 401, f"expired refresh token should 401, got {resp.status_code}"
