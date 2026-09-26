@@ -223,10 +223,20 @@
     return ["", "#e55", "#f90", "#8bc34a", "#4caf50"][score] || "";
   }
 
-  function initPasswordStrength() {
-    const pwInput = document.getElementById("reg-password");
-    const fill = document.getElementById("pwStrengthFill");
-    const label = document.getElementById("pwStrengthLabel");
+  // Wires one password-strength meter instance to its input/fill/label.
+  // Pulled out as its own function (rather than the hardcoded
+  // "reg-password" ids this used to be stuck with) because the exact
+  // same meter markup -- .pw-strength > .pw-strength-bar > .pw-strength-fill
+  // plus a .pw-strength-label -- shows up on three different pages
+  // (register, settings > change password, reset password), each with
+  // its own input/fill/label ids. Register was the only one actually
+  // getting wired up before; settings and reset-password rendered a
+  // meter that just... never moved, since nothing was listening on
+  // their inputs.
+  function wireStrengthMeter(inputId, fillId, labelId) {
+    const pwInput = document.getElementById(inputId);
+    const fill = document.getElementById(fillId);
+    const label = labelId ? document.getElementById(labelId) : null;
     if (!pwInput || !fill) return;
 
     // Requirement items
@@ -259,10 +269,17 @@
       mark(reqLower, /[a-z]/.test(pw));
       mark(reqNum,   /[0-9]/.test(pw));
 
-      // Also trigger confirm match if filled
+      // Also trigger confirm match if filled (register page only --
+      // harmless no-op elsewhere since #reg-confirm won't exist there)
       const confirm = document.getElementById("reg-confirm");
       if (confirm && confirm.value) validateConfirmPassword();
     });
+  }
+
+  function initPasswordStrength() {
+    wireStrengthMeter("reg-password", "pwStrengthFill", "pwStrengthLabel"); // Register
+    wireStrengthMeter("new-pw", "pwStrengthFill", "pwStrengthLabel");       // Settings > change password
+    wireStrengthMeter("rp-new", "rp-strength-fill", "rp-strength-label");  // Reset password
   }
 
   // ══════════════════════════════════════════════════════════
