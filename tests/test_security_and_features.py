@@ -283,6 +283,44 @@ def test_attachment_upload_and_visibility_on_page():
         assert bob.delete(f"/api/attachments/{attachment_id}").status_code == 404
 
 
+def test_two_attachments_with_the_same_original_filename_dont_collide():
+    """The on-disk filename used to be f"{diary.id}-{file.filename}" --
+    deterministic, so a second upload with the same original filename
+    (e.g. two photos both called "IMG_0001.jpg", which happens
+    constantly) silently overwrote the first one's bytes on disk. The
+    first Attachment row kept pointing at that now-overwritten path, so
+    downloading "attachment #1" served attachment #2's content instead
+    -- silent, permanent loss of the first file with no error anywhere.
+    """
+    app, tmp = build_app()
+    client = TestClient(app)
+    with client, tmp:
+        api_register(client, "alice", "alice@example.com")
+        diary_id = client.post(
+            "/api/diaries", json={"title": "Two photos", "content": "...", "visibility": "private"}
+        ).json()["id"]
+
+        assert client.post(
+            f"/api/diaries/{diary_id}/attachments",
+            files={"file": ("photo.jpg", b"FIRST PHOTO BYTES", "image/jpeg")},
+        ).status_code == 201
+        assert client.post(
+            f"/api/diaries/{diary_id}/attachments",
+            files={"file": ("photo.jpg", b"SECOND, DIFFERENT PHOTO BYTES", "image/jpeg")},
+        ).status_code == 201
+
+        attachments = client.get(f"/api/diaries/{diary_id}").json()["attachments"]
+        assert len(attachments) == 2, "both uploads should produce their own attachment row"
+        att1, att2 = attachments[0], attachments[1]
+        assert att1["id"] != att2["id"]
+
+        body1 = client.get(f"/attachments/{att1['id']}/download").content
+        body2 = client.get(f"/attachments/{att2['id']}/download").content
+        assert body1 == b"FIRST PHOTO BYTES", "attachment #1 should still hold its own original bytes"
+        assert body2 == b"SECOND, DIFFERENT PHOTO BYTES"
+        assert body1 != body2
+
+
 # ---------------------------------------------------------------------
 # Button feedback (AJAX toggles shouldn't trigger a full navigation)
 # ---------------------------------------------------------------------
