@@ -24,54 +24,71 @@
        THE OPEN JOURNAL
        ════════════════════════════════════════ -->
   <div class="journal-book-container" id="journalBookContainer">
-    <div class="journal-page {{ mood_class }}" id="journalPageCard" style="margin-bottom:1rem;">
+    <div class="journal-page continuous-view {{ mood_class }}" id="journalPageCard" style="margin-bottom:1rem;">
 
-      <!-- Mood colour strip at top -->
-      <div class="diary-card-mood-strip" style="border-radius:var(--border-radius) var(--border-radius) 0 0;height:6px;"></div>
-
-    <!-- Entry header -->
-    <div style="padding:1.25rem 1.5rem 0.875rem 1.5rem;border-bottom:1px solid var(--border-color);">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
-        <div>
-          <h1 style="font-family:var(--font-display);font-size:clamp(1.4rem,3.5vw,2rem);font-weight:700;letter-spacing:-.02em;margin:0 0 .4rem;line-height:1.2;">
-            {{ diary.title }}
-          </h1>
-          <div class="journal-datestamp" style="margin-bottom:0;">
-            <i class="bi bi-feather" aria-hidden="true"></i>
-            <time datetime="{{ diary.created_at.isoformat() }}">
-              {{ diary.created_at.strftime('%A, %B %-d, %Y') }}
-            </time>
-            <span style="color:var(--txt-muted);font-family:var(--font-sans);font-size:.8rem;">
-              {{ diary.created_at.strftime('%I:%M %p') }}
-            </span>
-            {% if diary.updated_at and diary.updated_at != diary.created_at %}
-            <span style="font-family:var(--font-sans);font-size:.75rem;color:var(--txt-muted);">
-              · edited {{ diary.updated_at.strftime('%b %-d') }}
-            </span>
-            {% endif %}
-          </div>
-          
-          {# Location Tagging Display #}
-          {% if diary.location %}
-          <div style="font-size: 0.85rem; color: var(--txt-secondary); margin-top: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
-            <span style="font-family:var(--font-hand);font-size:1rem;">📍 Written in:</span>
-            <strong style="color: var(--txt-primary);font-family:var(--font-serif);font-weight:600;">{{ diary.location }}</strong>
-          </div>
-          {% endif %}
-        </div>
-        
-        {% if not is_read_only %}
-        <a href="/diaries/{{ diary.id }}/edit" class="btn btn-outline-primary btn-sm" style="flex-shrink:0;">
-          <i class="bi bi-pencil-fill" aria-hidden="true"></i> Edit entry
-        </a>
-        {% endif %}
+      <!-- Silk Ribbon Bookmark (Interactive) -->
+      <div class="diary-ribbon-bookmark {% if diary.is_bookmarked %}bookmarked{% endif %}"
+           id="diaryRibbonBookmark"
+           title="{{ 'Bookmarked entry — click to unbookmark' if diary.is_bookmarked else 'Click to bookmark this entry' }}"
+           aria-label="Bookmark ribbon"
+           role="button"
+           tabindex="0">
+        <div class="ribbon-strap"></div>
       </div>
 
-      <!-- Badges row -->
-      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.75rem;">
-        <span class="mood-badge {{ mood_class }}">{{ diary.mood }}</span>
+      <!-- Mood colour strip at top -->
+      <div class="diary-card-mood-strip" style="border-radius:var(--border-radius) var(--border-radius) 0 0;height:5px;"></div>
+
+      <!-- Entry header (Natural Journal Header) -->
+      <div class="journal-entry-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;position:relative;z-index:2;">
+          <div style="flex:1;min-width:0;">
+            <!-- Datestamp & Location Row -->
+            <div class="journal-datestamp">
+              <i class="bi bi-feather" aria-hidden="true"></i>
+              <time datetime="{{ diary.created_at.isoformat() }}">
+                {{ diary.created_at.strftime('%A, %B %-d, %Y') }}
+              </time>
+              <span style="color:var(--txt-muted);font-family:var(--font-sans);font-size:.8rem;">
+                · {{ diary.created_at.strftime('%I:%M %p') }}
+              </span>
+              {% if diary.updated_at and diary.updated_at != diary.created_at %}
+              <span style="font-family:var(--font-sans);font-size:.75rem;color:var(--txt-muted);">
+                · edited {{ diary.updated_at.strftime('%b %-d') }}
+              </span>
+              {% endif %}
+              {% if diary.location %}
+              <span class="journal-location-stamp" title="Written location">
+                <span class="loc-pin">📍</span> {{ diary.location }}
+              </span>
+              {% endif %}
+            </div>
+
+            <!-- Entry Title -->
+            <h1 class="journal-entry-title">
+              {{ diary.title }}
+            </h1>
+          </div>
+
+          <!-- Header Action: Mood Wax Seal & Edit -->
+          <div style="display:flex;align-items:center;gap:0.75rem;flex-shrink:0;">
+            <div class="journal-wax-seal {{ mood_class }}" title="Mood: {{ diary.mood | capitalize }}">
+              <span class="wax-seal-icon">✦</span>
+              <span class="wax-seal-label">{{ diary.mood }}</span>
+            </div>
+
+            {% if not is_read_only %}
+            <a href="/diaries/{{ diary.id }}/edit" class="btn btn-outline-primary btn-sm journal-edit-btn" style="flex-shrink:0;">
+              <i class="bi bi-pencil-fill" aria-hidden="true"></i> Edit
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Badges row -->
+        <div class="journal-meta-row">
           {% for tag in diary.tags %}
-          <a href="/diaries?tag={{ tag.name }}" class="tag-badge">
+          <a href="/diaries?tag={{ tag.name }}" class="tag-badge journal-tag-stamp">
             <i class="bi bi-hash" aria-hidden="true"></i>{{ tag.name }}
           </a>
           {% endfor %}
@@ -79,96 +96,97 @@
           {% if diary.is_favorite %}<span class="status-badge favorite"><i class="bi bi-star-fill"    aria-hidden="true"></i> Favourite</span>{% endif %}
           {% if diary.is_bookmarked %}<span class="status-badge bookmarked"><i class="bi bi-bookmark-fill" aria-hidden="true"></i> Bookmarked</span>{% endif %}
           {% if diary.is_archived %}<span class="status-badge archived"><i class="bi bi-archive-fill" aria-hidden="true"></i> Archived</span>{% endif %}
-        <span class="status-badge" style="margin-left:auto;opacity:.6;">
-          <i class="bi bi-{{ 'lock' if diary.visibility == 'private' else 'globe' }}" aria-hidden="true"></i>
-          {{ diary.visibility | capitalize }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Reading Viewport (Book Container with 3D Page Turn) -->
-    <div class="journal-reading-viewport" id="journalReadingViewport">
-      <!-- Entry content — lined paper reading area -->
-      <article class="diary-reading" id="diaryReading" aria-label="Diary entry content">
-        <div class="diary-content-raw" id="diaryContentRaw" aria-hidden="true">{{ diary.content }}</div>
-        <!-- Screen reader / test-friendly full body: the div above is
-             re-sliced into "pages" by the book-paging JS below, so a
-             screen reader user tabbing/reading through it would only
-             ever get one page-sized fragment of the entry. This
-             visually-hidden copy carries the complete, unsliced text
-             so assistive tech always gets the whole entry; aria-hidden
-             on the visible div above stops the two from both being
-             announced. -->
-        <div class="sr-only" aria-hidden="false">{{ diary.content }}</div>
-
-      {# Attachments appear directly on the written page #}
-      {% if diary.attachments %}
-      <div id="diaryAttachmentsBlock" style="margin-top: 2rem; border-top: 1px dashed var(--border-color); padding-top: 1.5rem;">
-        <div style="font-family: var(--font-hand); font-size: 1.25rem; color: var(--txt-secondary); margin-bottom: 1rem;">Memorabilia:</div>
-        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; white-space: normal;">
-          {% for att in diary.attachments %}
-            {% if att.mime_type and att.mime_type.startswith('image/') %}
-              {# Elegant Polaroid Frame #}
-              <div style="background: #fff; padding: 10px 10px 24px 10px; box-shadow: var(--shadow-md); border: 1px solid #ddd; max-width: 200px; display: inline-block; text-align: center;">
-                <a href="/attachments/{{ att.id }}/view" target="_blank" title="View full image">
-                  <img src="/attachments/{{ att.id }}/view" style="width: 180px; height: 130px; object-fit: cover; border: 1px solid #eee;" alt="{{ att.filename }}">
-                </a>
-                <div style="font-family: var(--font-hand); font-size: 0.95rem; margin-top: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
-                  {{ att.filename }}
-                </div>
-              </div>
-            {% else %}
-              {# Notebook Paper Clip Frame #}
-              <div style="background: #fffeb3; padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e6e68a; max-width: 160px; text-align: center; border-radius: 4px; position: relative;">
-                <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 1.3rem;">📎</div>
-                <div style="margin-top: 8px; font-weight: bold; font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  {{ att.filename }}
-                </div>
-                <div style="font-size: 0.68rem; color: var(--txt-muted); margin-bottom: 8px;">
-                  {{ (att.size / 1024) | round(1) }} KB
-                </div>
-                <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm att-download-btn" data-filename="{{ att.filename }}" style="font-size: 0.7rem; padding: 2px 6px; min-height: unset; height: auto;" download>
-                  Download
-                </a>
-              </div>
-            {% endif %}
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-      </article>
-
-      <!-- 3D Page Turn Overlay Stage -->
-      <div class="page-turn-overlay" id="pageTurnOverlay" aria-hidden="true">
-        <div class="page-turn-sheet" id="pageTurnSheet">
-          <div class="turn-face turn-face-front" id="turnFaceFront"></div>
-          <div class="turn-face turn-face-back" id="turnFaceBack"></div>
+          <span class="status-badge" style="margin-left:auto;opacity:.65;">
+            <i class="bi bi-{{ 'lock' if diary.visibility == 'private' else 'globe' }}" aria-hidden="true"></i>
+            {{ diary.visibility | capitalize }}
+          </span>
         </div>
       </div>
 
-      <!-- Interactive Corner Dog-ear Curls -->
-      <button type="button" class="book-corner-curl corner-prev" id="cornerPrevBtn" aria-label="Turn to previous page" title="Previous page"></button>
-      <button type="button" class="book-corner-curl corner-next" id="cornerNextBtn" aria-label="Turn to next page" title="Next page"></button>
-    </div><!-- /.journal-reading-viewport -->
+      <!-- Reading Viewport (Book Container with 3D Page Turn) -->
+      <div class="journal-reading-viewport" id="journalReadingViewport">
+        <!-- Entry content — lined paper reading area -->
+        <article class="diary-reading" id="diaryReading" aria-label="Diary entry content">
+          <div class="diary-content-raw" id="diaryContentRaw" aria-hidden="true">{{ diary.content }}</div>
+          <!-- Screen reader / test-friendly full body -->
+          <div class="sr-only" aria-hidden="false">{{ diary.content }}</div>
 
-    <!-- Book Navigation Bar -->
-    <div class="journal-book-nav" id="journalBookNav">
-      <button type="button" class="btn btn-surface btn-sm" id="btnBookPrev" aria-label="Previous page">
-        <i class="bi bi-arrow-left"></i> Previous Page
-      </button>
-      <div class="journal-book-page-info" id="bookPageInfo">
-        <i class="bi bi-book"></i> <span id="bookPageText">Page 1 of 1</span>
+          <!-- Subtle End of Entry Flourish -->
+          <div class="diary-end-flourish" aria-hidden="true">
+            <span class="flourish-line"></span>
+            <span class="flourish-glyph">❦</span>
+            <span class="flourish-line"></span>
+          </div>
+
+        {# Attachments appear directly on the written page #}
+        {% if diary.attachments %}
+        <div id="diaryAttachmentsBlock" style="margin-top: 1.75rem; border-top: 1px dashed var(--border-color); padding-top: 1.25rem;">
+          <div style="font-family: var(--font-hand); font-size: 1.25rem; color: var(--txt-secondary); margin-bottom: 0.75rem;">Memorabilia:</div>
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; white-space: normal;">
+            {% for att in diary.attachments %}
+              {% if att.mime_type and att.mime_type.startswith('image/') %}
+                {# Elegant Polaroid Frame with Washi Tape #}
+                <div class="journal-polaroid">
+                  <div class="washi-tape" aria-hidden="true"></div>
+                  <a href="/attachments/{{ att.id }}/view" target="_blank" title="View full image">
+                    <img src="/attachments/{{ att.id }}/view" style="width: 180px; height: 130px; object-fit: cover; border: 1px solid #eee; display:block;" alt="{{ att.filename }}">
+                  </a>
+                  <div style="font-family: var(--font-hand); font-size: 0.95rem; margin-top: 8px; color: var(--txt-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
+                    {{ att.filename }}
+                  </div>
+                </div>
+              {% else %}
+                {# Notebook Paper Clip Frame #}
+                <div class="journal-paperclip-card">
+                  <div class="paperclip-icon" aria-hidden="true">📎</div>
+                  <div style="margin-top: 8px; font-weight: bold; font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ att.filename }}
+                  </div>
+                  <div style="font-size: 0.68rem; color: var(--txt-muted); margin-bottom: 8px;">
+                    {{ (att.size / 1024) | round(1) }} KB
+                  </div>
+                  <a href="/attachments/{{ att.id }}/download" class="btn btn-surface btn-sm att-download-btn" data-filename="{{ att.filename }}" style="font-size: 0.7rem; padding: 2px 6px; min-height: unset; height: auto;" download>
+                    Download
+                  </a>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        </article>
+
+        <!-- 3D Page Turn Overlay Stage -->
+        <div class="page-turn-overlay" id="pageTurnOverlay" aria-hidden="true">
+          <div class="page-turn-sheet" id="pageTurnSheet">
+            <div class="turn-face turn-face-front" id="turnFaceFront"></div>
+            <div class="turn-face turn-face-back" id="turnFaceBack"></div>
+          </div>
+        </div>
+
+        <!-- Interactive Corner Dog-ear Curls -->
+        <button type="button" class="book-corner-curl corner-prev" id="cornerPrevBtn" aria-label="Turn to previous page" title="Previous page"></button>
+        <button type="button" class="book-corner-curl corner-next" id="cornerNextBtn" aria-label="Turn to next page" title="Next page"></button>
+      </div><!-- /.journal-reading-viewport -->
+
+      <!-- Book Navigation Bar -->
+      <div class="journal-book-nav" id="journalBookNav">
+        <button type="button" class="btn btn-surface btn-sm" id="btnBookPrev" aria-label="Previous page">
+          <i class="bi bi-arrow-left"></i> Previous Page
+        </button>
+        <div class="journal-book-page-info" id="bookPageInfo">
+          <i class="bi bi-book"></i> <span id="bookPageText">Continuous View</span>
+        </div>
+        <button type="button" class="btn btn-surface btn-sm" id="btnBookNext" aria-label="Next page">
+          Next Page <i class="bi bi-arrow-right"></i>
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnBookToggleView" title="Toggle between continuous page and multi-page book view">
+          <i class="bi bi-book-half"></i> <span id="viewToggleLabel">Book View</span>
+        </button>
       </div>
-      <button type="button" class="btn btn-surface btn-sm" id="btnBookNext" aria-label="Next page">
-        Next Page <i class="bi bi-arrow-right"></i>
-      </button>
-      <button type="button" class="btn btn-ghost btn-sm" id="btnBookToggleView" title="Toggle between contained Book view and full Continuous scroll">
-        <i class="bi bi-layout-text-sidebar"></i> <span id="viewToggleLabel">Continuous View</span>
-      </button>
-    </div>
 
-  </div><!-- /.journal-page -->
-</div><!-- /.journal-book-container -->
+    </div><!-- /.journal-page -->
+  </div><!-- /.journal-book-container -->
 
   <!-- ════════════════════════════════════════
        Action toolbar — AJAX toggles

@@ -2908,46 +2908,57 @@ img, video { max-width: 100%; display: block; }
 /* ── Mobile Notebook & Page Turning Responsiveness ── */
 @media (max-width: 767px) {
   .journal-book-container {
-    margin: 0 -0.25rem;
+    margin: 0;
   }
   .journal-book-container .journal-page {
-    min-height: clamp(480px, 68vh, 620px);
-    max-height: clamp(480px, 68vh, 620px);
+    min-height: 420px;
+    max-height: none;
     border-radius: var(--border-radius);
+  }
+  .journal-book-container .journal-page:not(.continuous-view) {
+    max-height: clamp(460px, 75vh, 620px);
+  }
+  .journal-entry-header {
+    padding: 1.15rem 1rem 0.65rem 2rem;
+  }
+  .diary-ribbon-bookmark {
+    left: 12px;
+    width: 18px;
+    height: 56px;
+  }
+  .diary-ribbon-bookmark.bookmarked {
+    height: 82px;
+  }
+  .journal-book-container .journal-page::before {
+    width: 14px;
   }
   .diary-reading,
   .turn-face {
-    padding: 1rem 1.25rem 2rem 2.25rem !important;
+    padding: 0.5rem 1rem 2rem 2rem !important;
     font-size: 1.12rem !important;
     line-height: 1.85 !important;
     background-image:
-      linear-gradient(90deg, transparent 1.8rem, hsl(5 65% 65% / 0.22) 1.8rem, hsl(5 65% 65% / 0.22) calc(1.8rem + 1.5px), transparent calc(1.8rem + 1.5px)),
+      linear-gradient(90deg, transparent 1.6rem, hsl(350 70% 60% / 0.32) 1.6rem, hsl(350 70% 60% / 0.32) calc(1.6rem + 1.5px), transparent calc(1.6rem + 1.5px)),
       repeating-linear-gradient(
         to bottom,
         transparent 0,
-        transparent calc(1.3em - 1px),
-        hsl(220 30% 88% / 0.45) calc(1.3em - 1px),
-        hsl(220 30% 88% / 0.45) 1.3em,
-        transparent 1.3em,
-        transparent 2em
+        transparent calc(1.85em - 1px),
+        hsl(220 25% 86% / 0.55) calc(1.85em - 1px),
+        hsl(220 25% 86% / 0.55) 1.85em
       ) !important;
+    background-position-y: var(--rule-offset, 1.45em) !important;
   }
   [data-theme="dark"] .diary-reading,
   [data-theme="dark"] .turn-face {
     background-image:
-      linear-gradient(90deg, transparent 1.8rem, hsl(5 45% 40% / 0.22) 1.8rem, hsl(5 45% 40% / 0.22) calc(1.8rem + 1.5px), transparent calc(1.8rem + 1.5px)),
+      linear-gradient(90deg, transparent 1.6rem, hsl(342 60% 48% / 0.40) 1.6rem, hsl(342 60% 48% / 0.40) calc(1.6rem + 1.5px), transparent calc(1.6rem + 1.5px)),
       repeating-linear-gradient(
         to bottom,
         transparent 0,
-        transparent calc(1.3em - 1px),
-        hsl(220 15% 25% / 0.55) calc(1.3em - 1px),
-        hsl(220 15% 25% / 0.55) 1.3em,
-        transparent 1.3em,
-        transparent 2em
+        transparent calc(1.85em - 1px),
+        hsl(250 15% 24% / 0.65) calc(1.85em - 1px),
+        hsl(250 15% 24% / 0.65) 1.85em
       ) !important;
-  }
-  .turn-face {
-    padding: 1rem 1.25rem 2rem 2.25rem !important;
   }
   .journal-book-nav {
     padding: 0.6rem 0.85rem;
@@ -2963,37 +2974,202 @@ img, video { max-width: 100%; display: block; }
 }
 
 /* ============================================================
-   Journal Book Container & 3D Page Turn System
+   Journal Book Container & Physical Diary Reading Experience
    ============================================================ */
 .journal-book-container {
   position: relative;
-  max-width: 1040px;
+  max-width: 1000px;
   margin: 0 auto;
+  perspective: 1800px;
 }
 
 .journal-book-container .journal-page {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 540px;
-  max-height: clamp(540px, 72vh, 760px);
-  overflow: hidden;
+  min-height: 480px;
+  max-height: none;
+  overflow: visible;
+  background:
+    radial-gradient(circle at 50% 25%, hsl(40 35% 100% / 0.8) 0%, transparent 100%),
+    repeating-radial-gradient(hsl(25 20% 10% / 0.012) 0 1px, transparent 1px 5px),
+    hsl(40 28% 98%);
   border-radius: var(--border-radius-lg);
   box-shadow:
-    -8px 0 20px hsl(25 40% 15% / 0.10),
-    0 14px 38px hsl(25 30% 15% / 0.12),
-    0 2px 6px hsl(25 30% 15% / 0.08),
-    inset 0 2px 0 hsl(0 0% 100% / 0.9);
-  border: 1px solid hsl(38 25% 78%);
-  transition: max-height 0.4s var(--ease-out), box-shadow 0.3s var(--ease-out);
+    /* left book spine shadow */
+    inset 24px 0 28px -14px hsl(25 35% 15% / 0.12),
+    /* stacked right pages depth */
+    3px 3px 0 hsl(38 20% 86%),
+    6px 6px 0 hsl(38 20% 82%),
+    /* table elevation */
+    0 16px 40px hsl(250 25% 15% / 0.10),
+    0 2px 6px hsl(250 20% 10% / 0.06);
+  border: 1px solid hsl(38 22% 82%);
+  transition: box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
 [data-theme="dark"] .journal-book-container .journal-page {
+  background:
+    radial-gradient(circle at 50% 25%, hsl(250 20% 16% / 0.45) 0%, transparent 100%),
+    repeating-radial-gradient(hsl(0 0% 0% / 0.2) 0 1px, transparent 1px 5px),
+    hsl(252 22% 11%);
+  border-color: hsl(250 16% 22%);
   box-shadow:
-    -8px 0 20px hsl(0 0% 0% / 0.35),
-    0 14px 38px hsl(0 0% 0% / 0.4),
-    inset 0 2px 0 hsl(0 0% 100% / 0.04);
-  border-color: hsl(25 15% 22%);
+    /* left book spine shadow */
+    inset 24px 0 28px -14px hsl(0 0% 0% / 0.5),
+    /* stacked right pages depth */
+    3px 3px 0 hsl(252 20% 8%),
+    6px 6px 0 hsl(252 20% 6%),
+    /* dark ambient shadow */
+    0 18px 48px hsl(0 0% 0% / 0.55),
+    0 2px 8px hsl(0 0% 0% / 0.35);
+}
+
+/* Left book spine effect */
+.journal-book-container .journal-page::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  background: linear-gradient(to right,
+    rgba(0,0,0,0.14) 0%,
+    rgba(0,0,0,0.06) 60%,
+    transparent 100%
+  );
+  border-right: 1px dashed hsl(38 25% 72% / 0.45);
+  pointer-events: none;
+  border-radius: var(--border-radius-lg) 0 0 var(--border-radius-lg);
+  z-index: 5;
+}
+[data-theme="dark"] .journal-book-container .journal-page::before {
+  background: linear-gradient(to right,
+    rgba(0,0,0,0.50) 0%,
+    rgba(0,0,0,0.20) 60%,
+    transparent 100%
+  );
+  border-right-color: hsl(250 15% 24% / 0.55);
+}
+
+/* Silk Ribbon Bookmark (Authentic Spine-anchored Marker) */
+.diary-ribbon-bookmark {
+  position: absolute;
+  top: -6px;
+  left: 36px;
+  width: 24px;
+  height: 72px;
+  z-index: 15;
+  cursor: pointer;
+  transition: transform 0.28s var(--ease-spring), filter 0.28s var(--ease), height 0.35s var(--ease-spring);
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.25));
+}
+.diary-ribbon-bookmark:hover {
+  transform: translateY(4px) scale(1.04);
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+}
+.diary-ribbon-bookmark.bookmarked {
+  height: 104px;
+}
+.diary-ribbon-bookmark .ribbon-strap {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    var(--clr-accent) 0%,
+    var(--clr-accent-dark) 50%,
+    var(--clr-accent) 100%
+  );
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 10px), 0 100%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset -2px 0 3px rgba(0,0,0,0.18);
+}
+.diary-ribbon-bookmark.bookmarked .ribbon-strap {
+  background: linear-gradient(
+    135deg,
+    hsl(42 95% 54%) 0%,
+    hsl(38 90% 42%) 50%,
+    hsl(45 100% 56%) 100%
+  );
+}
+
+/* Journal Entry Natural Header */
+.journal-entry-header {
+  padding: 1.5rem 1.75rem 0.85rem 3.75rem;
+  position: relative;
+  border-bottom: 1px dashed hsl(38 25% 82% / 0.55);
+}
+[data-theme="dark"] .journal-entry-header {
+  border-bottom-color: hsl(250 15% 22% / 0.65);
+}
+.journal-entry-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3.5vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0.25rem 0 0.5rem;
+  line-height: 1.25;
+  color: var(--txt-primary);
+}
+.journal-location-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--txt-secondary);
+  margin-left: 0.5rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: hsl(38 25% 90% / 0.5);
+}
+[data-theme="dark"] .journal-location-stamp {
+  background: hsl(250 15% 18% / 0.6);
+}
+.journal-wax-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.4);
+  transform: rotate(-2deg);
+  border: 1.5px dashed rgba(255,255,255,0.4);
+  user-select: none;
+  transition: transform 0.22s var(--ease-spring);
+}
+.journal-wax-seal:hover {
+  transform: rotate(0deg) scale(1.05);
+}
+.journal-edit-btn {
+  position: relative;
+  z-index: 20;
+}
+.journal-meta-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.65rem;
+}
+.journal-tag-stamp {
+  font-family: var(--font-hand);
+  font-size: 0.95rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  background: hsl(38 25% 92% / 0.6);
+  border: 1px solid hsl(38 25% 82% / 0.8);
+  color: var(--txt-secondary);
+  text-decoration: none;
+}
+[data-theme="dark"] .journal-tag-stamp {
+  background: hsl(250 15% 16% / 0.7);
+  border-color: hsl(250 15% 24%);
 }
 
 .journal-book-container .journal-page.continuous-view {
@@ -3007,20 +3183,19 @@ img, video { max-width: 100%; display: block; }
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   perspective: 1800px;
 }
 
-.journal-page.continuous-view .journal-reading-viewport {
-  overflow: visible;
+.journal-page:not(.continuous-view) .journal-reading-viewport {
+  overflow: hidden;
+  max-height: clamp(520px, 72vh, 760px);
 }
 
 .journal-book-container .diary-reading {
   flex: 1;
   position: relative;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: hsl(38 25% 75%) transparent;
+  overflow-y: visible !important; /* NO INNER SCROLLBAR IN CONTINUOUS JOURNAL VIEW */
 }
 
 /* 3D Page Turning Stage & Sheet */
@@ -3174,16 +3349,19 @@ img, video { max-width: 100%; display: block; }
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: hsl(38 25% 94% / 0.9);
-  border-top: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  background: hsl(40 25% 94% / 0.95);
+  border-top: 1px solid hsl(38 25% 84%);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
   font-family: var(--font-sans);
   font-size: 0.85rem;
   z-index: 35;
+  transition: background 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
 [data-theme="dark"] .journal-book-nav {
-  background: hsl(25 15% 10% / 0.9);
+  background: hsl(252 20% 10% / 0.95);
+  border-top-color: hsl(250 15% 20%);
 }
 
 .journal-book-page-info {
@@ -3210,40 +3388,119 @@ img, video { max-width: 100%; display: block; }
   color: var(--txt-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  padding: 1rem 2rem 2rem 3.75rem;
+  padding: 0.75rem 2rem 2.5rem 3.75rem;
   letter-spacing: 0.02em;
 
   background-image:
-    linear-gradient(90deg, transparent 3.25rem, hsl(5 65% 65% / 0.18) 3.25rem, hsl(5 65% 65% / 0.18) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
+    linear-gradient(90deg, transparent 3.25rem, hsl(350 70% 60% / 0.32) 3.25rem, hsl(350 70% 60% / 0.32) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent calc(1.3em - 1px),
-      hsl(220 30% 88% / 0.45) calc(1.3em - 1px),
-      hsl(220 30% 88% / 0.45) 1.3em,
-      transparent 1.3em,
-      transparent 2em
+      transparent calc(2em - 1px),
+      hsl(220 25% 86% / 0.55) calc(2em - 1px),
+      hsl(220 25% 86% / 0.55) 2em
     );
-  background-position-y: 1rem; /* match padding-top exactly (see the
-    same note on .journal-paper) rather than approximating with em,
-    which only lines up at one specific font-size along the responsive
-    clamp() and drifts slightly everywhere else. */
+  background-position-y: var(--rule-offset, 1.5em) !important;
   background-attachment: local;
-  min-height: 200px;
+  min-height: 240px;
 }
 
 [data-theme="dark"] .diary-reading {
   background-image:
-    linear-gradient(90deg, transparent 3.25rem, hsl(5 45% 40% / 0.18) 3.25rem, hsl(5 45% 40% / 0.18) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
+    linear-gradient(90deg, transparent 3.25rem, hsl(342 60% 48% / 0.40) 3.25rem, hsl(342 60% 48% / 0.40) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent calc(1.3em - 1px),
-      hsl(220 15% 25% / 0.55) calc(1.3em - 1px),
-      hsl(220 15% 25% / 0.55) 1.3em,
-      transparent 1.3em,
-      transparent 2em
+      transparent calc(2em - 1px),
+      hsl(250 15% 24% / 0.65) calc(2em - 1px),
+      hsl(250 15% 24% / 0.65) 2em
     );
+}
+
+/* End of entry flourish */
+.diary-end-flourish {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1.75rem 0 0.5rem;
+  color: var(--txt-muted);
+  opacity: 0.7;
+  user-select: none;
+}
+.flourish-line {
+  flex: 1;
+  max-width: 120px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-color-2), transparent);
+}
+.flourish-glyph {
+  font-size: 1.25rem;
+  color: var(--clr-accent);
+}
+
+/* Memorabilia Polaroid & Washi Tape */
+.journal-polaroid {
+  position: relative;
+  background: #fff;
+  padding: 10px 10px 24px 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
+  border: 1px solid #e2e2e2;
+  border-radius: 2px;
+  max-width: 200px;
+  display: inline-block;
+  text-align: center;
+  transition: transform 0.26s var(--ease-spring), box-shadow 0.26s var(--ease);
+  margin-top: 10px;
+}
+.journal-polaroid:nth-child(odd) {
+  transform: rotate(-1.5deg);
+}
+.journal-polaroid:nth-child(even) {
+  transform: rotate(1.8deg);
+}
+.journal-polaroid:hover {
+  transform: translateY(-5px) rotate(0deg) scale(1.03);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+  z-index: 10;
+}
+.washi-tape {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 18px;
+  background: hsl(40 50% 88% / 0.82);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
+  border-left: 1px dashed rgba(160, 140, 100, 0.4);
+  border-right: 1px dashed rgba(160, 140, 100, 0.4);
+}
+
+/* Notebook Paper Clip Frame */
+.journal-paperclip-card {
+  background: #fffeb3;
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #e6e68a;
+  max-width: 160px;
+  text-align: center;
+  border-radius: 4px;
+  position: relative;
+  margin-top: 10px;
+  transition: transform 0.22s var(--ease-spring);
+}
+.journal-paperclip-card:hover {
+  transform: translateY(-3px) scale(1.02);
+}
+.paperclip-icon {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.3rem;
 }
 
 /* ── Upload zone & progress ── */
@@ -3771,11 +4028,16 @@ img, video { max-width: 100%; display: block; }
 
 /* 15. Topbar glass + selection + scrollbar polish ---------------------- */
 .topbar {
-  background: hsl(35 25% 97% / .84);
-  backdrop-filter: blur(10px) saturate(1.15);
-  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  background: hsl(240 20% 98% / 0.88);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.3s var(--ease), border-color 0.3s var(--ease);
 }
-[data-theme="dark"] .topbar { background: hsl(25 20% 7% / .78); }
+[data-theme="dark"] .topbar {
+  background: hsl(252 28% 7% / 0.88);
+  border-bottom-color: var(--border-color);
+}
 ::selection { background: hsl(38 70% 55% / .35); color: var(--clr-ink); }
 .page-content { scrollbar-width: thin; scrollbar-color: hsl(38 30% 70%) transparent; }
 

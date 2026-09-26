@@ -1316,6 +1316,14 @@
         // Also update any aria attributes
         btn.setAttribute("aria-pressed", isOn ? "true" : "false");
 
+        if (btn.dataset.toggleFlag === "is_bookmarked") {
+          const ribbon = document.getElementById("diaryRibbonBookmark");
+          if (ribbon) {
+            ribbon.classList.toggle("bookmarked", isOn);
+            ribbon.setAttribute("title", isOn ? "Bookmarked entry — click to unbookmark" : "Click to bookmark this entry");
+          }
+        }
+
         const flagName = (btn.dataset.toggleFlag || "").replace("is_", "").replace("_", "-");
         const verb = isOn
           ? (flagName === "favorite" ? "Added to favourites" : flagName === "pinned" ? "Pinned" : flagName === "bookmarked" ? "Bookmarked" : "Archived")
@@ -1817,7 +1825,23 @@
     const turnFront = document.getElementById("turnFaceFront");
     const turnBack = document.getElementById("turnFaceBack");
 
-    let isContinuous = false;
+    // Interactive Silk Ribbon Bookmark
+    const ribbon = document.getElementById("diaryRibbonBookmark");
+    if (ribbon) {
+      ribbon.addEventListener("click", () => {
+        const bkmkBtn = document.querySelector('button[data-toggle-flag="is_bookmarked"]');
+        if (bkmkBtn) bkmkBtn.click();
+      });
+      ribbon.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          const bkmkBtn = document.querySelector('button[data-toggle-flag="is_bookmarked"]');
+          if (bkmkBtn) bkmkBtn.click();
+        }
+      });
+    }
+
+    let isContinuous = true;
     let isFlipping = false;
     let currentPage = 1;
     let pages = [];
@@ -1831,10 +1855,10 @@
         return;
       }
 
-      // Responsive words & characters threshold per physical page
+      // Generous words & characters threshold per physical book page
       const isMobile = window.innerWidth <= 640;
-      const WORDS_PER_PAGE = isMobile ? 80 : 130;
-      const CHARS_PER_PAGE = isMobile ? 480 : 780;
+      const WORDS_PER_PAGE = isMobile ? 180 : 280;
+      const CHARS_PER_PAGE = isMobile ? 1000 : 1700;
 
       // Split into paragraphs or line breaks
       const rawBlocks = fullText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
@@ -2001,7 +2025,7 @@
         if (attachments) attachments.style.display = "block";
         if (btnPrev) btnPrev.style.display = "none";
         if (btnNext) btnNext.style.display = "none";
-        if (pageText) pageText.textContent = "Continuous Scroll View";
+        if (pageText) pageText.textContent = "Continuous View";
         if (viewToggleLabel) viewToggleLabel.textContent = "Book View";
         if (cornerPrev) cornerPrev.style.display = "none";
         if (cornerNext) cornerNext.style.display = "none";
@@ -2010,12 +2034,22 @@
         if (btnPrev) btnPrev.style.display = "";
         if (btnNext) btnNext.style.display = "";
         if (viewToggleLabel) viewToggleLabel.textContent = "Continuous View";
-        renderPage(currentPage);
+        paginate();
+        renderPage(1);
       }
     });
 
-    // Initial display
-    renderPage(1);
+    // Initial display: natural continuous journal view
+    pageCard.classList.add("continuous-view");
+    rawContent.textContent = fullText;
+    rawContent.style.display = "block";
+    if (attachments) attachments.style.display = "block";
+    if (btnPrev) btnPrev.style.display = "none";
+    if (btnNext) btnNext.style.display = "none";
+    if (pageText) pageText.textContent = "Continuous View";
+    if (viewToggleLabel) viewToggleLabel.textContent = "Book View";
+    if (cornerPrev) cornerPrev.style.display = "none";
+    if (cornerNext) cornerNext.style.display = "none";
   }
 
     initRuledLineAlignment();
