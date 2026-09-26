@@ -75,7 +75,20 @@ def test_settings_theme_buttons_sync_sidebar_toggle_icon(page, live_server):
     assert "moon" in icon_class, f"sidebar toggle icon didn't sync to light theme (got {icon_class!r})"
 
 
-
+def test_skip_to_content_link_is_first_tab_stop_and_works(page, live_server):
+    """Every page previously made a keyboard/screen-reader user tab
+    through the entire sidebar nav before reaching page content. The
+    skip link should be the very first tabbable element and should
+    actually move focus to <main> when activated (a fragment link to a
+    non-natively-focusable element like <main> only scrolls to it,
+    doesn't focus it, unless the target has tabindex="-1")."""
+    page.goto(live_server)
+    page.keyboard.press("Tab")
+    page.wait_for_timeout(150)
+    assert page.evaluate("document.activeElement.className") == "skip-link"
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(150)
+    assert page.evaluate("document.activeElement.id") == "main-content"
 
 
 def test_delete_account_modal_traps_focus(page, live_server):
