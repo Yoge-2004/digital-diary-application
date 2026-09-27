@@ -123,6 +123,7 @@
     const toggle = $("#sidebarToggle");
     const sidebar = $("#appSidebar");
     const overlay = $("#sidebarOverlay");
+    const closeBtn = $("#sidebarCloseBtn");
     if (!toggle || !sidebar) return;
 
     toggle.addEventListener("click", () => {
@@ -131,6 +132,7 @@
       toggle.setAttribute("aria-expanded", sidebar.classList.contains("open"));
     });
 
+    closeBtn?.addEventListener("click", closeSidebar);
     overlay?.addEventListener("click", closeSidebar);
 
     function closeSidebar() {
@@ -138,6 +140,13 @@
       overlay?.classList.remove("open");
       toggle.setAttribute("aria-expanded", "false");
     }
+
+    // Escape key closes mobile sidebar
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && sidebar.classList.contains("open")) {
+        closeSidebar();
+      }
+    });
 
     // Swipe left to close on mobile
     let touchStartX = 0;
@@ -1976,10 +1985,15 @@
       // Update actual page content underneath halfway through
       setTimeout(() => {
         renderPage(targetPage);
-      }, 240);
+      }, 190);
+
+      const safetyTimer = setTimeout(() => {
+        onEnd();
+      }, 420);
 
       const onEnd = () => {
-        sheet.removeEventListener("animationend", onEnd);
+        clearTimeout(safetyTimer);
+        sheet?.removeEventListener("animationend", onEnd);
         if (overlay) overlay.classList.remove("flipping");
         if (sheet) sheet.classList.remove("flip-forward", "flip-backward");
         isFlipping = false;
@@ -1995,8 +2009,13 @@
     window.addEventListener("keydown", (e) => {
       if (isContinuous) return;
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      if (e.key === "ArrowRight") turnPage("next");
-      else if (e.key === "ArrowLeft") turnPage("prev");
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        turnPage("next");
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        turnPage("prev");
+      }
     });
 
     let touchStartX = 0;

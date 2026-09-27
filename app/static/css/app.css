@@ -3231,11 +3231,11 @@ img, video { max-width: 100%; display: block; }
 }
 
 .page-turn-sheet.flip-forward {
-  animation: pageTurnForwardAnim 0.52s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+  animation: pageTurnForwardAnim 0.38s cubic-bezier(0.25, 1, 0.4, 1) forwards;
 }
 
 .page-turn-sheet.flip-backward {
-  animation: pageTurnBackwardAnim 0.52s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+  animation: pageTurnBackwardAnim 0.38s cubic-bezier(0.25, 1, 0.4, 1) forwards;
 }
 
 @keyframes pageTurnForwardAnim {

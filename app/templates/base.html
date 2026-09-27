@@ -71,9 +71,14 @@
   {% if current_user %}
   <aside class="sidebar" id="appSidebar" role="navigation" aria-label="Main navigation">
 
-    <a href="/dashboard" class="sidebar-logo" style="text-decoration:none;display:block;" aria-label="Go to dashboard">
-      DIARY<span style="color: var(--clr-accent);">.</span>
-    </a>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-right:0.75rem;">
+      <a href="/dashboard" class="sidebar-logo" style="text-decoration:none;display:block;" aria-label="Go to dashboard">
+        DIARY<span style="color: var(--clr-accent);">.</span>
+      </a>
+      <button type="button" class="btn btn-ghost btn-sm sidebar-close-btn d-lg-none" id="sidebarCloseBtn" aria-label="Close navigation menu" style="color:var(--chrome-text);font-size:1.1rem;padding:0.25rem 0.5rem;min-height:unset;height:auto;">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </div>
 
     <div class="sidebar-user">
       <div class="sidebar-avatar" aria-hidden="true">{{ current_user.username[0].upper() }}</div>
