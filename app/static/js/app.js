@@ -38,6 +38,16 @@
   // ══════════════════════════════════════════════════════════
   //  Theme (dark / light)
   // ══════════════════════════════════════════════════════════
+  // Same hsl(...) values as --bg-body in :root / [data-theme="dark"]
+  // in app.css, converted to hex since <meta name="theme-color">
+  // doesn't take a live CSS variable -- this is the one place that
+  // value has to be duplicated. Drives the browser's own chrome color
+  // (mobile status bar, task-switcher card, desktop PWA title bar),
+  // which used to be a single hardcoded brown (#7c4a1e, a leftover
+  // from before the "Confession Ink" redesign) that never changed
+  // with the theme toggle at all.
+  const THEME_COLOR = { light: "#f9f9fb", dark: "#0f0d17" };
+
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(THEME_KEY, theme);
@@ -47,6 +57,8 @@
       if (icon) icon.className = theme === "dark" ? "bi bi-sun-fill" : "bi bi-moon-fill";
       if (label) label.textContent = theme === "dark" ? "Light" : "Dark";
     });
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", THEME_COLOR[theme] || THEME_COLOR.light);
   }
 
   function initTheme() {
