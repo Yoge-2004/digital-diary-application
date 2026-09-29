@@ -96,6 +96,11 @@
     0 0 0 1px hsl(240 15% 86% / 0.6),
     inset 0 1px 0 hsl(0 0% 100% / 0.7);
 
+  /* ── Scrollbar (theme-adaptive) ── */
+  --scrollbar-thumb:       hsl(240 12% 80%);
+  --scrollbar-thumb-hover: hsl(240 12% 68%);
+  --scrollbar-track:       transparent;
+
   /* ── Spacing system ── */
   --sidebar-w:   270px;
   --sidebar-w-lg:300px;
@@ -136,6 +141,8 @@
   --txt-muted:     hsl(240 8% 46%);
   --border-color:  hsl(250 15% 20%);
   --border-color-2:hsl(250 15% 26%);
+  --scrollbar-thumb:       hsl(250 15% 26%);
+  --scrollbar-thumb-hover: hsl(250 15% 36%);
   --clr-accent:       hsl(342 85% 46%);
   --clr-accent-dark:  hsl(342 82% 38%);
   --clr-ink-light: hsl(250 25% 18%);
@@ -324,7 +331,7 @@ img, video { max-width: 100%; display: block; }
   overflow-x: hidden;
   transition: transform var(--t-slow), width var(--t-base), background var(--t-base), color var(--t-base);
   scrollbar-width: thin;
-  scrollbar-color: var(--chrome-border) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .sidebar-logo {
@@ -471,9 +478,9 @@ img, video { max-width: 100%; display: block; }
   flex-shrink: 0;
 }
 
-/* Sidebar scrollbar */
+/* Sidebar scrollbar: narrower than the global 10px, same theme-adaptive color */
 .sidebar::-webkit-scrollbar { width: 4px; }
-.sidebar::-webkit-scrollbar-thumb { background: hsl(20 30% 25%); border-radius: 2px; }
+.sidebar::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb); border-radius: 2px; }
 
 /* ── Main Content ── */
 .app-main {
@@ -3377,7 +3384,7 @@ img, video { max-width: 100%; display: block; }
   max-height: clamp(380px, 58vh, 640px);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: hsl(38 25% 75%) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 /* ── Diary reading area (full journal feel) ── */
@@ -4039,7 +4046,30 @@ img, video { max-width: 100%; display: block; }
   border-bottom-color: var(--border-color);
 }
 ::selection { background: hsl(38 70% 55% / .35); color: var(--clr-ink); }
-.page-content { scrollbar-width: thin; scrollbar-color: hsl(38 30% 70%) transparent; }
+
+/* Scrollbars everywhere, theme-adaptive: this used to be a handful of
+   separate rules (.sidebar, .journal-paper, .page-content, ...), most
+   hardcoded to one warm-tan tone that never changed between light and
+   dark and had no Chrome/Safari/Edge (::-webkit-scrollbar) equivalent
+   at all -- so most scrollbars in the app fell back to the bare OS
+   default, and the couple that were styled via the Firefox-only
+   scrollbar-color stayed the same stale color in dark mode. One rule,
+   driven by the --scrollbar-thumb variables (defined in :root and
+   redefined for [data-theme="dark"]), covers both scrollbar
+   mechanisms and every element at once. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
 
 @keyframes modalBackdropFade {
   from { opacity: 0; }
