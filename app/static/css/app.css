@@ -1620,31 +1620,13 @@ img, video { max-width: 100%; display: block; }
 /* ============================================================
    Diary Content (Reading / Writing)
    ============================================================ */
-.diary-reading {
-  font-family: var(--font-serif);
-  font-size: clamp(1rem, 2vw, 1.1rem);
-  line-height: 1.9;
-  color: var(--txt-primary);
-  white-space: pre-wrap;
-  word-break: break-word;
-  padding: 0.5rem 0;
-  /* Subtle ruled-line feel. --rule-offset is measured live from the
-     real rendered text baseline by initRuledLineAlignment() in app.js
-     (see that function for why: a hardcoded value here always drifts
-     the moment font-size/line-height/padding change, which is exactly
-     what kept putting the line a few px away from the actual text).
-     The em fallback below only paints for the instant before that JS
-     runs on first load. */
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent calc(1.9em - 1px),
-    hsl(38 25% 90% / 0.5) calc(1.9em - 1px),
-    hsl(38 25% 90% / 0.5) 1.9em
-  );
-  background-position-y: var(--rule-offset, 1.45em);
-  background-attachment: local;
-}
+/* (The .diary-reading ruled-line/font rules live further down, in the
+   "full journal feel" section -- this used to be a second, complete
+   .diary-reading block right here, from before that redesign. Same
+   selector, same specificity, so the later block silently won on
+   every property; this one never actually rendered. Removed rather
+   than left as a trap for the next person debugging ruled-line
+   spacing, who'd have had a 50/50 chance of editing the dead copy. )*/
 
 [data-theme="dark"] .diary-reading {
   background-image: repeating-linear-gradient(
@@ -2619,7 +2601,7 @@ img, video { max-width: 100%; display: block; }
   background: 
     radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%),
     repeating-radial-gradient(hsl(25 20% 10% / 0.02) 0 1px, transparent 1px 4px),
-    hsl(40 35% 97%);
+    hsl(40 28% 98%);
   background-size: 100% 100%, 6px 6px, auto;
   border-radius: var(--border-radius);
   box-shadow:
@@ -2636,12 +2618,19 @@ img, video { max-width: 100%; display: block; }
 
 
 [data-theme="dark"] .journal-page {
+  /* Matches .journal-book-container .journal-page's dark background
+     (used on the diary *reading* page). This plain .journal-page rule
+     is what actually applies on the write/edit form instead, which
+     isn't wrapped in .journal-book-container -- it was still hsl(25
+     ...), the warm-brown tone from before the "Confession Ink"
+     redesign, so writing an entry in dark mode showed a visibly
+     different page color than reading it back afterward. */
   background:
-    radial-gradient(circle at 50% 50%, hsl(25 15% 18% / 0.4) 0%, transparent 100%),
+    radial-gradient(circle at 50% 50%, hsl(250 20% 16% / 0.4) 0%, transparent 100%),
     repeating-radial-gradient(hsl(0 0% 0% / 0.15) 0 1px, transparent 1px 4px),
-    hsl(25 15% 12%);
+    hsl(252 22% 11%);
   background-size: 100% 100%, 6px 6px, auto;
-  border-color: hsl(25 15% 22%);
+  border-color: hsl(250 16% 22%);
   box-shadow:
     -6px 0 12px hsl(0 0% 0% / 0.3),
     0 4px 24px  hsl(0 0% 0% / 0.4),
@@ -2673,7 +2662,7 @@ img, video { max-width: 100%; display: block; }
 [data-theme="dark"] .journal-page::before {
   background-image: repeating-radial-gradient(
     circle at 7px 50%,
-    hsl(25 15% 30%) 0 5px,
+    hsl(250 15% 30%) 0 5px,
     transparent 5px 28px
   );
 }
@@ -3224,16 +3213,25 @@ img, video { max-width: 100%; display: block; }
   inset: 0;
   transform-style: preserve-3d;
   transform-origin: left center;
+  /* hsl(40 28% 98%) matches .journal-book-container .journal-page's
+     current light-mode background exactly, so the turning page and
+     the settled page are the same parchment tone throughout the
+     animation, not just after it. */
   background: 
     radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%),
-    hsl(40 35% 97%);
+    hsl(40 28% 98%);
   border-left: 2px solid hsl(38 30% 70% / 0.4);
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }
 
 [data-theme="dark"] .page-turn-sheet {
-  background: hsl(25 15% 12%);
-  border-left-color: hsl(25 15% 25%);
+  /* Matches .journal-book-container .journal-page's dark background
+     (hsl(252 ...), the cool-violet "Confession Ink" tone) -- this used
+     to be hsl(25 ...), a warm brown left over from before that
+     redesign, so turning a page in dark mode flashed the old palette
+     for the split second the animation is on screen. */
+  background: hsl(252 22% 11%);
+  border-left-color: hsl(250 15% 22%);
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }
 
@@ -3291,21 +3289,22 @@ img, video { max-width: 100%; display: block; }
   transform: rotateY(0deg);
   background: 
     radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%),
-    hsl(40 35% 97%);
+    hsl(40 28% 98%);
 }
 
 .turn-face-back {
   transform: rotateY(180deg);
   background: 
     radial-gradient(circle at 50% 50%, hsl(40 30% 95% / 0.5) 0%, transparent 100%),
-    hsl(40 30% 94%);
+    hsl(40 25% 95%);
 }
 
 [data-theme="dark"] .turn-face-front {
-  background: hsl(25 15% 12%);
+  /* Same stale-palette fix as .page-turn-sheet above */
+  background: hsl(252 22% 11%);
 }
 [data-theme="dark"] .turn-face-back {
-  background: hsl(25 15% 10%);
+  background: hsl(252 20% 9%);
 }
 
 /* Corner Dog-ear Turn Curls */
@@ -3343,10 +3342,11 @@ img, video { max-width: 100%; display: block; }
 }
 
 [data-theme="dark"] .book-corner-curl.corner-next {
-  background: linear-gradient(135deg, transparent 50%, hsl(25 15% 25% / 0.85) 50%, hsl(25 15% 18%) 100%);
+  /* Same stale-palette fix as .page-turn-sheet above */
+  background: linear-gradient(135deg, transparent 50%, hsl(250 15% 24% / 0.85) 50%, hsl(250 15% 16%) 100%);
 }
 [data-theme="dark"] .book-corner-curl.corner-prev {
-  background: linear-gradient(225deg, transparent 50%, hsl(25 15% 25% / 0.85) 50%, hsl(25 15% 18%) 100%);
+  background: linear-gradient(225deg, transparent 50%, hsl(250 15% 24% / 0.85) 50%, hsl(250 15% 16%) 100%);
 }
 
 /* Journal Book Navigation Bar */
