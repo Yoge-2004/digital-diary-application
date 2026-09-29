@@ -1845,6 +1845,7 @@
     const sheet = document.getElementById("pageTurnSheet");
     const turnFront = document.getElementById("turnFaceFront");
     const turnBack = document.getElementById("turnFaceBack");
+    const endFlourish = document.getElementById("diaryEndFlourish");
 
     // Interactive Silk Ribbon Bookmark
     const ribbon = document.getElementById("diaryRibbonBookmark");
@@ -1967,6 +1968,13 @@
       if (btnPrev) btnPrev.disabled = (currentPage === 1);
       if (btnNext) btnNext.disabled = (currentPage === pages.length);
 
+      // The "end of entry" flourish is static HTML, rendered once
+      // right after the content -- nothing was hiding it on any page
+      // but the actual last one, so a multi-page book view showed a
+      // "the end" decoration after page 1, page 2, every page, not
+      // just the final one.
+      if (endFlourish) endFlourish.style.display = (currentPage === pages.length) ? "" : "none";
+
       if (cornerPrev) cornerPrev.style.display = (currentPage > 1 && !isContinuous) ? "block" : "none";
       if (cornerNext) cornerNext.style.display = (currentPage < pages.length && !isContinuous) ? "block" : "none";
 
@@ -2060,6 +2068,7 @@
         if (viewToggleLabel) viewToggleLabel.textContent = "Book View";
         if (cornerPrev) cornerPrev.style.display = "none";
         if (cornerNext) cornerNext.style.display = "none";
+        if (endFlourish) endFlourish.style.display = "";
       } else {
         pageCard.classList.remove("continuous-view");
         if (btnPrev) btnPrev.style.display = "";
@@ -2081,6 +2090,7 @@
     if (viewToggleLabel) viewToggleLabel.textContent = "Book View";
     if (cornerPrev) cornerPrev.style.display = "none";
     if (cornerNext) cornerNext.style.display = "none";
+    if (endFlourish) endFlourish.style.display = "";
   }
 
     initRuledLineAlignment();

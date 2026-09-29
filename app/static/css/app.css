@@ -3283,6 +3283,36 @@ img, video { max-width: 100%; display: block; }
   line-height: 2;
   white-space: pre-wrap;
   word-break: break-word;
+  /* Same margin-line + ruled-line pattern as .diary-reading, at the
+     same 2em spacing its line-height above needs. This face gets
+     filled with the real page text for the split second it's on
+     screen mid-flip (see turnFront/turnBack in initDiaryBookPaging),
+     but never had any ruled-line background of its own outside the
+     mobile breakpoint -- so on desktop, the lines visibly vanished
+     for the duration of every page turn and popped back once it
+     settled. */
+  background-image:
+    linear-gradient(90deg, transparent 3.25rem, hsl(350 70% 60% / 0.32) 3.25rem, hsl(350 70% 60% / 0.32) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(2em - 1px),
+      hsl(220 25% 86% / 0.55) calc(2em - 1px),
+      hsl(220 25% 86% / 0.55) 2em
+    );
+  background-position-y: var(--rule-offset, 1.5em);
+  background-attachment: local;
+}
+[data-theme="dark"] .turn-face {
+  background-image:
+    linear-gradient(90deg, transparent 3.25rem, hsl(350 70% 60% / 0.32) 3.25rem, hsl(350 70% 60% / 0.32) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(2em - 1px),
+      hsl(0 0% 100% / 0.06) calc(2em - 1px),
+      hsl(0 0% 100% / 0.06) 2em
+    );
 }
 
 .turn-face-front {
