@@ -3274,7 +3274,10 @@ img, video { max-width: 100%; display: block; }
 .turn-face {
   position: absolute;
   inset: 0;
-  padding: 1rem 2rem 2rem 3.75rem;
+  /* Same padding as .diary-reading: this sheet is laid over the page
+     during a flip, and with different padding-top the text jumped a few
+     px the instant the flip finished. */
+  padding: 0.75rem 2rem 2.5rem 3.75rem;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   overflow: hidden;
@@ -3283,58 +3286,44 @@ img, video { max-width: 100%; display: block; }
   line-height: 2;
   white-space: pre-wrap;
   word-break: break-word;
-  /* Same margin-line + ruled-line pattern as .diary-reading, at the
-     same 2em spacing its line-height above needs. This face gets
-     filled with the real page text for the split second it's on
-     screen mid-flip (see turnFront/turnBack in initDiaryBookPaging),
-     but never had any ruled-line background of its own outside the
-     mobile breakpoint -- so on desktop, the lines visibly vanished
-     for the duration of every page turn and popped back once it
-     settled. */
-  background-image:
-    linear-gradient(90deg, transparent 3.25rem, hsl(350 70% 60% / 0.32) 3.25rem, hsl(350 70% 60% / 0.32) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(2em - 1px),
-      hsl(220 25% 86% / 0.55) calc(2em - 1px),
-      hsl(220 25% 86% / 0.55) 2em
-    );
-  background-position-y: var(--rule-offset, 1.5em);
+  /* Paint = paper colour + glow + margin line + ruled lines, all in ONE
+     background-image list built from the custom properties below. This
+     used to be split: .turn-face added the lines via background-image,
+     but .turn-face-front/-back (later in the file, same specificity)
+     declared the `background` *shorthand*, which resets background-image
+     -- so the lines never rendered on desktop at all. Keeping every
+     layer here, and letting the theme/face rules only change the
+     variables, means nothing later can silently wipe the list.
+     Same 2em spacing as .diary-reading; this sheet is filled with real
+     page text mid-flip (turnFront/turnBack in initDiaryBookPaging). */
+  --face-margin: linear-gradient(90deg, transparent 3.25rem, hsl(350 70% 60% / 0.32) 3.25rem, hsl(350 70% 60% / 0.32) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px));
+  --face-rules: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2em - 1px), hsl(220 25% 86% / 0.55) calc(2em - 1px), hsl(220 25% 86% / 0.55) 2em);
+  --face-glow: radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%);
+  --face-paper: hsl(40 28% 98%);
+  background-color: var(--face-paper);
+  background-image: var(--face-margin), var(--face-rules), var(--face-glow);
+  /* rules follow --rule-offset; the glow stays put */
+  background-position-y: var(--rule-offset, 1.5em), var(--rule-offset, 1.5em), 0;
   background-attachment: local;
 }
 [data-theme="dark"] .turn-face {
-  background-image:
-    linear-gradient(90deg, transparent 3.25rem, hsl(350 70% 60% / 0.32) 3.25rem, hsl(350 70% 60% / 0.32) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px)),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(2em - 1px),
-      hsl(0 0% 100% / 0.06) calc(2em - 1px),
-      hsl(0 0% 100% / 0.06) 2em
-    );
+  /* Same violet as .journal-book-container .journal-page (see the
+     stale-palette fix on .page-turn-sheet above) */
+  --face-rules: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2em - 1px), hsl(0 0% 100% / 0.06) calc(2em - 1px), hsl(0 0% 100% / 0.06) 2em);
+  --face-glow: none;
+  --face-paper: hsl(252 22% 11%);
 }
 
-.turn-face-front {
-  transform: rotateY(0deg);
-  background: 
-    radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%),
-    hsl(40 28% 98%);
-}
+.turn-face-front { transform: rotateY(0deg); }
 
 .turn-face-back {
   transform: rotateY(180deg);
-  background: 
-    radial-gradient(circle at 50% 50%, hsl(40 30% 95% / 0.5) 0%, transparent 100%),
-    hsl(40 25% 95%);
-}
-
-[data-theme="dark"] .turn-face-front {
-  /* Same stale-palette fix as .page-turn-sheet above */
-  background: hsl(252 22% 11%);
+  --face-glow: radial-gradient(circle at 50% 50%, hsl(40 30% 95% / 0.5) 0%, transparent 100%);
+  --face-paper: hsl(40 25% 95%);
 }
 [data-theme="dark"] .turn-face-back {
-  background: hsl(252 20% 9%);
+  --face-glow: none;
+  --face-paper: hsl(252 20% 9%);
 }
 
 /* Corner Dog-ear Turn Curls */
