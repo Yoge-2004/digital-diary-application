@@ -1392,7 +1392,10 @@
   //  read from the real rendered line box, not assumed.
   // ══════════════════════════════════════════════════════════
   function initRuledLineAlignment() {
-    const targets = $$(".diary-reading, .journal-textarea");
+    // .turn-face is the sheet that's filled with real page text mid-flip;
+    // it has its own ruled-line background, so it needs its own offset
+    // (it isn't a descendant of .diary-reading, so it can't inherit one).
+    const targets = $$(".diary-reading, .journal-textarea, .turn-face");
     if (!targets.length) return;
 
     // Classic baseline-detection trick: an inline-block span with
@@ -1425,10 +1428,33 @@
       return offset;
     }
 
+    // How far below the text baseline the ruled line's bottom edge
+    // sits. 2px puts the 1px line just under the letters' feet, the way
+    // handwriting sits on ruled paper (descenders still drop through it).
+    const RULE_DROP = 2;
+
     function align() {
       targets.forEach((el) => {
         const offset = measureBaselineOffset(el);
-        if (offset > 0) el.style.setProperty("--rule-offset", offset.toFixed(2) + "px");
+        if (!(offset > 0)) return;
+        const cs = getComputedStyle(el);
+        const lineHeight = parseFloat(cs.lineHeight);
+        if (!(lineHeight > 0)) return;
+        // measureBaselineOffset() is "top of the line box -> baseline".
+        // But background-position-y is measured from the top of the
+        // *padding box*, and the first line box starts paddingTop below
+        // that -- this used to hand the raw offset straight to CSS, so
+        // every ruled line landed paddingTop (12px on the reading page)
+        // too high and cut through the lettering instead of running
+        // under it.
+        const paddingTop = parseFloat(cs.paddingTop) || 0;
+        const firstRuleBottom = paddingTop + offset + RULE_DROP;
+        // The gradient draws each 1px line at the *bottom* of its
+        // period, so tile k's line ends at pos + (k+1)*lineHeight.
+        // Normalise into (-lineHeight, 0]: same phase, but keeps the
+        // tile seam outside the visible box at the top.
+        const pos = (firstRuleBottom % lineHeight) - lineHeight;
+        el.style.setProperty("--rule-offset", pos.toFixed(2) + "px");
       });
     }
 

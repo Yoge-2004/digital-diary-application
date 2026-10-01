@@ -3423,7 +3423,13 @@ img, video { max-width: 100%; display: block; }
   font-size: clamp(1.15rem, 2.5vw, 1.35rem);
   line-height: 2;
   color: var(--txt-primary);
-  white-space: pre-wrap;
+  /* NOT pre-wrap here: it's inherited by every child, so the
+     whitespace-only text nodes between the template's tags (newline +
+     indentation) each rendered as real blank lines -- two full
+     line-heights above the entry text and about six after it, before
+     the end flourish. Only #diaryContentRaw holds the entry text and
+     needs its newlines preserved; see .diary-content-raw below. */
+  white-space: normal;
   word-break: break-word;
   padding: 0.75rem 2rem 2.5rem 3.75rem;
   letter-spacing: 0.02em;
@@ -3441,6 +3447,8 @@ img, video { max-width: 100%; display: block; }
   background-attachment: local;
   min-height: 240px;
 }
+
+.diary-content-raw { white-space: pre-wrap; }
 
 [data-theme="dark"] .diary-reading {
   background-image:
