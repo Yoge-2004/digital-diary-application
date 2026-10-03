@@ -28,9 +28,11 @@
     <div class="calendar-grid" role="grid" aria-label="{{ month_name }} {{ year }} calendar">
 
       <!-- Day-of-week headers -->
+      <div class="cal-row" role="row">
       {% for day_name in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
       <div class="cal-header" role="columnheader" aria-label="{{ day_name }}">{{ day_name }}</div>
       {% endfor %}
+      </div>
 
       <!-- Server-side today detection (now is passed from the route) -->
       {% set today_year  = now.year %}
@@ -38,6 +40,7 @@
       {% set today_day   = now.day %}
 
       {% for week in cal %}
+      <div class="cal-row" role="row">
       {% for day in week %}
 
       {% if day == 0 %}
@@ -67,6 +70,7 @@
 
       {% endif %}
       {% endfor %}
+      </div>
       {% endfor %}
 
     </div><!-- /calendar-grid -->

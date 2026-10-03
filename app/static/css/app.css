@@ -45,6 +45,10 @@
   --clr-ink-light:    hsl(240 20% 96%);      /* Cool grey-blue tint */
   --clr-accent:       hsl(342 82% 46%);      /* Confession crimson -- full saturation, tuned to clear 4.5:1 with white button text */
   --clr-accent-dark:  hsl(342 85% 37%);
+  /* Accent as *text*. --clr-accent-dark is a hover/background shade, and darkening an
+     accent is the wrong direction for text on a dark surface (hsl(342 82% 38%)
+     was 2.75:1 there); dark mode gets a lighter tint instead. */
+  --accent-text: var(--clr-accent-dark);
   --clr-accent-light: hsl(342 75% 96%);
   --clr-gold:         hsl(40 100% 54%);      /* Vivid amber-gold -- secondary accent */
   --clr-gold-dark:    hsl(36 95% 44%);
@@ -138,7 +142,8 @@
   --auth-side-bg: linear-gradient(160deg, hsl(342 45% 14%) 0%, hsl(255 35% 16%) 50%, hsl(40 55% 18%) 100%);
   --txt-primary:   hsl(240 25% 92%);
   --txt-secondary: hsl(240 12% 65%);
-  --txt-muted:     hsl(240 8% 46%);
+  --txt-muted: hsl(240 8% 58%);
+  --accent-text: hsl(342 82% 64%);  /* 4.89:1 on the lightest dark surface */
   --border-color:  hsl(250 15% 20%);
   --border-color-2:hsl(250 15% 26%);
   --scrollbar-thumb:       hsl(250 15% 26%);
@@ -304,7 +309,7 @@ body {
 }
 
 a { color: var(--txt-primary); text-decoration: none; transition: color var(--t-fast); }
-a:hover:not(.btn) { color: var(--clr-accent-dark); }
+a:hover:not(.btn) { color: var(--accent-text); }
 
 img, video { max-width: 100%; display: block; }
 
@@ -635,7 +640,7 @@ img, video { max-width: 100%; display: block; }
 .handwritten {
   font-family: var(--font-hand);
   font-size: 1.1em;
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
 }
 
 /* ============================================================
@@ -829,7 +834,7 @@ img, video { max-width: 100%; display: block; }
   transition: color var(--t-fast);
 }
 
-.diary-card-title:hover { color: var(--clr-accent-dark); }
+.diary-card-title:hover { color: var(--accent-text); }
 
 .diary-card-excerpt {
   font-family: var(--font-serif);
@@ -879,16 +884,16 @@ img, video { max-width: 100%; display: block; }
 /* ============================================================
    Mood system
    ============================================================ */
-.mood--happy      { --mc: hsl(38 95% 52%); }
-.mood--sad        { --mc: hsl(210 60% 56%); }
-.mood--neutral    { --mc: hsl(25 15% 65%); }
-.mood--angry      { --mc: hsl(4 70% 52%); }
-.mood--anxious    { --mc: hsl(270 55% 58%); }
-.mood--excited    { --mc: hsl(320 65% 58%); }
-.mood--grateful   { --mc: hsl(145 45% 48%); }
-.mood--calm       { --mc: hsl(185 50% 50%); }
-.mood--melancholy { --mc: hsl(220 40% 55%); }
-.mood--hopeful    { --mc: hsl(75 55% 48%); }
+.mood--happy      { --mc: hsl(38 95% 52%); --mc-ink: #1a1624; }
+.mood--sad        { --mc: hsl(210 60% 56%); --mc-ink: #1a1624; }
+.mood--neutral    { --mc: hsl(25 15% 65%); --mc-ink: #1a1624; }
+.mood--angry      { --mc: hsl(4 70% 52%); --mc-ink: #fff; --mc-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.mood--anxious    { --mc: hsl(270 55% 58%); --mc-ink: #fff; --mc-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.mood--excited    { --mc: hsl(320 65% 58%); --mc-ink: #1a1624; }
+.mood--grateful   { --mc: hsl(145 45% 48%); --mc-ink: #1a1624; }
+.mood--calm       { --mc: hsl(185 50% 50%); --mc-ink: #1a1624; }
+.mood--melancholy { --mc: hsl(220 40% 47%); --mc-ink: #fff; --mc-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.mood--hopeful    { --mc: hsl(75 55% 48%); --mc-ink: #1a1624; }
 
 .mood-badge {
   display: inline-flex;
@@ -899,10 +904,12 @@ img, video { max-width: 100%; display: block; }
   font-size: 0.7rem;
   font-weight: 700;
   background: var(--mc, var(--txt-muted));
-  color: #fff;
+  /* Ink is per mood: white on amber/teal/green was 2.0-3.7:1. Each mood
+     now uses whichever of white / dark gives >= 4.5:1 on its colour. */
+  color: var(--mc-ink, #fff);
   text-transform: capitalize;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 2px rgba(0,0,0,.2);
+  text-shadow: var(--mc-shadow, none);
 }
 
 /* ── Tag badges ── */
@@ -1210,7 +1217,7 @@ img, video { max-width: 100%; display: block; }
 
 .mood-option:hover {
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   background: var(--clr-accent-light);
 }
 
@@ -1221,7 +1228,7 @@ img, video { max-width: 100%; display: block; }
 .mood-option.selected {
   border-color: var(--clr-accent);
   background: var(--clr-accent-light);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   box-shadow: 0 0 0 2px var(--clr-accent);
 }
 
@@ -1313,7 +1320,7 @@ img, video { max-width: 100%; display: block; }
   white-space: nowrap;
 }
 
-.step.active .step-label { color: var(--clr-accent-dark); }
+.step.active .step-label { color: var(--accent-text); }
 
 /* ============================================================
    Buttons
@@ -1536,7 +1543,7 @@ img, video { max-width: 100%; display: block; }
 
 .theme-toggle:hover {
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   background: var(--clr-accent-light);
 }
 
@@ -1706,7 +1713,7 @@ img, video { max-width: 100%; display: block; }
 .cal-day:hover {
   background: var(--clr-accent-light);
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
 }
 
 .cal-day.empty { cursor: default; pointer-events: none; }
@@ -1722,7 +1729,7 @@ img, video { max-width: 100%; display: block; }
 .cal-day.has-entries {
   background: var(--clr-accent-light);
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   font-weight: 700;
 }
 
@@ -1864,7 +1871,7 @@ img, video { max-width: 100%; display: block; }
   align-items: center;
   gap: 0.6rem;
   background: #fff;
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.5rem 1rem;
@@ -2046,7 +2053,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .settings-tab:hover { color: var(--txt-primary); }
-.settings-tab.active { color: var(--clr-accent-dark); border-bottom-color: var(--clr-accent); }
+.settings-tab.active { color: var(--accent-text); border-bottom-color: var(--clr-accent); }
 
 .settings-panel { display: none; animation: fadeUp 0.3s var(--ease-out) both; }
 .settings-panel.active { display: block; }
@@ -2065,7 +2072,7 @@ img, video { max-width: 100%; display: block; }
 
 .text-muted     { color: var(--txt-muted) !important; }
 .text-secondary { color: var(--txt-secondary) !important; }
-.text-accent    { color: var(--clr-accent-dark) !important; }
+.text-accent    { color: var(--accent-text) !important; }
 .text-hand      { font-family: var(--font-hand) !important; }
 .text-display   { font-family: var(--font-display) !important; }
 
@@ -2801,7 +2808,7 @@ img, video { max-width: 100%; display: block; }
 .journal-datestamp {
   font-family: var(--font-hand);
   font-size: clamp(1rem, 2.5vw, 1.2rem);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -2876,7 +2883,7 @@ img, video { max-width: 100%; display: block; }
 
 .mood-pill:hover {
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
 }
 
 .mood-pill.selected {
@@ -3640,7 +3647,7 @@ img, video { max-width: 100%; display: block; }
 .btn-toggle-active {
   background: var(--clr-accent-light) !important;
   border-color: var(--clr-accent) !important;
-  color: var(--clr-accent-dark) !important;
+  color: var(--accent-text) !important;
 }
 
 .btn-toggle-active-green {
@@ -4106,4 +4113,33 @@ html {
 @keyframes modalSpringIn {
   0%   { opacity: 0; transform: translateY(20px) scale(0.94); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 16. Accessibility fixes found by an axe-core sweep ------------------- */
+/* Calendar weeks are role=row wrappers (ARIA grid requires rows); they
+   must not generate boxes or the 7-column layout breaks. */
+.cal-row { display: contents; }
+
+/* Whole-card link without nesting anchors: the title is the one link and
+   its ::after covers the card; secondary links (tags) sit above it. The
+   dashboard used to wrap the entire card in an <a> that also contained
+   tag <a>s -- invalid HTML, which the parser repaired into empty extra
+   links and a card that was only partly clickable. */
+.diary-card--linked { position: relative; }
+.card-stretched-link { color: inherit; text-decoration: none; }
+.card-stretched-link::after { content: ""; position: absolute; inset: 0; }
+.diary-card--linked .tag-badge { position: relative; z-index: 1; }
+.diary-card--linked:focus-within { outline: 2px solid var(--clr-accent); outline-offset: -2px; }
+
+/* Links inside running text can't rely on colour alone (WCAG 1.4.1). */
+.auth-form-sub a { text-decoration: underline; text-underline-offset: 0.18em; }
+
+/* The landing "book" is a fixed white page, so its text must not follow
+   the theme: redefine the tokens on the card and every child resolves a
+   paper-appropriate value in both themes (they were near-white on white
+   in dark mode: 2.4:1 and 2.9:1). */
+.book-open {
+  --txt-muted: hsl(240 8% 42%);
+  --txt-secondary: hsl(240 12% 32%);
+  --border-color: hsl(240 12% 89%);
 }
