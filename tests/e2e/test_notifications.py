@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import uuid
 
+from playwright.sync_api import expect
+
 from conftest import register_via_api
 
 VALID_VAPID_PUBLIC = "BCGCn-yeILV0uhDO8aZnbcxUm6NUWsz0wM_bYhnaE8R1XSFPovf-94ksfCVfuJGgtGKj0o1FanNT9eg_CYxuDgU"
@@ -135,8 +137,10 @@ def test_toggle_off_unsubscribes_and_saves_preferences(page, live_server_factory
     with page.expect_response(lambda r: "/api/push/unsubscribe" in r.url) as unsub_info:
         page.click("#reminderToggle")  # now turn off
     assert unsub_info.value.ok
-    page.wait_for_timeout(200)
-    assert page.locator("#reminderStatusText").inner_text() == "Off"
+    # The status text is set by JS *after* the response is handled; a fixed
+    # sleep raced it (failed once in a full run, never in 12 reruns). Wait
+    # for the state itself instead.
+    expect(page.locator("#reminderStatusText")).to_have_text("Off")
     assert page.locator("#reminderTime").is_disabled()
 
     page.goto(f"{url}/settings")
