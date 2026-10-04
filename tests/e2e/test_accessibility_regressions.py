@@ -58,18 +58,23 @@ def test_muted_and_accent_text_tokens_meet_contrast_on_every_surface(page, live_
             assert ratio >= 4.5, f"{theme}: {text} text {colours[text]} on {surface} {colours[surface]} is {ratio:.2f}:1"
 
 
-def test_every_mood_badge_is_readable(page, live_server):
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_every_mood_badge_is_readable(page, live_server, theme):
     """Badges were white text on the mood colour: 2.0:1 on amber, 2.4:1 on
-    teal... Each mood now picks white or dark ink, whichever passes."""
+    teal... Each mood now picks white or dark ink, whichever passes.
+    "tired" has no colour of its own (the API accepts any mood string), so
+    it covers the fallback background -- which regressed to 3.3:1 in dark
+    mode when it was tied to --txt-muted and that token was lightened."""
+    page.add_init_script(f"localStorage.setItem('dd-theme', '{theme}')")
     page.goto(f"{live_server}/login")
     found = page.evaluate(
         """(moods) => moods.map((m) => { const e = document.createElement('span'); e.className = `mood-badge mood--${m}`;
           e.textContent = m; document.body.appendChild(e); const s = getComputedStyle(e);
           const out = { mood: m, color: s.color, bg: s.backgroundColor }; e.remove(); return out; })""",
-        MOODS,
+        MOODS + ["tired"],
     )
     bad = [(f["mood"], round(_contrast(_rgb(f["color"]), _rgb(f["bg"])), 2)) for f in found if _contrast(_rgb(f["color"]), _rgb(f["bg"])) < 4.5]
-    assert not bad, f"mood badges below 4.5:1: {bad}"
+    assert not bad, f"{theme}: mood badges below 4.5:1: {bad}"
 
 
 def test_landing_book_card_text_is_readable_in_dark_theme(page, live_server):
@@ -138,3 +143,15 @@ def test_in_text_links_on_the_auth_pages_are_underlined(page, live_server):
     page.goto(f"{live_server}/register")
     deco = page.evaluate("getComputedStyle(document.querySelector('.auth-form-sub a')).textDecorationLine")
     assert "underline" in deco, deco
+
+
+def test_landing_eyebrow_pill_is_readable_in_dark_theme(page, live_server):
+    """.hero-eyebrow is a fixed-white pill. Switching its text to the dark
+    theme's light accent tint (--accent-text) made it 3.3:1 on white."""
+    page.add_init_script("localStorage.setItem('dd-theme', 'dark')")
+    page.goto(f"{live_server}/")
+    c = page.evaluate(
+        "(() => { const s = getComputedStyle(document.querySelector('.hero-eyebrow')); return { color: s.color, bg: s.backgroundColor }; })()"
+    )
+    ratio = _contrast(_rgb(c["color"]), _rgb(c["bg"]))
+    assert ratio >= 4.5, f"hero eyebrow {c['color']} on {c['bg']} is {ratio:.2f}:1"

@@ -903,7 +903,11 @@ img, video { max-width: 100%; display: block; }
   border-radius: 2rem;
   font-size: 0.7rem;
   font-weight: 700;
-  background: var(--mc, var(--txt-muted));
+  /* Fallback for a mood with no colour of its own (the API accepts any mood
+     string up to 50 chars). It must NOT be --txt-muted: that token is tuned
+     for text on dark surfaces and, as a background in dark mode, put white
+     ink at 3.3:1. This is 5.9:1 with white in either theme. */
+  background: var(--mc, hsl(240 8% 42%));
   /* Ink is per mood: white on amber/teal/green was 2.0-3.7:1. Each mood
      now uses whichever of white / dark gives >= 4.5:1 on its colour. */
   color: var(--mc-ink, #fff);
@@ -1871,7 +1875,9 @@ img, video { max-width: 100%; display: block; }
   align-items: center;
   gap: 0.6rem;
   background: #fff;
-  color: var(--accent-text);
+  /* Fixed white pill: needs the *dark* crimson in both themes. --accent-text
+     is the light tint for dark surfaces (3.3:1 here). */
+  color: var(--clr-accent-dark);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.5rem 1rem;
@@ -4142,4 +4148,5 @@ html {
   --txt-muted: hsl(240 8% 42%);
   --txt-secondary: hsl(240 12% 32%);
   --border-color: hsl(240 12% 89%);
+  --accent-text: var(--clr-accent-dark);
 }
