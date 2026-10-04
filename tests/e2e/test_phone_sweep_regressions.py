@@ -145,3 +145,53 @@ def test_upload_zone_can_be_operated_from_the_keyboard(page, live_server):
     page.focus("#uploadBtn")
     with page.expect_file_chooser(timeout=3000):
         page.keyboard.press("Enter")
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_delete_account_card_in_the_danger_tab_is_readable(page, live_server, theme):
+    """axe skips hidden panels, so the Danger tab was never swept: the heading
+    was --clr-danger text (4.14:1) and the button white on it (4.39:1)."""
+    page.add_init_script(f"localStorage.setItem('dd-theme', '{theme}')")
+    page.set_viewport_size(PHONE)
+    _signup(page, live_server)
+    page.goto(f"{live_server}/settings")
+    page.click('.settings-tab[data-panel="danger"]')
+    page.wait_for_timeout(600)
+    for selector in (".danger-zone > h2", "#openDeleteAccountModal"):
+        got = _contrast(page, selector)
+        assert got["ratio"] >= 4.5, f"{theme} {selector}: {got['ratio']:.2f}:1"
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_password_strength_label_and_requirements_are_readable(page, live_server, theme):
+    """Label colours came from the bar's fill palette (3.29:1 for 'weak');
+    a met requirement was --clr-sage text (3.87:1). Type passwords that hit
+    each strength level and check what is actually shown."""
+    page.add_init_script(f"localStorage.setItem('dd-theme', '{theme}')")
+    page.set_viewport_size(PHONE)
+    page.goto(f"{live_server}/register")
+    seen = set()
+    for pw in ("a", "abcdefgh", "Abcdefg1", "Abcdefg1!xyz-long"):
+        page.fill("#reg-password", pw)
+        page.wait_for_timeout(500)
+        if page.inner_text("#pwStrengthLabel").strip():
+            seen.add(page.get_attribute("#pwStrengthLabel", "data-strength"))
+            got = _contrast(page, "#pwStrengthLabel")
+            assert got["ratio"] >= 4.5, f"{theme} label for {pw!r}: {got['ratio']:.2f}:1"
+        got = _contrast(page, "#req-lower")
+        assert got["ratio"] >= 4.5, f"{theme} requirement for {pw!r}: {got['ratio']:.2f}:1"
+    assert len(seen) >= 3, f"fixture should reach several strength levels, got {seen}"
+
+
+def test_calendar_days_with_entries_are_readable_in_dark_theme(page, live_server):
+    """--accent-text passes on dark surfaces but was drawn on the lighter accent
+    tint of a day with entries: 4.25:1."""
+    page.add_init_script("localStorage.setItem('dd-theme', 'dark')")
+    page.set_viewport_size(PHONE)
+    _signup(page, live_server)
+    _entry(page, live_server)
+    page.goto(f"{live_server}/calendar")
+    page.wait_for_selector(".cal-day.has-entries")
+    page.wait_for_timeout(600)
+    got = _contrast(page, ".cal-day.has-entries")
+    assert got["ratio"] >= 4.5, f"{got['ratio']:.2f}:1"
