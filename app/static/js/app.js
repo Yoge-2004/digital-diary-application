@@ -1519,9 +1519,9 @@
     uploadBtn?.addEventListener("click", (e) => {
       e.stopPropagation();
       if (!fileInput.files || !fileInput.files.length) {
-        showToast("Please choose a file first", "error", 3000);
-        zone.classList.add("shake");
-        zone.addEventListener("animationend", () => zone.classList.remove("shake"), { once: true });
+        // The button is the zone's keyboard-reachable control, so with no
+        // file chosen it opens the picker (choosing a file uploads it).
+        fileInput.click();
         return;
       }
       handleUpload(fileInput.files[0]);
