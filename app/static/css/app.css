@@ -1749,6 +1749,9 @@ img, video { max-width: 100%; display: block; }
   color: var(--accent-text);
   font-weight: 700;
 }
+/* --accent-text is tuned for the dark *surfaces*; this cell sits on the
+   accent tint, a few points lighter: 4.25:1 -> 5.83:1. */
+[data-theme="dark"] .cal-day.has-entries { color: hsl(342 85% 74%); }
 
 .cal-count {
   font-size: 0.58rem;
