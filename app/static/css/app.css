@@ -1134,6 +1134,11 @@ img, video { max-width: 100%; display: block; }
   color: var(--txt-muted);
   transition: color var(--t-fast);
 }
+/* Text colours, not the bar's fill colours: those are 2-3:1 on the page. */
+.pw-strength-label[data-strength="1"] { color: var(--danger-text); }
+.pw-strength-label[data-strength="2"] { color: var(--warn-text); }
+.pw-strength-label[data-strength="3"] { color: var(--lime-text); }
+.pw-strength-label[data-strength="4"] { color: var(--success-text); }
 
 .pw-requirements {
   display: flex;
@@ -1159,7 +1164,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .pw-req.met {
-  color: var(--clr-sage);
+  color: var(--success-text);
 }
 
 .pw-req.met i {

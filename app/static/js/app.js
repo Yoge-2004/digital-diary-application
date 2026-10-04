@@ -274,7 +274,9 @@
       fill.style.background = getStrengthColor(score);
       if (label) {
         label.textContent = pw.length > 0 ? getStrengthLabel(score) : "";
-        label.style.color = getStrengthColor(score);
+        // Colour comes from CSS ([data-strength]) so it can use text-safe
+        // tokens; the bar fill keeps getStrengthColor().
+        label.dataset.strength = score > 0 ? score : "";
       }
 
       // Requirements
