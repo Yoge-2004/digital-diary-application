@@ -7,7 +7,7 @@
   <div>
     <h1 class="page-title">
       Good {{ "morning" if now.hour < 12 else "afternoon" if now.hour < 17 else "evening" }},
-      <span style="font-style:italic;color:var(--clr-accent-dark);">{{ current_user.username }}</span>
+      <span style="font-style:italic;color:var(--accent-text);">{{ current_user.username }}</span>
     </h1>
     <div style="font-family:var(--font-hand);font-size:1.05rem;color:var(--txt-muted);margin-top:0.1rem;">
       {{ now.strftime('%A, %B %-d, %Y') }}
@@ -28,7 +28,7 @@
       {% if summary.total_entries == 0 %}
         <span style="font-size:.72rem;">Every story starts with one</span>
       {% else %}
-        <a href="/diaries" style="font-size:.72rem;color:var(--clr-accent-dark);">Browse them all →</a>
+        <a href="/diaries" style="font-size:.72rem;color:var(--accent-text);">Browse them all →</a>
       {% endif %}
     </div>
   </div>
@@ -52,7 +52,7 @@
       {% if summary.favorites == 0 %}
         <span style="font-size:.72rem;">Star an entry to save it here</span>
       {% else %}
-        <a href="/diaries?favorite=true" style="font-size:.72rem;color:var(--clr-accent-dark);">View all →</a>
+        <a href="/diaries?favorite=true" style="font-size:.72rem;color:var(--accent-text);">View all →</a>
       {% endif %}
     </div>
   </div>
@@ -64,7 +64,7 @@
       {% if summary.monthly_entries == 0 %}
         <span style="font-size:.72rem;">Nothing written yet this month</span>
       {% else %}
-        <a href="/calendar" style="font-size:.72rem;color:var(--clr-accent-dark);">See the calendar →</a>
+        <a href="/calendar" style="font-size:.72rem;color:var(--accent-text);">See the calendar →</a>
       {% endif %}
     </div>
   </div>
@@ -86,14 +86,13 @@
     <div>
       {% for diary in summary.recent_diaries %}
       {% set mood_class = "mood--" + diary.mood %}
-      <a href="/diaries/{{ diary.id }}" style="text-decoration:none;color:inherit;display:block;">
-        <div class="diary-card {{ mood_class }}"
+      <div class="diary-card diary-card--linked {{ mood_class }}"
              style="border-radius:0;border:none;border-bottom:1px solid var(--border-color);box-shadow:none;background:transparent;
                     {% if loop.last %}border-bottom:none{% endif %};margin:0;animation-delay:{{ loop.index0 * 0.07 }}s;">
           <div class="diary-card-mood-strip"></div>
           <div class="diary-card-body">
             <div class="diary-card-meta">
-              <div class="diary-card-title">{{ diary.title }}</div>
+              <div class="diary-card-title"><a href="/diaries/{{ diary.id }}" class="card-stretched-link">{{ diary.title }}</a></div>
               <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0;">
                 <span class="mood-badge {{ mood_class }}">{{ diary.mood }}</span>
                 <span class="diary-card-date">{{ diary.created_at.strftime('%b %-d') }}</span>
@@ -110,7 +109,6 @@
             </div>
           </div>
         </div>
-      </a>
       {% endfor %}
     </div>
 

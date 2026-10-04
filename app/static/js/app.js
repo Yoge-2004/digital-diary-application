@@ -38,6 +38,16 @@
   // ══════════════════════════════════════════════════════════
   //  Theme (dark / light)
   // ══════════════════════════════════════════════════════════
+  // Same hsl(...) values as --bg-body in :root / [data-theme="dark"]
+  // in app.css, converted to hex since <meta name="theme-color">
+  // doesn't take a live CSS variable -- this is the one place that
+  // value has to be duplicated. Drives the browser's own chrome color
+  // (mobile status bar, task-switcher card, desktop PWA title bar),
+  // which used to be a single hardcoded brown (#7c4a1e, a leftover
+  // from before the "Confession Ink" redesign) that never changed
+  // with the theme toggle at all.
+  const THEME_COLOR = { light: "#f9f9fb", dark: "#0f0d17" };
+
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(THEME_KEY, theme);
@@ -47,6 +57,8 @@
       if (icon) icon.className = theme === "dark" ? "bi bi-sun-fill" : "bi bi-moon-fill";
       if (label) label.textContent = theme === "dark" ? "Light" : "Dark";
     });
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", THEME_COLOR[theme] || THEME_COLOR.light);
   }
 
   function initTheme() {
@@ -1380,7 +1392,10 @@
   //  read from the real rendered line box, not assumed.
   // ══════════════════════════════════════════════════════════
   function initRuledLineAlignment() {
-    const targets = $$(".diary-reading, .journal-textarea");
+    // .turn-face is the sheet that's filled with real page text mid-flip;
+    // it has its own ruled-line background, so it needs its own offset
+    // (it isn't a descendant of .diary-reading, so it can't inherit one).
+    const targets = $$(".diary-reading, .journal-textarea, .turn-face");
     if (!targets.length) return;
 
     // Classic baseline-detection trick: an inline-block span with
@@ -1413,10 +1428,33 @@
       return offset;
     }
 
+    // How far below the text baseline the ruled line's bottom edge
+    // sits. 2px puts the 1px line just under the letters' feet, the way
+    // handwriting sits on ruled paper (descenders still drop through it).
+    const RULE_DROP = 2;
+
     function align() {
       targets.forEach((el) => {
         const offset = measureBaselineOffset(el);
-        if (offset > 0) el.style.setProperty("--rule-offset", offset.toFixed(2) + "px");
+        if (!(offset > 0)) return;
+        const cs = getComputedStyle(el);
+        const lineHeight = parseFloat(cs.lineHeight);
+        if (!(lineHeight > 0)) return;
+        // measureBaselineOffset() is "top of the line box -> baseline".
+        // But background-position-y is measured from the top of the
+        // *padding box*, and the first line box starts paddingTop below
+        // that -- this used to hand the raw offset straight to CSS, so
+        // every ruled line landed paddingTop (12px on the reading page)
+        // too high and cut through the lettering instead of running
+        // under it.
+        const paddingTop = parseFloat(cs.paddingTop) || 0;
+        const firstRuleBottom = paddingTop + offset + RULE_DROP;
+        // The gradient draws each 1px line at the *bottom* of its
+        // period, so tile k's line ends at pos + (k+1)*lineHeight.
+        // Normalise into (-lineHeight, 0]: same phase, but keeps the
+        // tile seam outside the visible box at the top.
+        const pos = (firstRuleBottom % lineHeight) - lineHeight;
+        el.style.setProperty("--rule-offset", pos.toFixed(2) + "px");
       });
     }
 
@@ -1833,6 +1871,7 @@
     const sheet = document.getElementById("pageTurnSheet");
     const turnFront = document.getElementById("turnFaceFront");
     const turnBack = document.getElementById("turnFaceBack");
+    const endFlourish = document.getElementById("diaryEndFlourish");
 
     // Interactive Silk Ribbon Bookmark
     const ribbon = document.getElementById("diaryRibbonBookmark");
@@ -1857,86 +1896,186 @@
 
     const fullText = (rawContent.textContent || "").trim();
 
+    // ── Pagination by measurement ──────────────────────────────────────
+    // Pages used to be sized by a hardcoded budget (280 words / 1700
+    // chars, 180 / 1000 on phones) that had nothing to do with how much
+    // text the book-view viewport can actually show: it's clipped to
+    // clamp(520px, 72vh, 760px) with overflow:hidden, and the handwriting
+    // font sets ~43px lines, so roughly 14 lines fit -- about half what a
+    // "page" was allowed to hold. Every page overflowed its clip box and
+    // its last lines were cut off, and since the next page starts where
+    // *this* function stopped, those lines were never shown anywhere.
+    // Now each page is packed word by word into an off-screen copy of the
+    // text element until its real rendered height reaches the viewport's
+    // capacity, so it adapts to font, line-height, width and window size.
+    let lastLayoutKey = "";
+
+    // Pixel height of text one book page can show, plus a key describing
+    // everything that capacity depends on (so resize can skip no-ops).
+    //
+    // Measured, not read from CSS: the viewport's max-height
+    // (clamp(520px, 72vh, 760px)) is only an upper bound. On a phone the
+    // page card constrains the viewport much further (header + nav take
+    // most of the screen: 311px of a 608px max-height at 390x844), so
+    // trusting max-height put ~2x too much text on every page. Instead,
+    // briefly fill the page with far more text than could fit and see how
+    // tall the viewport really ends up. All synchronous: nothing paints.
+    function pageCapacity() {
+      const saved = {
+        text: rawContent.textContent,
+        rawDisplay: rawContent.style.display,
+        flourish: endFlourish ? endFlourish.style.display : "",
+        attachments: attachments ? attachments.style.display : "",
+      };
+      const wasContinuous = pageCard.classList.contains("continuous-view");
+      if (wasContinuous) pageCard.classList.remove("continuous-view");
+      rawContent.style.display = "block";
+      rawContent.textContent = new Array(400).join("x\n");   // ~17000px: more than any page holds
+      if (endFlourish) endFlourish.style.display = "none";
+      if (attachments) attachments.style.display = "none";
+
+      const vpHeight = viewport ? viewport.getBoundingClientRect().height : window.innerHeight * 0.72;
+      const cs = getComputedStyle(readingArea || rawContent);
+      const padTop = parseFloat(cs.paddingTop) || 0;
+      const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const width = (readingArea ? readingArea.clientWidth : rawContent.clientWidth) - padX;
+      const fontKey = cs.fontSize + "|" + cs.lineHeight;
+
+      rawContent.textContent = saved.text;
+      rawContent.style.display = saved.rawDisplay;
+      if (endFlourish) endFlourish.style.display = saved.flourish;
+      if (attachments) attachments.style.display = saved.attachments;
+      if (wasContinuous) pageCard.classList.add("continuous-view");
+
+      // bottom padding is allowed to be clipped, top padding is not
+      const capacity = vpHeight - padTop;
+      return { capacity, width, key: [Math.round(capacity), Math.round(width), fontKey].join("|") };
+    }
+
+    // Height of an element that is normally display:none or hidden.
+    function outerHeightOf(el) {
+      if (!el) return 0;
+      const prev = el.style.display;
+      el.style.display = el.id === "diaryEndFlourish" ? "flex" : "block";
+      const h = el.getBoundingClientRect().height + (parseFloat(getComputedStyle(el).marginTop) || 0);
+      el.style.display = prev;
+      return h;
+    }
+
     function paginate() {
       pages = [];
       if (!fullText) {
-        pages.push({ text: "", hasAttachments: !!attachments });
+        pages.push({ text: "", startChar: 0, hasAttachments: !!attachments });
         return;
       }
+      const { capacity, width, key } = pageCapacity();
+      lastLayoutKey = key;
 
-      // Generous words & characters threshold per physical book page
-      const isMobile = window.innerWidth <= 640;
-      const WORDS_PER_PAGE = isMobile ? 180 : 280;
-      const CHARS_PER_PAGE = isMobile ? 1000 : 1700;
+      // Off-screen twin of #diaryContentRaw (same classes => same
+      // white-space, font, line-height) used only to measure heights.
+      const measurer = document.createElement("div");
+      measurer.className = rawContent.className;
+      measurer.setAttribute("aria-hidden", "true");
+      measurer.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;left:0;top:0;width:" + width + "px;";
+      (readingArea || rawContent.parentNode).appendChild(measurer);
 
-      // Split into paragraphs or line breaks
-      const rawBlocks = fullText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
-      
-      let currentWords = 0;
-      let currentChars = 0;
-      let currentBatch = [];
+      try {
+        // Alternating [word, whitespace, word, ...]; keeps newlines intact.
+        const tokens = fullText.split(/(\s+)/);
+        const n = tokens.length;
+        const offsets = new Array(n + 1);
+        offsets[0] = 0;
+        for (let i = 0; i < n; i++) offsets[i + 1] = offsets[i] + tokens[i].length;
+        const isSpace = (t) => /^\s+$/.test(t);
 
-      for (let i = 0; i < rawBlocks.length; i++) {
-        const block = rawBlocks[i];
-        const blockWords = block.split(/\s+/).filter(Boolean).length;
-        const blockChars = block.length;
+        const heightOf = (a, b) => {
+          measurer.textContent = tokens.slice(a, b).join("").trimEnd();
+          return measurer.offsetHeight;
+        };
 
-        // If a single paragraph is too large for one page, divide into smaller sentences
-        if (blockWords > WORDS_PER_PAGE || blockChars > CHARS_PER_PAGE) {
-          const sentences = block.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [block];
-          for (let j = 0; j < sentences.length; j++) {
-            const sent = sentences[j].trim();
-            if (!sent) continue;
-            const sentWords = sent.split(/\s+/).filter(Boolean).length;
-            const sentChars = sent.length;
-
-            if (currentBatch.length > 0 && ((currentWords + sentWords) > WORDS_PER_PAGE || (currentChars + sentChars) > CHARS_PER_PAGE)) {
-              pages.push({ text: currentBatch.join("\n\n"), hasAttachments: false });
-              currentBatch = [sent];
-              currentWords = sentWords;
-              currentChars = sentChars;
-            } else {
-              if (currentBatch.length > 0) {
-                currentBatch[currentBatch.length - 1] += ' ' + sent;
-              } else {
-                currentBatch.push(sent);
-              }
-              currentWords += sentWords;
-              currentChars += sentChars;
-            }
+        // Largest `end` (exclusive) such that tokens[start..end) fits `cap`.
+        // One token always counts as fitting so every page makes progress.
+        let lastSize = 200;
+        const fitEnd = (start, cap) => {
+          let lo = start + 1;
+          let hi = Math.min(n, start + Math.max(8, lastSize));
+          while (true) {
+            if (heightOf(start, hi) <= cap) {
+              lo = hi;
+              if (hi >= n) return n;
+              hi = Math.min(n, start + (hi - start) * 2);
+            } else break;
           }
-          continue;
+          while (hi - lo > 1) {
+            const mid = (lo + hi) >> 1;
+            if (heightOf(start, mid) <= cap) lo = mid; else hi = mid;
+          }
+          lastSize = lo - start;
+          return lo;
+        };
+
+        const pack = (from, cap) => {
+          const out = [];
+          let start = from;
+          while (start < n) {
+            while (start < n && isSpace(tokens[start])) start++;   // no blank lines at a page top
+            if (start >= n) break;
+            const end = fitEnd(start, cap);
+            out.push({ text: tokens.slice(start, end).join("").trim(), startChar: offsets[start], _a: start, _b: end });
+            start = end;
+          }
+          return out;
+        };
+
+        let built = pack(0, capacity);
+        if (built.length === 0) built = [{ text: fullText, startChar: 0, _a: 0, _b: n }];
+
+        // The last text page also has to hold the end flourish, so if it
+        // doesn't fit there, repack just that tail with less room.
+        const flourishH = outerHeightOf(endFlourish);
+        const last = built[built.length - 1];
+        if (heightOf(last._a, last._b) + flourishH > capacity) {
+          built = built.slice(0, -1).concat(pack(last._a, Math.max(capacity - flourishH, 0)));
         }
 
-        if (currentBatch.length > 0 && ((currentWords + blockWords) > WORDS_PER_PAGE || (currentChars + blockChars) > CHARS_PER_PAGE)) {
-          pages.push({ text: currentBatch.join("\n\n"), hasAttachments: false });
-          currentBatch = [block];
-          currentWords = blockWords;
-          currentChars = blockChars;
-        } else {
-          currentBatch.push(block);
-          currentWords += blockWords;
-          currentChars += blockChars;
+        // Attachments ride along on the last text page only if they fit
+        // under the text + flourish; otherwise they get their own page.
+        let attachmentsOnLast = false;
+        if (attachments) {
+          const l = built[built.length - 1];
+          attachmentsOnLast = heightOf(l._a, l._b) + flourishH + outerHeightOf(attachments) <= capacity;
         }
-      }
-
-      if (currentBatch.length > 0) {
-        if (attachments && (currentWords > 40 || currentChars > 250)) {
-          pages.push({ text: currentBatch.join("\n\n"), hasAttachments: false });
-          pages.push({ text: "", hasAttachments: true });
-        } else {
-          pages.push({ text: currentBatch.join("\n\n"), hasAttachments: !!attachments });
+        pages = built.map((pg, i) => ({
+          text: pg.text, startChar: pg.startChar,
+          hasAttachments: !!attachments && attachmentsOnLast && i === built.length - 1,
+        }));
+        if (attachments && !attachmentsOnLast) {
+          pages.push({ text: "", startChar: fullText.length, hasAttachments: true });
         }
-      } else if (attachments) {
-        pages.push({ text: "", hasAttachments: true });
-      }
-
-      if (pages.length === 0) {
-        pages.push({ text: fullText, hasAttachments: !!attachments });
+      } finally {
+        measurer.remove();
       }
     }
 
-    paginate();
+    // Re-flow when the thing the pages were measured against changes:
+    // window size / rotation, and the moment the handwriting font actually
+    // loads (the first measurement may have used the fallback font).
+    function repaginate() {
+      if (isContinuous) return;
+      if (isFlipping) { clearTimeout(repaginateTimer); repaginateTimer = setTimeout(repaginate, 200); return; }
+      if (pageCapacity().key === lastLayoutKey) return;
+      const keep = pages[currentPage - 1] ? pages[currentPage - 1].startChar : 0;
+      paginate();
+      let idx = 0;
+      for (let i = 0; i < pages.length; i++) if (pages[i].startChar <= keep) idx = i;
+      renderPage(idx + 1);
+    }
+    let repaginateTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(repaginateTimer);
+      repaginateTimer = setTimeout(repaginate, 150);
+    });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(repaginate);
 
     function renderPage(pageNum) {
       if (pageNum < 1) pageNum = 1;
@@ -1955,10 +2094,35 @@
       if (btnPrev) btnPrev.disabled = (currentPage === 1);
       if (btnNext) btnNext.disabled = (currentPage === pages.length);
 
+      // The "end of entry" flourish is static HTML, rendered once
+      // right after the content -- nothing was hiding it on any page
+      // but the actual last one, so a multi-page book view showed a
+      // "the end" decoration after page 1, page 2, every page, not
+      // just the final one.
+      if (endFlourish) endFlourish.style.display = (currentPage === pages.length) ? "" : "none";
+
       if (cornerPrev) cornerPrev.style.display = (currentPage > 1 && !isContinuous) ? "block" : "none";
       if (cornerNext) cornerNext.style.display = (currentPage < pages.length && !isContinuous) ? "block" : "none";
 
       if (readingArea) readingArea.scrollTop = 0;
+
+      // Safety net: text pages are packed to fit, but a page can still be
+      // taller than the viewport (e.g. the attachments page on a phone,
+      // where the cards stack taller than the space the card leaves).
+      // The viewport is overflow:hidden for the flip, which would just
+      // cut that content off with no way to reach it -- let it scroll.
+      if (viewport) {
+        viewport.style.overflowY = "";
+        viewport.scrollTop = 0;
+        // Compare the lowest *visible element* with the clip edge rather
+        // than scrollHeight: that includes the article's bottom padding,
+        // which pages are deliberately allowed to run into.
+        let lowest = -Infinity;
+        [rawContent, endFlourish, attachments].forEach((el) => {
+          if (el && el.style.display !== "none") lowest = Math.max(lowest, el.getBoundingClientRect().bottom);
+        });
+        if (lowest > viewport.getBoundingClientRect().bottom + 1) viewport.style.overflowY = "auto";
+      }
     }
 
     function turnPage(direction) {
@@ -2048,6 +2212,8 @@
         if (viewToggleLabel) viewToggleLabel.textContent = "Book View";
         if (cornerPrev) cornerPrev.style.display = "none";
         if (cornerNext) cornerNext.style.display = "none";
+        if (endFlourish) endFlourish.style.display = "";
+        if (viewport) { viewport.style.overflowY = ""; viewport.scrollTop = 0; }   // undo renderPage's tall-page scroll
       } else {
         pageCard.classList.remove("continuous-view");
         if (btnPrev) btnPrev.style.display = "";
@@ -2069,6 +2235,7 @@
     if (viewToggleLabel) viewToggleLabel.textContent = "Book View";
     if (cornerPrev) cornerPrev.style.display = "none";
     if (cornerNext) cornerNext.style.display = "none";
+    if (endFlourish) endFlourish.style.display = "";
   }
 
     initRuledLineAlignment();
