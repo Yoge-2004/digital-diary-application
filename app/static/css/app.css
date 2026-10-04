@@ -50,6 +50,9 @@
      was 2.75:1 there); dark mode gets a lighter tint instead. */
   --accent-text: var(--clr-accent-dark);
   --danger-text: hsl(4 78% 44%);   /* 5.64:1 on white; --clr-danger itself is only 4.39:1 */
+  --success-text: hsl(155 60% 28%); /* 5.18:1 on the lightest light surface */
+  --warn-text:    hsl(28 95% 28%);
+  --lime-text:    hsl(80 60% 28%);
   --clr-accent-light: hsl(342 75% 96%);
   --clr-gold:         hsl(40 100% 54%);      /* Vivid amber-gold -- secondary accent */
   --clr-gold-dark:    hsl(36 95% 44%);
@@ -146,6 +149,9 @@
   --txt-muted: hsl(240 8% 58%);
   --accent-text: hsl(342 82% 64%);  /* 4.89:1 on the lightest dark surface */
   --danger-text: hsl(4 90% 66%);    /* 5.32:1 on the lightest dark surface */
+  --success-text: hsl(155 50% 56%);
+  --warn-text:    hsl(34 95% 62%);
+  --lime-text:    hsl(80 50% 60%);
   --border-color:  hsl(250 15% 20%);
   --border-color-2:hsl(250 15% 26%);
   --scrollbar-thumb:       hsl(250 15% 26%);
@@ -1437,9 +1443,9 @@ img, video { max-width: 100%; display: block; }
 }
 
 .btn-danger {
-  background: var(--clr-danger);
+  background: hsl(4 78% 46%);   /* white text: 5.25:1 (--clr-danger is 4.39:1) */
   color: #fff;
-  border-color: var(--clr-danger);
+  border-color: hsl(4 78% 46%);
   box-shadow: 0 2px 8px hsl(4 70% 52% / 0.25);
 }
 .btn-danger:hover {
