@@ -59,6 +59,7 @@ def test_delete_account_confirm_word_is_readable(page, live_server, theme):
     page.set_viewport_size(PHONE)
     _signup(page, live_server)
     page.goto(f"{live_server}/settings")
+    page.click('.settings-tab[data-panel="danger"]')  # the button lives in the Danger tab
     page.click("#openDeleteAccountModal")
     page.wait_for_selector("#deleteAccountOverlay", state="visible")
     page.wait_for_timeout(600)  # modal entrance animation
