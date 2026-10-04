@@ -49,6 +49,7 @@
      accent is the wrong direction for text on a dark surface (hsl(342 82% 38%)
      was 2.75:1 there); dark mode gets a lighter tint instead. */
   --accent-text: var(--clr-accent-dark);
+  --danger-text: hsl(4 78% 44%);   /* 5.64:1 on white; --clr-danger itself is only 4.39:1 */
   --clr-accent-light: hsl(342 75% 96%);
   --clr-gold:         hsl(40 100% 54%);      /* Vivid amber-gold -- secondary accent */
   --clr-gold-dark:    hsl(36 95% 44%);
@@ -144,6 +145,7 @@
   --txt-secondary: hsl(240 12% 65%);
   --txt-muted: hsl(240 8% 58%);
   --accent-text: hsl(342 82% 64%);  /* 4.89:1 on the lightest dark surface */
+  --danger-text: hsl(4 90% 66%);    /* 5.32:1 on the lightest dark surface */
   --border-color:  hsl(250 15% 20%);
   --border-color-2:hsl(250 15% 26%);
   --scrollbar-thumb:       hsl(250 15% 26%);
@@ -1035,7 +1037,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .form-feedback.valid   { color: var(--clr-sage); }
-.form-feedback.invalid { color: var(--clr-danger); }
+.form-feedback.invalid { color: var(--danger-text); }
 .form-feedback:empty   { display: none; }
 
 /* Field-level validation icon */
@@ -1448,12 +1450,12 @@ img, video { max-width: 100%; display: block; }
 
 .btn-outline-danger {
   background: transparent;
-  color: var(--clr-danger);
+  color: var(--danger-text);
   border-color: var(--clr-danger);
 }
 .btn-outline-danger:hover {
   background: hsl(4 70% 52% / 0.1);
-  color: var(--clr-danger);
+  color: var(--danger-text);
 }
 
 .btn-success { background: var(--clr-sage); color: #fff; border-color: var(--clr-sage); }
@@ -2274,7 +2276,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .modal-confirm-label strong {
-  color: var(--clr-danger);
+  color: var(--danger-text);
   letter-spacing: 0.04em;
 }
 
