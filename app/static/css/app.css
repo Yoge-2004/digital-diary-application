@@ -3541,6 +3541,12 @@ img, video { max-width: 100%; display: block; }
   margin-top: 10px;
   transition: transform 0.22s var(--ease-spring);
 }
+/* Fixed pale-yellow paper in both themes, so its text must not follow the
+   theme: in dark mode the inline var(--txt-muted) size line resolved to a
+   light grey on yellow (3.2:1). Redefine the token on the card (6.96:1). */
+.journal-paperclip-card {
+  --txt-muted: hsl(50 20% 30%);
+}
 .journal-paperclip-card:hover {
   transform: translateY(-3px) scale(1.02);
 }
