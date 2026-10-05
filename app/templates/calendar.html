@@ -52,15 +52,20 @@
       {% set is_today = (year == today_year and month == today_month and day == today_day) %}
 
       {% if count > 0 %}
+      {# The cell and the link are separate elements: role="gridcell" on the <a>
+         itself would replace its link role, so assistive tech would announce a
+         cell with no way to follow it. .cal-cell is display:contents, so the
+         link remains the grid item and layout is unchanged. #}
+      <div class="cal-cell" role="gridcell">
       <a href="/diaries?month={{ month }}&year={{ year }}&day={{ day }}"
          class="cal-day has-entries {% if is_today %}today{% endif %}"
          data-day="{{ day }}"
-         role="gridcell"
          title="{{ count }} entr{{ 'ies' if count != 1 else 'y' }} on {{ month_name }} {{ day }}"
          aria-label="{{ month_name }} {{ day }}, {{ count }} entr{{ 'ies' if count != 1 else 'y' }}{% if is_today %} (today){% endif %}">
         {{ day }}
         <span class="cal-count" aria-hidden="true">{{ count }}</span>
       </a>
+      </div>
       {% else %}
       <div class="cal-day {% if is_today %}today{% endif %}"
            data-day="{{ day }}"

@@ -233,3 +233,23 @@ def test_upload_zone_hint_is_readable_under_the_pointer_in_dark_theme(page, live
     page.wait_for_timeout(600)
     ratio = page.locator("#uploadZone div div:nth-child(3)").evaluate(CONTRAST_JS)["ratio"]
     assert ratio >= 4.5, f"{ratio:.2f}:1"
+
+
+def test_calendar_days_with_entries_are_links_inside_grid_cells(page, live_server):
+    """role="gridcell" on the <a> replaced its link role, so a screen reader
+    had a cell with nothing to follow. The cell is now a wrapper and the link
+    keeps its role -- without changing the grid layout."""
+    _signup(page, live_server)
+    _entry(page, live_server)
+    page.goto(f"{live_server}/calendar")
+    page.wait_for_selector(".cal-day.has-entries")
+    link = page.locator("a.cal-day.has-entries").first
+    assert link.get_attribute("role") is None
+    assert link.evaluate("e => e.parentElement.getAttribute('role')") == "gridcell"
+    # Exposed to assistive tech as a link, named by its aria-label.
+    assert page.get_by_role("link", name="1 entry").count() == 1
+    # Layout: the linked day is the same size as its plain neighbours (the
+    # wrapper must not become a box that shrinks the link).
+    box = link.bounding_box()
+    other = page.locator("div.cal-day:not(.empty)").first.bounding_box()
+    assert abs(box["width"] - other["width"]) < 1 and abs(box["height"] - other["height"]) < 1

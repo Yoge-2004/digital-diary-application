@@ -4153,6 +4153,7 @@ html {
 /* Calendar weeks are role=row wrappers (ARIA grid requires rows); they
    must not generate boxes or the 7-column layout breaks. */
 .cal-row { display: contents; }
+.cal-cell { display: contents; }
 
 /* Whole-card link without nesting anchors: the title is the one link and
    its ::after covers the card; secondary links (tags) sit above it. The
