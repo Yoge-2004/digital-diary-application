@@ -253,3 +253,37 @@ def test_calendar_days_with_entries_are_links_inside_grid_cells(page, live_serve
     box = link.bounding_box()
     other = page.locator("div.cal-day:not(.empty)").first.bounding_box()
     assert abs(box["width"] - other["width"]) < 1 and abs(box["height"] - other["height"]) < 1
+
+
+def test_page_turn_is_instant_and_never_flashes_the_sheet_with_reduced_motion(browser, live_server):
+    """With prefers-reduced-motion the CSS only shortened the animation, so the
+    sheet sat snapped to its end state (next page's text over the old page) for
+    ~160ms, vanished, and ~30ms later the page underneath changed: a flicker
+    of next -> old -> next. The page should simply change."""
+    from test_visual_regressions import LONG_TEXT, _make_entry, _open_entry
+
+    ctx = browser.new_context(reduced_motion="reduce", viewport={"width": 1280, "height": 900})
+    page = ctx.new_page()
+    _signup(page, live_server)
+    _open_entry(page, live_server, _make_entry(page, live_server, LONG_TEXT), (900, 1280))
+    page.click("#btnBookToggleView")
+    page.wait_for_timeout(600)
+    result = page.evaluate(
+        """async () => {
+          const overlay = document.querySelector('.page-turn-overlay');
+          let flashed = false;
+          new MutationObserver(() => { if (overlay.classList.contains('flipping')) flashed = true; })
+            .observe(overlay, { attributes: true, attributeFilter: ['class'] });
+          const label = () => document.getElementById('bookPageText').textContent.trim();
+          const before = label();
+          document.getElementById('btnBookNext').click();
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          const after = label();
+          await new Promise(r => setTimeout(r, 500));
+          return { before, after, flashed, final: label() };
+        }"""
+    )
+    ctx.close()
+    assert result["after"] != result["before"], f"page did not change within two frames: {result}"
+    assert not result["flashed"], f"turn sheet was shown with reduced motion: {result}"
+    assert result["final"] == result["after"], f"content flickered back: {result}"

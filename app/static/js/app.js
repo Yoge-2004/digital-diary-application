@@ -2132,6 +2132,16 @@
       const targetPage = direction === "next" ? currentPage + 1 : currentPage - 1;
       if (targetPage < 1 || targetPage > pages.length) return;
 
+      // No flip for people who asked for less motion. The CSS only shortens
+      // the animation to ~0, which left the sheet snapped to its end state
+      // (showing the *next* page's text) for ~160ms, then removed it ~30ms
+      // before the page underneath was swapped: next page -> old page ->
+      // next page. Skip the overlay and swap at once.
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        renderPage(targetPage);
+        return;
+      }
+
       isFlipping = true;
 
       // Prepare 3D turning faces
