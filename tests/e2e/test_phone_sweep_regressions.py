@@ -195,3 +195,29 @@ def test_calendar_days_with_entries_are_readable_in_dark_theme(page, live_server
     page.wait_for_timeout(600)
     got = _contrast(page, ".cal-day.has-entries")
     assert got["ratio"] >= 4.5, f"{got['ratio']:.2f}:1"
+
+
+def test_calendar_day_under_the_pointer_is_readable_in_dark_theme(page, live_server):
+    """:hover paints --accent-text on the accent tint, same 4.25:1 as a day
+    with entries. Found because the sweep's pointer happened to rest on a cell."""
+    page.add_init_script("localStorage.setItem('dd-theme', 'dark')")
+    page.set_viewport_size(PHONE)
+    _signup(page, live_server)
+    page.goto(f"{live_server}/calendar")
+    cell = page.locator(".cal-day:not(.empty):not(.has-entries):not(.today)").first
+    cell.hover()
+    page.wait_for_timeout(600)  # transition: all
+    ratio = cell.evaluate(CONTRAST_JS)["ratio"]
+    assert ratio >= 4.5, f"{ratio:.2f}:1"
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_forgot_password_footer_links_do_not_rely_on_colour_alone(page, live_server_factory, theme):
+    """Inline links in running text need an underline (WCAG 1.4.1); in dark
+    theme the link colour was 2.7:1 against the muted sentence around it."""
+    base = live_server_factory(smtp_host="smtp.example.invalid", smtp_from="diary@example.invalid")
+    page.add_init_script(f"localStorage.setItem('dd-theme', '{theme}')")
+    page.goto(f"{base}/forgot-password")
+    for href in ("/login", "/register"):
+        deco = page.eval_on_selector(f'.inline-links a[href="{href}"]', "e => getComputedStyle(e).textDecorationLine")
+        assert "underline" in deco, f"{href} link is not underlined ({deco})"
