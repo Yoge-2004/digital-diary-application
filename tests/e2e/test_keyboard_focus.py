@@ -109,3 +109,69 @@ def test_drawer_still_slides_closed_before_it_is_hidden(page, live_server):
     )
     assert any(-260 < x < -10 and v == "visible" for x, v in frames), f"no visible mid-slide frame: {frames}"
     assert frames[-1][1] == "hidden", f"drawer never hid after sliding: {frames}"
+
+
+def test_delete_account_modal_traps_focus_and_restores_it(page, live_server):
+    """The modal already traps Tab and handles Escape; this pins that behaviour
+    (it passes on the previous commits too -- a guard, not a bug fix). Probed
+    because a destructive-action dialog is where a leaking focus matters most."""
+    page.set_viewport_size(DESKTOP)
+    _login(page, live_server)
+    page.goto(f"{live_server}/settings")
+    page.click('.settings-tab[data-panel="danger"]')
+    page.focus("#openDeleteAccountModal")
+    page.keyboard.press("Enter")
+    page.wait_for_function("document.activeElement && document.activeElement.id === 'deleteAccountConfirmInput'")
+    for key in ["Tab"] * 6 + ["Shift+Tab"] * 6:
+        page.keyboard.press(key)
+        assert page.evaluate("!!document.activeElement.closest('.modal-panel')"), f"focus left the dialog on {key}"
+    page.keyboard.press("Escape")
+    page.wait_for_function("document.activeElement && document.activeElement.id === 'openDeleteAccountModal'")
+    assert not page.locator("#deleteAccountOverlay").is_visible()
+
+
+def _book_view(page, live_server):
+    from test_visual_regressions import LONG_TEXT, _make_entry, _open_entry
+
+    _login(page, live_server)
+    _open_entry(page, live_server, _make_entry(page, live_server, LONG_TEXT), (900, 1280))
+    page.click("#btnBookToggleView")
+    page.wait_for_timeout(700)
+    page.evaluate("window.addEventListener('keydown', e => { window.__defaultPrevented = e.defaultPrevented; })")
+
+
+def _press(page, key, focus=None):
+    if focus:
+        page.focus(focus)
+    page.evaluate("window.__defaultPrevented = 'none'")
+    page.keyboard.press(key)
+    page.wait_for_timeout(700)
+    return page.evaluate("[window.__defaultPrevented, document.getElementById('bookPageText').textContent.trim()]")
+
+
+def test_book_view_arrow_keys_turn_pages(page, live_server):
+    _book_view(page, live_server)
+    assert _press(page, "ArrowRight") == [True, "Page 2 of 3"]
+    assert _press(page, "ArrowLeft") == [True, "Page 1 of 3"]
+
+
+def test_book_view_leaves_browser_shortcuts_and_form_controls_alone(page, live_server):
+    """The window-level arrow handler called preventDefault on every arrow press
+    except inside input/textarea: Alt+Left (browser Back), Ctrl+Arrow, Shift+Arrow
+    and the share form's <select> all stopped working in book view."""
+    _book_view(page, live_server)
+    for key in ("Alt+ArrowLeft", "Alt+ArrowRight", "Control+ArrowRight", "Meta+ArrowLeft", "Shift+ArrowRight"):
+        prevented, label = _press(page, key)
+        assert prevented is False and label == "Page 1 of 3", f"{key} was hijacked: {prevented}, {label}"
+    prevented, label = _press(page, "ArrowRight", focus="#expires_in_hours")
+    assert prevented is False and label == "Page 1 of 3", f"select lost its arrow keys: {prevented}, {label}"
+
+
+def test_book_page_number_is_a_live_region(page, live_server):
+    """Turning a page replaced 'Page 1 of 3' silently: focus stays on the Next
+    button, so a screen-reader user got no confirmation the page changed. (Checks
+    the live-region markup; announcement itself needs real assistive tech.)"""
+    _book_view(page, live_server)
+    assert page.evaluate(
+        "(() => { const n = document.getElementById('bookPageText').closest('[aria-live]'); return n && n.getAttribute('aria-live'); })()"
+    ) == "polite"
