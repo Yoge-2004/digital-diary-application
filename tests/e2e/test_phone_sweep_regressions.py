@@ -33,6 +33,19 @@ CONTRAST_JS = """(el) => {
 }"""
 
 
+def _settle(page) -> None:
+    """Wait until entrance animations and transitions have finished. Contrast
+    is measured with opacity composited, so sampling mid-fade reads 1.00:1
+    (these tests did that under full-suite load when they used a fixed sleep)."""
+    page.evaluate(
+        """async () => {
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          const finite = document.getAnimations().filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+          await Promise.race([Promise.all(finite.map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 5000))]);
+        }"""
+    )
+
+
 def _signup(page, base_url: str) -> None:
     u = f"sw{uuid.uuid4().hex[:8]}"
     register_via_api(page, base_url, u, f"{u}@example.com")
@@ -62,7 +75,7 @@ def test_delete_account_confirm_word_is_readable(page, live_server, theme):
     page.click('.settings-tab[data-panel="danger"]')  # the button lives in the Danger tab
     page.click("#openDeleteAccountModal")
     page.wait_for_selector("#deleteAccountOverlay", state="visible")
-    page.wait_for_timeout(600)  # modal entrance animation
+    _settle(page)  # modal entrance animation
     got = _contrast(page, ".modal-confirm-label strong")
     assert got["ratio"] >= 4.5, f"{theme}: {got['ratio']:.2f}:1"
 
@@ -107,7 +120,7 @@ def test_autosave_indicator_is_readable(page, live_server, theme, path):
     url = f"{live_server}/diaries/new" if path == "/diaries/new" else f"{live_server}/diaries/{_entry(page, live_server)}/edit"
     page.goto(url)
     page.wait_for_selector("#autosaveIndicator")
-    page.wait_for_timeout(600)
+    _settle(page)
     got = _contrast(page, "#autosaveIndicator")
     assert got["ratio"] >= 4.5, f"{theme} {path}: {got['ratio']:.2f}:1 (opacity {got['opacity']})"
 
@@ -126,7 +139,7 @@ def test_paperclip_card_size_text_is_readable_in_dark_theme(page, live_server):
     assert r.ok, r.text()
     page.goto(f"{live_server}/diaries/{diary_id}")
     page.wait_for_selector(".journal-paperclip-card")
-    page.wait_for_timeout(600)
+    _settle(page)
     got = _contrast(page, ".journal-paperclip-card > div:nth-child(3)")
     assert got["ratio"] >= 4.5, f"{got['ratio']:.2f}:1"
 
@@ -156,7 +169,7 @@ def test_delete_account_card_in_the_danger_tab_is_readable(page, live_server, th
     _signup(page, live_server)
     page.goto(f"{live_server}/settings")
     page.click('.settings-tab[data-panel="danger"]')
-    page.wait_for_timeout(600)
+    _settle(page)
     for selector in (".danger-zone > h2", "#openDeleteAccountModal"):
         got = _contrast(page, selector)
         assert got["ratio"] >= 4.5, f"{theme} {selector}: {got['ratio']:.2f}:1"
@@ -173,7 +186,8 @@ def test_password_strength_label_and_requirements_are_readable(page, live_server
     seen = set()
     for pw in ("a", "abcdefgh", "Abcdefg1", "Abcdefg1!xyz-long"):
         page.fill("#reg-password", pw)
-        page.wait_for_timeout(500)
+        page.wait_for_timeout(500)  # strength meter updates on input
+        _settle(page)
         if page.inner_text("#pwStrengthLabel").strip():
             seen.add(page.get_attribute("#pwStrengthLabel", "data-strength"))
             got = _contrast(page, "#pwStrengthLabel")
@@ -192,7 +206,7 @@ def test_calendar_days_with_entries_are_readable_in_dark_theme(page, live_server
     _entry(page, live_server)
     page.goto(f"{live_server}/calendar")
     page.wait_for_selector(".cal-day.has-entries")
-    page.wait_for_timeout(600)
+    _settle(page)
     got = _contrast(page, ".cal-day.has-entries")
     assert got["ratio"] >= 4.5, f"{got['ratio']:.2f}:1"
 
@@ -205,8 +219,10 @@ def test_calendar_day_under_the_pointer_is_readable_in_dark_theme(page, live_ser
     _signup(page, live_server)
     page.goto(f"{live_server}/calendar")
     cell = page.locator(".cal-day:not(.empty):not(.has-entries):not(.today)").first
+    _settle(page)  # entrance animations move the grid; hover only once it is still
     cell.hover()
-    page.wait_for_timeout(600)  # transition: all
+    _settle(page)  # transition: all
+    assert cell.evaluate("e => e.matches(':hover')"), "pointer is not over the cell"
     ratio = cell.evaluate(CONTRAST_JS)["ratio"]
     assert ratio >= 4.5, f"{ratio:.2f}:1"
 
@@ -229,8 +245,10 @@ def test_upload_zone_hint_is_readable_under_the_pointer_in_dark_theme(page, live
     page.add_init_script("localStorage.setItem('dd-theme', 'dark')")
     _signup(page, live_server)
     page.goto(f"{live_server}/diaries/{_entry(page, live_server)}")
+    _settle(page)  # entrance animations move the zone; hover only once it is still
     page.locator("#uploadZone").hover(position={"x": 8, "y": 8})
-    page.wait_for_timeout(600)
+    _settle(page)
+    assert page.evaluate("document.getElementById('uploadZone').matches(':hover')"), "pointer is not over the zone"
     ratio = page.locator("#uploadZone div div:nth-child(3)").evaluate(CONTRAST_JS)["ratio"]
     assert ratio >= 4.5, f"{ratio:.2f}:1"
 
@@ -267,7 +285,7 @@ def test_page_turn_is_instant_and_never_flashes_the_sheet_with_reduced_motion(br
     _signup(page, live_server)
     _open_entry(page, live_server, _make_entry(page, live_server, LONG_TEXT), (900, 1280))
     page.click("#btnBookToggleView")
-    page.wait_for_timeout(600)
+    _settle(page)
     result = page.evaluate(
         """async () => {
           const overlay = document.querySelector('.page-turn-overlay');
