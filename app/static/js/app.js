@@ -2204,7 +2204,12 @@
 
     window.addEventListener("keydown", (e) => {
       if (isContinuous) return;
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      // Leave every browser/OS shortcut and every control that uses the arrows
+      // itself alone. Alt+Left is "Back" and Ctrl/Cmd+Arrow move by word or
+      // line; swallowing them (preventDefault) broke those, and the <select> in
+      // the share form lost its own Left/Right.
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="dialog"], [role="alertdialog"], [role="slider"]')) return;
       if (e.key === "ArrowRight") {
         e.preventDefault();
         turnPage("next");
