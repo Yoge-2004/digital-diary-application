@@ -2472,15 +2472,33 @@ img, video { max-width: 100%; display: block; }
 }
 
 /* ── Tablets (768–1023px) ── */
+/* The drawer's close button only makes sense when the sidebar is a drawer.
+   base.html gave it Bootstrap's d-lg-none, which this stylesheet never
+   defined, so it showed (and took a tab stop) on desktop. */
+.sidebar .sidebar-close-btn { display: none; }
+
 @media (max-width: 1023px) {
+  .sidebar .sidebar-close-btn { display: inline-flex; }
+
   .sidebar {
     transform: translateX(-100%);
     box-shadow: none;
+    /* Off-canvas is not hidden: its 13 links stayed in the tab order, so a
+       keyboard user pressed Tab through invisible stops (focus gone off the
+       left edge) before reaching the page, and the menu button comes after
+       them. visibility removes the closed drawer from tab order and the
+       accessibility tree; the 0s transition delayed by the slide (380ms ==
+       --t-slow's duration; the variable can't be used here, it also holds the
+       easing) keeps the close animation. */
+    visibility: hidden;
+    transition: transform var(--t-slow), visibility 0s linear 380ms, width var(--t-base), background var(--t-base), color var(--t-base);
   }
 
   .sidebar.open {
     transform: translateX(0);
     box-shadow: var(--shadow-xl);
+    visibility: visible;
+    transition: transform var(--t-slow), visibility 0s, width var(--t-base), background var(--t-base), color var(--t-base);
   }
 
   .sidebar-overlay.open {

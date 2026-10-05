@@ -138,33 +138,53 @@
     const closeBtn = $("#sidebarCloseBtn");
     if (!toggle || !sidebar) return;
 
-    toggle.addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-      overlay?.classList.toggle("open");
-      toggle.setAttribute("aria-expanded", sidebar.classList.contains("open"));
-    });
+    const main = $(".app-main");
+    const mobile = window.matchMedia("(max-width: 1023px)");
 
-    closeBtn?.addEventListener("click", closeSidebar);
-    overlay?.addEventListener("click", closeSidebar);
+    function openSidebar() {
+      sidebar.classList.add("open");
+      overlay?.classList.add("open");
+      toggle.setAttribute("aria-expanded", "true");
+      // The drawer is modal: the page behind it must not be reachable by Tab,
+      // and focus has to move into it or a keyboard user stays on the toggle.
+      if (main) main.inert = true;
+      closeBtn?.focus();
+    }
 
-    function closeSidebar() {
+    function closeSidebar(returnFocus) {
+      const hadFocus = sidebar.contains(document.activeElement);
       sidebar.classList.remove("open");
       overlay?.classList.remove("open");
       toggle.setAttribute("aria-expanded", "false");
+      if (main) main.inert = false;
+      // Put focus back where the user opened it (otherwise it falls to <body>
+      // and the next Tab starts from the top of the page).
+      if (returnFocus || hadFocus) toggle.focus();
     }
+
+    toggle.addEventListener("click", () => {
+      if (sidebar.classList.contains("open")) closeSidebar(true); else openSidebar();
+    });
+    closeBtn?.addEventListener("click", () => closeSidebar(true));
+    overlay?.addEventListener("click", () => closeSidebar(false));
 
     // Escape key closes mobile sidebar
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && sidebar.classList.contains("open")) {
-        closeSidebar();
+        closeSidebar(true);
       }
+    });
+
+    // Rotating/resizing to desktop with the drawer open would leave the page inert.
+    mobile.addEventListener("change", (e) => {
+      if (!e.matches && sidebar.classList.contains("open")) closeSidebar(false);
     });
 
     // Swipe left to close on mobile
     let touchStartX = 0;
     sidebar.addEventListener("touchstart", (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
     sidebar.addEventListener("touchend", (e) => {
-      if (touchStartX - e.changedTouches[0].screenX > 60) closeSidebar();
+      if (touchStartX - e.changedTouches[0].screenX > 60) closeSidebar(true);
     }, { passive: true });
   }
 
