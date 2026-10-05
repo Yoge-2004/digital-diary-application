@@ -221,3 +221,15 @@ def test_forgot_password_footer_links_do_not_rely_on_colour_alone(page, live_ser
     for href in ("/login", "/register"):
         deco = page.eval_on_selector(f'.inline-links a[href="{href}"]', "e => getComputedStyle(e).textDecorationLine")
         assert "underline" in deco, f"{href} link is not underlined ({deco})"
+
+
+def test_upload_zone_hint_is_readable_under_the_pointer_in_dark_theme(page, live_server):
+    """Hover/drag tints the zone with the accent colour, which is lighter than
+    the surfaces --txt-muted was tuned for: 4.18:1 (desktop sweep)."""
+    page.add_init_script("localStorage.setItem('dd-theme', 'dark')")
+    _signup(page, live_server)
+    page.goto(f"{live_server}/diaries/{_entry(page, live_server)}")
+    page.locator("#uploadZone").hover(position={"x": 8, "y": 8})
+    page.wait_for_timeout(600)
+    ratio = page.locator("#uploadZone div div:nth-child(3)").evaluate(CONTRAST_JS)["ratio"]
+    assert ratio >= 4.5, f"{ratio:.2f}:1"
