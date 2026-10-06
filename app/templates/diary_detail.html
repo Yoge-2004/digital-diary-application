@@ -30,7 +30,8 @@
       <div class="diary-ribbon-bookmark {% if diary.is_bookmarked %}bookmarked{% endif %}"
            id="diaryRibbonBookmark"
            title="{{ 'Bookmarked entry — click to unbookmark' if diary.is_bookmarked else 'Click to bookmark this entry' }}"
-           aria-label="Bookmark ribbon"
+           aria-label="Bookmark"
+           aria-pressed="{{ 'true' if diary.is_bookmarked else 'false' }}"
            role="button"
            tabindex="0">
         <div class="ribbon-strap"></div>

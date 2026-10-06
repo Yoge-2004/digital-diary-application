@@ -1354,6 +1354,7 @@
           if (ribbon) {
             ribbon.classList.toggle("bookmarked", isOn);
             ribbon.setAttribute("title", isOn ? "Bookmarked entry — click to unbookmark" : "Click to bookmark this entry");
+            ribbon.setAttribute("aria-pressed", isOn ? "true" : "false");
           }
         }
 
