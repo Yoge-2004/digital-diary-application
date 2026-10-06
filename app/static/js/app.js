@@ -1230,16 +1230,6 @@
   };
 
   // ══════════════════════════════════════════════════════════
-  //  Topbar search live submit on Enter
-  // ══════════════════════════════════════════════════════════
-  function initTopbarSearch() {
-    const form = document.getElementById("topbarSearchForm");
-    form?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); form.submit(); }
-    });
-  }
-
-  // ══════════════════════════════════════════════════════════
   //  AJAX Toast — bottom-right pop-up feedback
   // ══════════════════════════════════════════════════════════
   function showToast(message, type = "success", durationMs = 3200) {
@@ -1864,7 +1854,6 @@
     initNotificationSettings();
     initActiveNav();
     initCountUp();
-    initTopbarSearch();
     initAjaxToggles();
     initAutoResize();
     initAjaxUpload();
