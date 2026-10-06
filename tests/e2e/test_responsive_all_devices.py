@@ -108,7 +108,9 @@ def test_sidebar_drawer_behavior_by_device_width(page, live_server, width):
         toggle.click()
         page.wait_for_timeout(500)
         open_box = sidebar.bounding_box()
-        assert open_box["x"] >= 0, f"Sidebar should be visible when opened at {width}px"
+        # An eased slide approaches 0 asymptotically: under a loaded suite run it
+        # read -0.0013px at 500ms, so allow sub-pixel slack rather than exactly 0.
+        assert open_box["x"] >= -1, f"Sidebar should be visible when opened at {width}px"
         assert overlay.is_visible(), f"Overlay should be visible when sidebar is open at {width}px"
 
         # Clicking backdrop closes sidebar
