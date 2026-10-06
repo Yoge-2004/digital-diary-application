@@ -131,6 +131,47 @@
   // ══════════════════════════════════════════════════════════
   //  Sidebar mobile toggle
   // ══════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════
+  //  Island quick-nav (disclosure pattern)
+  // ══════════════════════════════════════════════════════════
+  function initIsland() {
+    const island = $("#island");
+    const toggle = $("#islandToggle");
+    if (!island || !toggle) return;
+
+    function setOpen(open, returnFocus) {
+      island.classList.toggle("is-open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (!open && returnFocus) toggle.focus();
+    }
+
+    toggle.addEventListener("click", () => setOpen(!island.classList.contains("is-open")));
+
+    // Escape closes and puts focus back on the pill if it was inside the menu.
+    island.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && island.classList.contains("is-open")) {
+        e.stopPropagation();
+        setOpen(false, island.contains(document.activeElement));
+      }
+    });
+    // Tabbing out of either end closes it. Tabbing off the last item can leave
+    // the page entirely (relatedTarget is null), so null counts as "left" --
+    // except while the pointer is pressed inside the island, where it only
+    // means the click landed on a non-focusable gap.
+    let pressing = false;
+    island.addEventListener("pointerdown", () => { pressing = true; });
+    document.addEventListener("pointerup", () => { setTimeout(() => { pressing = false; }, 0); });
+    island.addEventListener("focusout", (e) => {
+      if (pressing || !island.classList.contains("is-open")) return;
+      if (!e.relatedTarget || !island.contains(e.relatedTarget)) setOpen(false, false);
+    });
+    document.addEventListener("pointerdown", (e) => {
+      if (island.classList.contains("is-open") && !island.contains(e.target)) setOpen(false, false);
+    });
+    // A page restored from the back/forward cache must not come back open.
+    window.addEventListener("pageshow", (e) => { if (e.persisted) setOpen(false, false); });
+  }
+
   function initSidebar() {
     const toggle = $("#sidebarToggle");
     const sidebar = $("#appSidebar");
@@ -1833,6 +1874,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     initRipple();
     initSidebar();
+    initIsland();
     initFlash();
     initCopyShareLink();
     initPasswordToggle();

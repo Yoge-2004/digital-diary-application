@@ -4198,3 +4198,131 @@ html {
   --border-color: hsl(240 12% 89%);
   --accent-text: var(--clr-accent-dark);
 }
+
+/* ============================================================
+   Island quick-nav (Dynamic-Island style floating menu)
+   ------------------------------------------------------------
+   A dark pill, bottom-centre of the content area, that morphs into a
+   grid of destinations. Always ink-black in both themes (like the
+   hardware it imitates), so its text tokens are defined on the element
+   rather than inherited from the theme.
+   ============================================================ */
+.island {
+  --island-bg: #0c0c12;
+  --island-fg: #f5f5fa;
+  --island-muted: #b9b9cc;
+  --island-hover: rgb(255 255 255 / 0.12);
+  --island-active: rgb(255 255 255 / 0.18);
+  --island-accent: hsl(342 90% 80%);
+  --island-closed-w: 188px;
+  --island-open-w: min(calc(100vw - 24px), 372px);
+  --island-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --island-dur: 460ms;
+
+  position: fixed;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 250;
+  width: var(--island-closed-w);
+  background: var(--island-bg);
+  color: var(--island-fg);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.28), 0 2px 6px rgb(0 0 0 / 0.2);
+  transition: width var(--island-dur) var(--island-ease), border-radius var(--island-dur) var(--island-ease);
+}
+@media (min-width: 1024px) {
+  /* centre on the content area, not the viewport (the sidebar takes 270px) */
+  .island { left: calc(50% + var(--sidebar-w) / 2); }
+}
+.island.is-open { width: var(--island-open-w); border-radius: 28px; }
+
+.island-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  height: 40px;
+  padding: 0 0.95rem;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.island-pill:focus-visible,
+.island-item:focus-visible { outline: 2px solid var(--island-accent); outline-offset: -3px; }
+.island-current { display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.island-current span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.island-chevron { font-size: 0.8rem; color: var(--island-muted); transition: transform var(--island-dur) var(--island-ease); }
+.island.is-open .island-chevron { transform: rotate(180deg); }
+
+/* The menu grows from 0 height (grid-rows trick) and is `visibility:hidden`
+   while closed so its links are neither tabbable nor announced; the hide is
+   delayed by the close animation so it still plays. */
+.island-menu {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows var(--island-dur) var(--island-ease), visibility 0s linear 460ms;
+}
+.island.is-open .island-menu {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows var(--island-dur) var(--island-ease), visibility 0s;
+}
+.island-menu-inner { overflow: hidden; min-height: 0; }
+.island-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px 10px 12px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 220ms ease, transform var(--island-dur) var(--island-ease);
+}
+.island.is-open .island-grid { opacity: 1; transform: none; transition-delay: 90ms; }
+
+.island-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 58px;
+  padding: 8px 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 16px;
+  color: var(--island-fg);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.island-item i { font-size: 1.15rem; line-height: 1; }
+.island-item:hover { background: var(--island-hover); }
+.island-item[aria-current="page"] { background: var(--island-active); color: var(--island-accent); }
+/* the shared .theme-toggle rule styles the topbar button; neutralise it here */
+.island .theme-toggle { border: 0; box-shadow: none; padding: 8px 2px; width: auto; height: auto; }
+
+[data-theme="dark"] .island { border-color: rgb(255 255 255 / 0.14); box-shadow: 0 10px 30px rgb(0 0 0 / 0.55); }
+
+/* keep the last content clear of the floating pill (40px + 14px offset + air) */
+.app-main.has-island { padding-bottom: 76px; }
+@media (max-width: 767px) {
+  /* toasts sit bottom-right; lift them above the pill on narrow screens */
+  body:has(.island) .ajax-toast { bottom: calc(1.5rem + 62px); }
+}
+@media print { .island { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .island, .island-chevron, .island-menu, .island-grid, .island-item { transition: none !important; }
+}
