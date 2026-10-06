@@ -175,3 +175,40 @@ def test_book_page_number_is_a_live_region(page, live_server):
     assert page.evaluate(
         "(() => { const n = document.getElementById('bookPageText').closest('[aria-live]'); return n && n.getAttribute('aria-live'); })()"
     ) == "polite"
+
+
+def test_topbar_search_enter_submits_but_ime_composition_does_not(page, live_server):
+    """A keydown handler called form.submit() on every Enter, including the one
+    that commits an IME composition, so typing CJK text submitted a half-typed
+    query. Native implicit submission handles both correctly."""
+    _login(page, live_server)
+    page.goto(f"{live_server}/dashboard")
+    page.fill("#topbarSearchInput", "ni")
+    # Enter that ends a composition arrives with isComposing=true (synthetic here:
+    # a real IME can't be driven from Playwright).
+    page.evaluate(
+        "document.getElementById('topbarSearchInput').dispatchEvent("
+        "new KeyboardEvent('keydown', {key: 'Enter', isComposing: true, bubbles: true, cancelable: true}))"
+    )
+    page.wait_for_timeout(700)
+    assert "/search" not in page.url, f"IME-commit Enter submitted the search: {page.url}"
+    page.focus("#topbarSearchInput")
+    page.keyboard.press("Enter")
+    page.wait_for_url("**/search?q=ni")
+
+
+def test_bookmark_ribbon_exposes_its_state(page, live_server):
+    """The ribbon is role=button but its state lived only in a class and a title,
+    so assistive tech had a bare 'Bookmark ribbon' button. aria-pressed now
+    follows the real toggle, from the keyboard too."""
+    from test_visual_regressions import LONG_TEXT, _make_entry, _open_entry
+
+    _login(page, live_server)
+    _open_entry(page, live_server, _make_entry(page, live_server, LONG_TEXT), (900, 1280))
+    ribbon = page.locator("#diaryRibbonBookmark")
+    assert ribbon.get_attribute("aria-pressed") == "false"
+    ribbon.focus()
+    page.keyboard.press("Enter")
+    page.wait_for_function("document.getElementById('diaryRibbonBookmark').getAttribute('aria-pressed') === 'true'")
+    page.keyboard.press("Space")
+    page.wait_for_function("document.getElementById('diaryRibbonBookmark').getAttribute('aria-pressed') === 'false'")
