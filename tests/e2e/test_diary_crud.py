@@ -113,7 +113,12 @@ def test_ruled_line_alignment_view_page(page, live_server):
     plausible value, not that the pixels are visually perfect (that part
     still needs a human/visual check) -- it catches the JS silently
     failing to run or the CSS var never being consumed, which is exactly
-    the class of regression a future refactor could reintroduce."""
+    the class of regression a future refactor could reintroduce.
+
+    Where the letters actually sit relative to the rules is asserted in
+    test_visual_regressions.py; a plausible-range check alone passed for
+    the original 13px-off value too. --rule-offset is normalised into
+    (-lineHeight, 0] (see align() in app.js), hence the negative range."""
     _login_fresh_user(page, live_server, "ruled")
     title = _uniq("Ruled Line Entry ")
     _create_entry(page, live_server, title, "Checking the ruled line offset on this entry.")
@@ -126,7 +131,7 @@ def test_ruled_line_alignment_view_page(page, live_server):
     )
     assert offset.strip() != "", "‑-rule-offset was never set — initRuledLineAlignment did not run"
     px_value = float(offset.strip().replace("px", ""))
-    assert 0 < px_value < 60, f"--rule-offset ({offset}) is outside a plausible range for this font/size"
+    assert -60 < px_value <= 0, f"--rule-offset ({offset}) is outside the expected (-lineHeight, 0] range"
 
 
 def test_ruled_line_alignment_edit_page(page, live_server):
@@ -138,4 +143,4 @@ def test_ruled_line_alignment_edit_page(page, live_server):
     )
     assert offset.strip() != "", "--rule-offset was never set on .journal-textarea"
     px_value = float(offset.strip().replace("px", ""))
-    assert 0 < px_value < 60, f"--rule-offset ({offset}) is outside a plausible range for this font/size"
+    assert -60 < px_value <= 0, f"--rule-offset ({offset}) is outside the expected (-lineHeight, 0] range"

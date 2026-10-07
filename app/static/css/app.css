@@ -45,6 +45,10 @@
   --clr-ink-light:    hsl(240 20% 96%);      /* Cool grey-blue tint */
   --clr-accent:       hsl(342 82% 46%);      /* Confession crimson -- full saturation, tuned to clear 4.5:1 with white button text */
   --clr-accent-dark:  hsl(342 85% 37%);
+  /* Accent as *text*. --clr-accent-dark is a hover/background shade, and darkening an
+     accent is the wrong direction for text on a dark surface (hsl(342 82% 38%)
+     was 2.75:1 there); dark mode gets a lighter tint instead. */
+  --accent-text: var(--clr-accent-dark);
   --clr-accent-light: hsl(342 75% 96%);
   --clr-gold:         hsl(40 100% 54%);      /* Vivid amber-gold -- secondary accent */
   --clr-gold-dark:    hsl(36 95% 44%);
@@ -96,6 +100,11 @@
     0 0 0 1px hsl(240 15% 86% / 0.6),
     inset 0 1px 0 hsl(0 0% 100% / 0.7);
 
+  /* ── Scrollbar (theme-adaptive) ── */
+  --scrollbar-thumb:       hsl(240 12% 80%);
+  --scrollbar-thumb-hover: hsl(240 12% 68%);
+  --scrollbar-track:       transparent;
+
   /* ── Spacing system ── */
   --sidebar-w:   270px;
   --sidebar-w-lg:300px;
@@ -133,9 +142,12 @@
   --auth-side-bg: linear-gradient(160deg, hsl(342 45% 14%) 0%, hsl(255 35% 16%) 50%, hsl(40 55% 18%) 100%);
   --txt-primary:   hsl(240 25% 92%);
   --txt-secondary: hsl(240 12% 65%);
-  --txt-muted:     hsl(240 8% 46%);
+  --txt-muted: hsl(240 8% 58%);
+  --accent-text: hsl(342 82% 64%);  /* 4.89:1 on the lightest dark surface */
   --border-color:  hsl(250 15% 20%);
   --border-color-2:hsl(250 15% 26%);
+  --scrollbar-thumb:       hsl(250 15% 26%);
+  --scrollbar-thumb-hover: hsl(250 15% 36%);
   --clr-accent:       hsl(342 85% 46%);
   --clr-accent-dark:  hsl(342 82% 38%);
   --clr-ink-light: hsl(250 25% 18%);
@@ -297,7 +309,7 @@ body {
 }
 
 a { color: var(--txt-primary); text-decoration: none; transition: color var(--t-fast); }
-a:hover:not(.btn) { color: var(--clr-accent-dark); }
+a:hover:not(.btn) { color: var(--accent-text); }
 
 img, video { max-width: 100%; display: block; }
 
@@ -324,7 +336,7 @@ img, video { max-width: 100%; display: block; }
   overflow-x: hidden;
   transition: transform var(--t-slow), width var(--t-base), background var(--t-base), color var(--t-base);
   scrollbar-width: thin;
-  scrollbar-color: var(--chrome-border) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .sidebar-logo {
@@ -471,9 +483,9 @@ img, video { max-width: 100%; display: block; }
   flex-shrink: 0;
 }
 
-/* Sidebar scrollbar */
+/* Sidebar scrollbar: narrower than the global 10px, same theme-adaptive color */
 .sidebar::-webkit-scrollbar { width: 4px; }
-.sidebar::-webkit-scrollbar-thumb { background: hsl(20 30% 25%); border-radius: 2px; }
+.sidebar::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb); border-radius: 2px; }
 
 /* ── Main Content ── */
 .app-main {
@@ -628,7 +640,7 @@ img, video { max-width: 100%; display: block; }
 .handwritten {
   font-family: var(--font-hand);
   font-size: 1.1em;
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
 }
 
 /* ============================================================
@@ -822,7 +834,7 @@ img, video { max-width: 100%; display: block; }
   transition: color var(--t-fast);
 }
 
-.diary-card-title:hover { color: var(--clr-accent-dark); }
+.diary-card-title:hover { color: var(--accent-text); }
 
 .diary-card-excerpt {
   font-family: var(--font-serif);
@@ -872,16 +884,16 @@ img, video { max-width: 100%; display: block; }
 /* ============================================================
    Mood system
    ============================================================ */
-.mood--happy      { --mc: hsl(38 95% 52%); }
-.mood--sad        { --mc: hsl(210 60% 56%); }
-.mood--neutral    { --mc: hsl(25 15% 65%); }
-.mood--angry      { --mc: hsl(4 70% 52%); }
-.mood--anxious    { --mc: hsl(270 55% 58%); }
-.mood--excited    { --mc: hsl(320 65% 58%); }
-.mood--grateful   { --mc: hsl(145 45% 48%); }
-.mood--calm       { --mc: hsl(185 50% 50%); }
-.mood--melancholy { --mc: hsl(220 40% 55%); }
-.mood--hopeful    { --mc: hsl(75 55% 48%); }
+.mood--happy      { --mc: hsl(38 95% 52%); --mc-ink: #1a1624; }
+.mood--sad        { --mc: hsl(210 60% 56%); --mc-ink: #1a1624; }
+.mood--neutral    { --mc: hsl(25 15% 65%); --mc-ink: #1a1624; }
+.mood--angry      { --mc: hsl(4 70% 52%); --mc-ink: #fff; --mc-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.mood--anxious    { --mc: hsl(270 55% 58%); --mc-ink: #fff; --mc-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.mood--excited    { --mc: hsl(320 65% 58%); --mc-ink: #1a1624; }
+.mood--grateful   { --mc: hsl(145 45% 48%); --mc-ink: #1a1624; }
+.mood--calm       { --mc: hsl(185 50% 50%); --mc-ink: #1a1624; }
+.mood--melancholy { --mc: hsl(220 40% 47%); --mc-ink: #fff; --mc-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.mood--hopeful    { --mc: hsl(75 55% 48%); --mc-ink: #1a1624; }
 
 .mood-badge {
   display: inline-flex;
@@ -891,11 +903,17 @@ img, video { max-width: 100%; display: block; }
   border-radius: 2rem;
   font-size: 0.7rem;
   font-weight: 700;
-  background: var(--mc, var(--txt-muted));
-  color: #fff;
+  /* Fallback for a mood with no colour of its own (the API accepts any mood
+     string up to 50 chars). It must NOT be --txt-muted: that token is tuned
+     for text on dark surfaces and, as a background in dark mode, put white
+     ink at 3.3:1. This is 5.9:1 with white in either theme. */
+  background: var(--mc, hsl(240 8% 42%));
+  /* Ink is per mood: white on amber/teal/green was 2.0-3.7:1. Each mood
+     now uses whichever of white / dark gives >= 4.5:1 on its colour. */
+  color: var(--mc-ink, #fff);
   text-transform: capitalize;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 2px rgba(0,0,0,.2);
+  text-shadow: var(--mc-shadow, none);
 }
 
 /* ── Tag badges ── */
@@ -1203,7 +1221,7 @@ img, video { max-width: 100%; display: block; }
 
 .mood-option:hover {
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   background: var(--clr-accent-light);
 }
 
@@ -1214,7 +1232,7 @@ img, video { max-width: 100%; display: block; }
 .mood-option.selected {
   border-color: var(--clr-accent);
   background: var(--clr-accent-light);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   box-shadow: 0 0 0 2px var(--clr-accent);
 }
 
@@ -1306,7 +1324,7 @@ img, video { max-width: 100%; display: block; }
   white-space: nowrap;
 }
 
-.step.active .step-label { color: var(--clr-accent-dark); }
+.step.active .step-label { color: var(--accent-text); }
 
 /* ============================================================
    Buttons
@@ -1529,7 +1547,7 @@ img, video { max-width: 100%; display: block; }
 
 .theme-toggle:hover {
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   background: var(--clr-accent-light);
 }
 
@@ -1613,31 +1631,13 @@ img, video { max-width: 100%; display: block; }
 /* ============================================================
    Diary Content (Reading / Writing)
    ============================================================ */
-.diary-reading {
-  font-family: var(--font-serif);
-  font-size: clamp(1rem, 2vw, 1.1rem);
-  line-height: 1.9;
-  color: var(--txt-primary);
-  white-space: pre-wrap;
-  word-break: break-word;
-  padding: 0.5rem 0;
-  /* Subtle ruled-line feel. --rule-offset is measured live from the
-     real rendered text baseline by initRuledLineAlignment() in app.js
-     (see that function for why: a hardcoded value here always drifts
-     the moment font-size/line-height/padding change, which is exactly
-     what kept putting the line a few px away from the actual text).
-     The em fallback below only paints for the instant before that JS
-     runs on first load. */
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent calc(1.9em - 1px),
-    hsl(38 25% 90% / 0.5) calc(1.9em - 1px),
-    hsl(38 25% 90% / 0.5) 1.9em
-  );
-  background-position-y: var(--rule-offset, 1.45em);
-  background-attachment: local;
-}
+/* (The .diary-reading ruled-line/font rules live further down, in the
+   "full journal feel" section -- this used to be a second, complete
+   .diary-reading block right here, from before that redesign. Same
+   selector, same specificity, so the later block silently won on
+   every property; this one never actually rendered. Removed rather
+   than left as a trap for the next person debugging ruled-line
+   spacing, who'd have had a 50/50 chance of editing the dead copy. )*/
 
 [data-theme="dark"] .diary-reading {
   background-image: repeating-linear-gradient(
@@ -1717,7 +1717,7 @@ img, video { max-width: 100%; display: block; }
 .cal-day:hover {
   background: var(--clr-accent-light);
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
 }
 
 .cal-day.empty { cursor: default; pointer-events: none; }
@@ -1733,7 +1733,7 @@ img, video { max-width: 100%; display: block; }
 .cal-day.has-entries {
   background: var(--clr-accent-light);
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   font-weight: 700;
 }
 
@@ -1875,6 +1875,8 @@ img, video { max-width: 100%; display: block; }
   align-items: center;
   gap: 0.6rem;
   background: #fff;
+  /* Fixed white pill: needs the *dark* crimson in both themes. --accent-text
+     is the light tint for dark surfaces (3.3:1 here). */
   color: var(--clr-accent-dark);
   font-size: 0.75rem;
   font-weight: 700;
@@ -2057,7 +2059,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .settings-tab:hover { color: var(--txt-primary); }
-.settings-tab.active { color: var(--clr-accent-dark); border-bottom-color: var(--clr-accent); }
+.settings-tab.active { color: var(--accent-text); border-bottom-color: var(--clr-accent); }
 
 .settings-panel { display: none; animation: fadeUp 0.3s var(--ease-out) both; }
 .settings-panel.active { display: block; }
@@ -2076,7 +2078,7 @@ img, video { max-width: 100%; display: block; }
 
 .text-muted     { color: var(--txt-muted) !important; }
 .text-secondary { color: var(--txt-secondary) !important; }
-.text-accent    { color: var(--clr-accent-dark) !important; }
+.text-accent    { color: var(--accent-text) !important; }
 .text-hand      { font-family: var(--font-hand) !important; }
 .text-display   { font-family: var(--font-display) !important; }
 
@@ -2612,7 +2614,7 @@ img, video { max-width: 100%; display: block; }
   background: 
     radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%),
     repeating-radial-gradient(hsl(25 20% 10% / 0.02) 0 1px, transparent 1px 4px),
-    hsl(40 35% 97%);
+    hsl(40 28% 98%);
   background-size: 100% 100%, 6px 6px, auto;
   border-radius: var(--border-radius);
   box-shadow:
@@ -2629,12 +2631,19 @@ img, video { max-width: 100%; display: block; }
 
 
 [data-theme="dark"] .journal-page {
+  /* Matches .journal-book-container .journal-page's dark background
+     (used on the diary *reading* page). This plain .journal-page rule
+     is what actually applies on the write/edit form instead, which
+     isn't wrapped in .journal-book-container -- it was still hsl(25
+     ...), the warm-brown tone from before the "Confession Ink"
+     redesign, so writing an entry in dark mode showed a visibly
+     different page color than reading it back afterward. */
   background:
-    radial-gradient(circle at 50% 50%, hsl(25 15% 18% / 0.4) 0%, transparent 100%),
+    radial-gradient(circle at 50% 50%, hsl(250 20% 16% / 0.4) 0%, transparent 100%),
     repeating-radial-gradient(hsl(0 0% 0% / 0.15) 0 1px, transparent 1px 4px),
-    hsl(25 15% 12%);
+    hsl(252 22% 11%);
   background-size: 100% 100%, 6px 6px, auto;
-  border-color: hsl(25 15% 22%);
+  border-color: hsl(250 16% 22%);
   box-shadow:
     -6px 0 12px hsl(0 0% 0% / 0.3),
     0 4px 24px  hsl(0 0% 0% / 0.4),
@@ -2666,7 +2675,7 @@ img, video { max-width: 100%; display: block; }
 [data-theme="dark"] .journal-page::before {
   background-image: repeating-radial-gradient(
     circle at 7px 50%,
-    hsl(25 15% 30%) 0 5px,
+    hsl(250 15% 30%) 0 5px,
     transparent 5px 28px
   );
 }
@@ -2805,7 +2814,7 @@ img, video { max-width: 100%; display: block; }
 .journal-datestamp {
   font-family: var(--font-hand);
   font-size: clamp(1rem, 2.5vw, 1.2rem);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -2880,7 +2889,7 @@ img, video { max-width: 100%; display: block; }
 
 .mood-pill:hover {
   border-color: var(--clr-accent);
-  color: var(--clr-accent-dark);
+  color: var(--accent-text);
 }
 
 .mood-pill.selected {
@@ -3217,16 +3226,25 @@ img, video { max-width: 100%; display: block; }
   inset: 0;
   transform-style: preserve-3d;
   transform-origin: left center;
+  /* hsl(40 28% 98%) matches .journal-book-container .journal-page's
+     current light-mode background exactly, so the turning page and
+     the settled page are the same parchment tone throughout the
+     animation, not just after it. */
   background: 
     radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%),
-    hsl(40 35% 97%);
+    hsl(40 28% 98%);
   border-left: 2px solid hsl(38 30% 70% / 0.4);
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }
 
 [data-theme="dark"] .page-turn-sheet {
-  background: hsl(25 15% 12%);
-  border-left-color: hsl(25 15% 25%);
+  /* Matches .journal-book-container .journal-page's dark background
+     (hsl(252 ...), the cool-violet "Confession Ink" tone) -- this used
+     to be hsl(25 ...), a warm brown left over from before that
+     redesign, so turning a page in dark mode flashed the old palette
+     for the split second the animation is on screen. */
+  background: hsl(252 22% 11%);
+  border-left-color: hsl(250 15% 22%);
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }
 
@@ -3269,7 +3287,10 @@ img, video { max-width: 100%; display: block; }
 .turn-face {
   position: absolute;
   inset: 0;
-  padding: 1rem 2rem 2rem 3.75rem;
+  /* Same padding as .diary-reading: this sheet is laid over the page
+     during a flip, and with different padding-top the text jumped a few
+     px the instant the flip finished. */
+  padding: 0.75rem 2rem 2.5rem 3.75rem;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   overflow: hidden;
@@ -3278,27 +3299,44 @@ img, video { max-width: 100%; display: block; }
   line-height: 2;
   white-space: pre-wrap;
   word-break: break-word;
+  /* Paint = paper colour + glow + margin line + ruled lines, all in ONE
+     background-image list built from the custom properties below. This
+     used to be split: .turn-face added the lines via background-image,
+     but .turn-face-front/-back (later in the file, same specificity)
+     declared the `background` *shorthand*, which resets background-image
+     -- so the lines never rendered on desktop at all. Keeping every
+     layer here, and letting the theme/face rules only change the
+     variables, means nothing later can silently wipe the list.
+     Same 2em spacing as .diary-reading; this sheet is filled with real
+     page text mid-flip (turnFront/turnBack in initDiaryBookPaging). */
+  --face-margin: linear-gradient(90deg, transparent 3.25rem, hsl(350 70% 60% / 0.32) 3.25rem, hsl(350 70% 60% / 0.32) calc(3.25rem + 1.5px), transparent calc(3.25rem + 1.5px));
+  --face-rules: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2em - 1px), hsl(220 25% 86% / 0.55) calc(2em - 1px), hsl(220 25% 86% / 0.55) 2em);
+  --face-glow: radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%);
+  --face-paper: hsl(40 28% 98%);
+  background-color: var(--face-paper);
+  background-image: var(--face-margin), var(--face-rules), var(--face-glow);
+  /* rules follow --rule-offset; the glow stays put */
+  background-position-y: var(--rule-offset, 1.5em), var(--rule-offset, 1.5em), 0;
+  background-attachment: local;
+}
+[data-theme="dark"] .turn-face {
+  /* Same violet as .journal-book-container .journal-page (see the
+     stale-palette fix on .page-turn-sheet above) */
+  --face-rules: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2em - 1px), hsl(0 0% 100% / 0.06) calc(2em - 1px), hsl(0 0% 100% / 0.06) 2em);
+  --face-glow: none;
+  --face-paper: hsl(252 22% 11%);
 }
 
-.turn-face-front {
-  transform: rotateY(0deg);
-  background: 
-    radial-gradient(circle at 50% 50%, hsl(40 30% 100% / 0.5) 0%, transparent 100%),
-    hsl(40 35% 97%);
-}
+.turn-face-front { transform: rotateY(0deg); }
 
 .turn-face-back {
   transform: rotateY(180deg);
-  background: 
-    radial-gradient(circle at 50% 50%, hsl(40 30% 95% / 0.5) 0%, transparent 100%),
-    hsl(40 30% 94%);
-}
-
-[data-theme="dark"] .turn-face-front {
-  background: hsl(25 15% 12%);
+  --face-glow: radial-gradient(circle at 50% 50%, hsl(40 30% 95% / 0.5) 0%, transparent 100%);
+  --face-paper: hsl(40 25% 95%);
 }
 [data-theme="dark"] .turn-face-back {
-  background: hsl(25 15% 10%);
+  --face-glow: none;
+  --face-paper: hsl(252 20% 9%);
 }
 
 /* Corner Dog-ear Turn Curls */
@@ -3336,10 +3374,11 @@ img, video { max-width: 100%; display: block; }
 }
 
 [data-theme="dark"] .book-corner-curl.corner-next {
-  background: linear-gradient(135deg, transparent 50%, hsl(25 15% 25% / 0.85) 50%, hsl(25 15% 18%) 100%);
+  /* Same stale-palette fix as .page-turn-sheet above */
+  background: linear-gradient(135deg, transparent 50%, hsl(250 15% 24% / 0.85) 50%, hsl(250 15% 16%) 100%);
 }
 [data-theme="dark"] .book-corner-curl.corner-prev {
-  background: linear-gradient(225deg, transparent 50%, hsl(25 15% 25% / 0.85) 50%, hsl(25 15% 18%) 100%);
+  background: linear-gradient(225deg, transparent 50%, hsl(250 15% 24% / 0.85) 50%, hsl(250 15% 16%) 100%);
 }
 
 /* Journal Book Navigation Bar */
@@ -3377,7 +3416,7 @@ img, video { max-width: 100%; display: block; }
   max-height: clamp(380px, 58vh, 640px);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: hsl(38 25% 75%) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 /* ── Diary reading area (full journal feel) ── */
@@ -3386,7 +3425,13 @@ img, video { max-width: 100%; display: block; }
   font-size: clamp(1.15rem, 2.5vw, 1.35rem);
   line-height: 2;
   color: var(--txt-primary);
-  white-space: pre-wrap;
+  /* NOT pre-wrap here: it's inherited by every child, so the
+     whitespace-only text nodes between the template's tags (newline +
+     indentation) each rendered as real blank lines -- two full
+     line-heights above the entry text and about six after it, before
+     the end flourish. Only #diaryContentRaw holds the entry text and
+     needs its newlines preserved; see .diary-content-raw below. */
+  white-space: normal;
   word-break: break-word;
   padding: 0.75rem 2rem 2.5rem 3.75rem;
   letter-spacing: 0.02em;
@@ -3404,6 +3449,8 @@ img, video { max-width: 100%; display: block; }
   background-attachment: local;
   min-height: 240px;
 }
+
+.diary-content-raw { white-space: pre-wrap; }
 
 [data-theme="dark"] .diary-reading {
   background-image:
@@ -3606,7 +3653,7 @@ img, video { max-width: 100%; display: block; }
 .btn-toggle-active {
   background: var(--clr-accent-light) !important;
   border-color: var(--clr-accent) !important;
-  color: var(--clr-accent-dark) !important;
+  color: var(--accent-text) !important;
 }
 
 .btn-toggle-active-green {
@@ -4039,7 +4086,30 @@ img, video { max-width: 100%; display: block; }
   border-bottom-color: var(--border-color);
 }
 ::selection { background: hsl(38 70% 55% / .35); color: var(--clr-ink); }
-.page-content { scrollbar-width: thin; scrollbar-color: hsl(38 30% 70%) transparent; }
+
+/* Scrollbars everywhere, theme-adaptive: this used to be a handful of
+   separate rules (.sidebar, .journal-paper, .page-content, ...), most
+   hardcoded to one warm-tan tone that never changed between light and
+   dark and had no Chrome/Safari/Edge (::-webkit-scrollbar) equivalent
+   at all -- so most scrollbars in the app fell back to the bare OS
+   default, and the couple that were styled via the Firefox-only
+   scrollbar-color stayed the same stale color in dark mode. One rule,
+   driven by the --scrollbar-thumb variables (defined in :root and
+   redefined for [data-theme="dark"]), covers both scrollbar
+   mechanisms and every element at once. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
 
 @keyframes modalBackdropFade {
   from { opacity: 0; }
@@ -4049,4 +4119,34 @@ img, video { max-width: 100%; display: block; }
 @keyframes modalSpringIn {
   0%   { opacity: 0; transform: translateY(20px) scale(0.94); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 16. Accessibility fixes found by an axe-core sweep ------------------- */
+/* Calendar weeks are role=row wrappers (ARIA grid requires rows); they
+   must not generate boxes or the 7-column layout breaks. */
+.cal-row { display: contents; }
+
+/* Whole-card link without nesting anchors: the title is the one link and
+   its ::after covers the card; secondary links (tags) sit above it. The
+   dashboard used to wrap the entire card in an <a> that also contained
+   tag <a>s -- invalid HTML, which the parser repaired into empty extra
+   links and a card that was only partly clickable. */
+.diary-card--linked { position: relative; }
+.card-stretched-link { color: inherit; text-decoration: none; }
+.card-stretched-link::after { content: ""; position: absolute; inset: 0; }
+.diary-card--linked .tag-badge { position: relative; z-index: 1; }
+.diary-card--linked:focus-within { outline: 2px solid var(--clr-accent); outline-offset: -2px; }
+
+/* Links inside running text can't rely on colour alone (WCAG 1.4.1). */
+.auth-form-sub a { text-decoration: underline; text-underline-offset: 0.18em; }
+
+/* The landing "book" is a fixed white page, so its text must not follow
+   the theme: redefine the tokens on the card and every child resolves a
+   paper-appropriate value in both themes (they were near-white on white
+   in dark mode: 2.4:1 and 2.9:1). */
+.book-open {
+  --txt-muted: hsl(240 8% 42%);
+  --txt-secondary: hsl(240 12% 32%);
+  --border-color: hsl(240 12% 89%);
+  --accent-text: var(--clr-accent-dark);
 }
