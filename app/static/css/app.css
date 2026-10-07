@@ -4326,3 +4326,51 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .island, .island-chevron, .island-menu, .island-grid, .island-item { transition: none !important; }
 }
+
+/* ---- Island: adaptive behaviour -------------------------------------------
+   compact   shrinks to a round icon while you scroll down (and back on scroll
+             up, at the top/bottom of the page, on hover, or when opened)
+   typing    on phones, slides away while a text field has focus so it never
+             sits on the editor or the on-screen keyboard
+   progress  a hairline along the bottom edge: how far down the page you are
+   wide      on tablets/desktops the open card becomes one row of 8
+   ------------------------------------------------------------------------- */
+.island { --island-compact-w: 40px; --island-progress: 0; }
+.island.is-compact:not(.is-open) { width: var(--island-compact-w); border-radius: 20px; }
+.island-pill { padding-left: 13px; }
+.island-meta { color: var(--island-muted); font-weight: 500; font-size: 0.75rem; }
+.island-meta:not(:empty)::before { content: "\00b7"; margin-right: 0.45rem; }
+.island-meta:empty { display: none; }
+
+.island::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: var(--island-accent);
+  transform: scaleX(var(--island-progress));
+  transform-origin: left;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.island[data-scrollable="true"]:not(.is-open)::after { opacity: 0.9; }
+
+.island.is-typing {
+  transform: translate(-50%, calc(100% + 28px));
+  visibility: hidden;
+  transition: transform 300ms var(--island-ease), visibility 0s linear 300ms, width var(--island-dur) var(--island-ease), border-radius var(--island-dur) var(--island-ease);
+}
+
+@media (min-width: 640px) {
+  .island { --island-open-w: min(calc(100vw - 48px), 612px); }
+  .island-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .island::after, .island.is-typing { transition: none !important; }
+}
+/* In compact mode only the icon shows; fade the rest instead of letting the
+   round clip cut the chevron in half. */
+.island-label, .island-meta { transition: opacity 160ms ease; }
+.island-chevron { transition: transform var(--island-dur) var(--island-ease), opacity 160ms ease; }
+.island.is-compact:not(.is-open) :is(.island-label, .island-meta, .island-chevron) { opacity: 0; }
