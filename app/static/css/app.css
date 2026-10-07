@@ -49,6 +49,10 @@
      accent is the wrong direction for text on a dark surface (hsl(342 82% 38%)
      was 2.75:1 there); dark mode gets a lighter tint instead. */
   --accent-text: var(--clr-accent-dark);
+  --danger-text: hsl(4 78% 44%);   /* 5.64:1 on white; --clr-danger itself is only 4.39:1 */
+  --success-text: hsl(155 60% 28%); /* 5.18:1 on the lightest light surface */
+  --warn-text:    hsl(28 95% 28%);
+  --lime-text:    hsl(80 60% 28%);
   --clr-accent-light: hsl(342 75% 96%);
   --clr-gold:         hsl(40 100% 54%);      /* Vivid amber-gold -- secondary accent */
   --clr-gold-dark:    hsl(36 95% 44%);
@@ -144,6 +148,10 @@
   --txt-secondary: hsl(240 12% 65%);
   --txt-muted: hsl(240 8% 58%);
   --accent-text: hsl(342 82% 64%);  /* 4.89:1 on the lightest dark surface */
+  --danger-text: hsl(4 90% 66%);    /* 5.32:1 on the lightest dark surface */
+  --success-text: hsl(155 50% 56%);
+  --warn-text:    hsl(34 95% 62%);
+  --lime-text:    hsl(80 50% 60%);
   --border-color:  hsl(250 15% 20%);
   --border-color-2:hsl(250 15% 26%);
   --scrollbar-thumb:       hsl(250 15% 26%);
@@ -1035,7 +1043,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .form-feedback.valid   { color: var(--clr-sage); }
-.form-feedback.invalid { color: var(--clr-danger); }
+.form-feedback.invalid { color: var(--danger-text); }
 .form-feedback:empty   { display: none; }
 
 /* Field-level validation icon */
@@ -1126,6 +1134,11 @@ img, video { max-width: 100%; display: block; }
   color: var(--txt-muted);
   transition: color var(--t-fast);
 }
+/* Text colours, not the bar's fill colours: those are 2-3:1 on the page. */
+.pw-strength-label[data-strength="1"] { color: var(--danger-text); }
+.pw-strength-label[data-strength="2"] { color: var(--warn-text); }
+.pw-strength-label[data-strength="3"] { color: var(--lime-text); }
+.pw-strength-label[data-strength="4"] { color: var(--success-text); }
 
 .pw-requirements {
   display: flex;
@@ -1151,7 +1164,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .pw-req.met {
-  color: var(--clr-sage);
+  color: var(--success-text);
 }
 
 .pw-req.met i {
@@ -1435,9 +1448,9 @@ img, video { max-width: 100%; display: block; }
 }
 
 .btn-danger {
-  background: var(--clr-danger);
+  background: hsl(4 78% 46%);   /* white text: 5.25:1 (--clr-danger is 4.39:1) */
   color: #fff;
-  border-color: var(--clr-danger);
+  border-color: hsl(4 78% 46%);
   box-shadow: 0 2px 8px hsl(4 70% 52% / 0.25);
 }
 .btn-danger:hover {
@@ -1448,12 +1461,12 @@ img, video { max-width: 100%; display: block; }
 
 .btn-outline-danger {
   background: transparent;
-  color: var(--clr-danger);
+  color: var(--danger-text);
   border-color: var(--clr-danger);
 }
 .btn-outline-danger:hover {
   background: hsl(4 70% 52% / 0.1);
-  color: var(--clr-danger);
+  color: var(--danger-text);
 }
 
 .btn-success { background: var(--clr-sage); color: #fff; border-color: var(--clr-sage); }
@@ -1736,6 +1749,11 @@ img, video { max-width: 100%; display: block; }
   color: var(--accent-text);
   font-weight: 700;
 }
+/* --accent-text is tuned for the dark *surfaces*; these cells sit on the
+   accent tint (has-entries, and any day under the pointer), a few points
+   lighter: 4.25:1 -> 5.83:1. */
+[data-theme="dark"] .cal-day.has-entries,
+[data-theme="dark"] .cal-day:hover { color: hsl(342 85% 74%); }
 
 .cal-count {
   font-size: 0.58rem;
@@ -2274,7 +2292,7 @@ img, video { max-width: 100%; display: block; }
 }
 
 .modal-confirm-label strong {
-  color: var(--clr-danger);
+  color: var(--danger-text);
   letter-spacing: 0.04em;
 }
 
@@ -3539,6 +3557,12 @@ img, video { max-width: 100%; display: block; }
   margin-top: 10px;
   transition: transform 0.22s var(--ease-spring);
 }
+/* Fixed pale-yellow paper in both themes, so its text must not follow the
+   theme: in dark mode the inline var(--txt-muted) size line resolved to a
+   light grey on yellow (3.2:1). Redefine the token on the card (6.96:1). */
+.journal-paperclip-card {
+  --txt-muted: hsl(50 20% 30%);
+}
 .journal-paperclip-card:hover {
   transform: translateY(-3px) scale(1.02);
 }
@@ -3567,6 +3591,10 @@ img, video { max-width: 100%; display: block; }
   border-color: var(--clr-accent);
   background: var(--clr-accent-light);
 }
+/* In dark theme the accent tint is lighter than the surfaces --txt-muted was
+   tuned for (4.18:1 under the pointer); use the secondary tone there (5.2:1). */
+[data-theme="dark"] .upload-zone:hover,
+[data-theme="dark"] .upload-zone.dragover { --txt-muted: var(--txt-secondary); }
 
 .upload-zone.uploading {
   pointer-events: none;
@@ -4125,6 +4153,7 @@ html {
 /* Calendar weeks are role=row wrappers (ARIA grid requires rows); they
    must not generate boxes or the 7-column layout breaks. */
 .cal-row { display: contents; }
+.cal-cell { display: contents; }
 
 /* Whole-card link without nesting anchors: the title is the one link and
    its ::after covers the card; secondary links (tags) sit above it. The
@@ -4138,7 +4167,8 @@ html {
 .diary-card--linked:focus-within { outline: 2px solid var(--clr-accent); outline-offset: -2px; }
 
 /* Links inside running text can't rely on colour alone (WCAG 1.4.1). */
-.auth-form-sub a { text-decoration: underline; text-underline-offset: 0.18em; }
+.auth-form-sub a,
+.inline-links a { text-decoration: underline; text-underline-offset: 0.18em; }
 
 /* The landing "book" is a fixed white page, so its text must not follow
    the theme: redefine the tokens on the card and every child resolves a

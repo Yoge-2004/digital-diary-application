@@ -274,7 +274,9 @@
       fill.style.background = getStrengthColor(score);
       if (label) {
         label.textContent = pw.length > 0 ? getStrengthLabel(score) : "";
-        label.style.color = getStrengthColor(score);
+        // Colour comes from CSS ([data-strength]) so it can use text-safe
+        // tokens; the bar fill keeps getStrengthColor().
+        label.dataset.strength = score > 0 ? score : "";
       }
 
       // Requirements
@@ -1519,9 +1521,9 @@
     uploadBtn?.addEventListener("click", (e) => {
       e.stopPropagation();
       if (!fileInput.files || !fileInput.files.length) {
-        showToast("Please choose a file first", "error", 3000);
-        zone.classList.add("shake");
-        zone.addEventListener("animationend", () => zone.classList.remove("shake"), { once: true });
+        // The button is the zone's keyboard-reachable control, so with no
+        // file chosen it opens the picker (choosing a file uploads it).
+        fileInput.click();
         return;
       }
       handleUpload(fileInput.files[0]);
@@ -2129,6 +2131,16 @@
       if (isFlipping || isContinuous) return;
       const targetPage = direction === "next" ? currentPage + 1 : currentPage - 1;
       if (targetPage < 1 || targetPage > pages.length) return;
+
+      // No flip for people who asked for less motion. The CSS only shortens
+      // the animation to ~0, which left the sheet snapped to its end state
+      // (showing the *next* page's text) for ~160ms, then removed it ~30ms
+      // before the page underneath was swapped: next page -> old page ->
+      // next page. Skip the overlay and swap at once.
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        renderPage(targetPage);
+        return;
+      }
 
       isFlipping = true;
 
