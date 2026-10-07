@@ -131,6 +131,111 @@
   // ══════════════════════════════════════════════════════════
   //  Sidebar mobile toggle
   // ══════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════
+  //  Island quick-nav (disclosure pattern)
+  // ══════════════════════════════════════════════════════════
+  function initIsland() {
+    const island = $("#island");
+    const toggle = $("#islandToggle");
+    if (!island || !toggle) return;
+
+    function setOpen(open, returnFocus) {
+      island.classList.toggle("is-open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (!open && returnFocus) toggle.focus();
+    }
+
+    toggle.addEventListener("click", () => setOpen(!island.classList.contains("is-open")));
+
+    // Escape closes and puts focus back on the pill if it was inside the menu.
+    island.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && island.classList.contains("is-open")) {
+        e.stopPropagation();
+        setOpen(false, island.contains(document.activeElement));
+      }
+    });
+    // Tabbing out of either end closes it. Tabbing off the last item can leave
+    // the page entirely (relatedTarget is null), so null counts as "left" --
+    // except while the pointer is pressed inside the island, where it only
+    // means the click landed on a non-focusable gap.
+    let pressing = false;
+    island.addEventListener("pointerdown", () => { pressing = true; });
+    document.addEventListener("pointerup", () => { setTimeout(() => { pressing = false; }, 0); });
+    island.addEventListener("focusout", (e) => {
+      if (pressing || !island.classList.contains("is-open")) return;
+      if (!e.relatedTarget || !island.contains(e.relatedTarget)) setOpen(false, false);
+    });
+    document.addEventListener("pointerdown", (e) => {
+      if (island.classList.contains("is-open") && !island.contains(e.target)) setOpen(false, false);
+    });
+    // A page restored from the back/forward cache must not come back open.
+    window.addEventListener("pageshow", (e) => { if (e.persisted) setOpen(false, false); });
+
+    // ---- Adaptive behaviour ------------------------------------------------
+    const isOpen = () => island.classList.contains("is-open");
+
+    // 1) Compact while scrolling down, back on scroll up / near the ends / hover.
+    function setCompact(on) { island.classList.toggle("is-compact", on); }
+    let lastY = window.scrollY;
+    let ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const y = window.scrollY;
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        // 2) Reading progress hairline.
+        island.style.setProperty("--island-progress", max > 0 ? Math.min(1, Math.max(0, y / max)) : 0);
+        island.dataset.scrollable = max > 240 ? "true" : "false";
+        if (isOpen() || island.contains(document.activeElement)) { lastY = y; return; }
+        const dy = y - lastY;
+        if (Math.abs(dy) < 8 && y > 80 && max - y > 120) return; // ignore jitter
+        if (dy > 0 && y > 160 && max - y > 120) setCompact(true);
+        else if (dy < 0 || y < 80 || max - y <= 120) setCompact(false);
+        lastY = y;
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    // Content can change height after load (fonts, entries arriving, accordions),
+    // which changes whether the page scrolls at all and how far along you are.
+    if ("ResizeObserver" in window) new ResizeObserver(onScroll).observe(document.body);
+    island.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") setCompact(false); });
+    island.addEventListener("focusin", () => setCompact(false));
+    onScroll();
+
+    // 3) On phones, get out of the way while a text field has focus (the
+    //    on-screen keyboard would otherwise sit on top of, or push, the pill).
+    const narrow = window.matchMedia("(max-width: 767px)");
+    const EDITABLE = 'textarea, [contenteditable]:not([contenteditable="false"]), input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="range"]):not([type="file"]):not([type="color"])';
+    function syncTyping() {
+      const el = document.activeElement;
+      const typing = narrow.matches && el && !island.contains(el) && el.matches && el.matches(EDITABLE);
+      island.classList.toggle("is-typing", !!typing);
+      if (typing) setOpen(false, false);
+    }
+    document.addEventListener("focusin", syncTyping);
+    document.addEventListener("focusout", () => setTimeout(syncTyping, 0));
+    narrow.addEventListener("change", syncTyping);
+
+    // 4) Live context in the pill: a word count while writing. The visible text
+    //    is part of the accessible name (WCAG 2.5.3), so mirror it into aria-label.
+    const meta = $("#islandMeta");
+    const body = document.getElementById("diaryContent");
+    if (meta && body) {
+      const base = toggle.dataset.baseLabel || toggle.getAttribute("aria-label") || "";
+      const update = () => {
+        const n = (body.value.trim().match(/\S+/g) || []).length;
+        const text = n ? n + (n === 1 ? " word" : " words") : "";
+        meta.textContent = text;
+        toggle.setAttribute("aria-label", text ? base + ", " + text : base);
+      };
+      body.addEventListener("input", update);
+      update();
+    }
+  }
+
   function initSidebar() {
     const toggle = $("#sidebarToggle");
     const sidebar = $("#appSidebar");
@@ -1833,6 +1938,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     initRipple();
     initSidebar();
+    initIsland();
     initFlash();
     initCopyShareLink();
     initPasswordToggle();

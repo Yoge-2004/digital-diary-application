@@ -120,7 +120,7 @@
   {% endif %}
 
   <!-- ── Main content ── -->
-  <div class="app-main {{ '' if current_user else 'app-main--full' }}">
+  <div class="app-main {{ 'has-island' if current_user else 'app-main--full' }}">
 
     <!-- Top bar -->
     <header class="topbar" role="banner">
@@ -193,6 +193,49 @@
       {% endif %}
       {% block content %}{% endblock %}
     </main>
+
+    {% if current_user %}
+    {# Floating "island" quick-nav (Dynamic-Island style). Lives inside .app-main so it
+       is inert together with the page while the sidebar drawer is open. #}
+    {% set p = request.url.path %}
+    {% set island_items = [
+      ('Dashboard', '/dashboard',  'bi-grid-1x2-fill'),
+      ('Diaries',   '/diaries',    'bi-journal-richtext'),
+      ('New',       '/diaries/new','bi-plus-circle-fill'),
+      ('Search',    '/search',     'bi-search'),
+      ('Calendar',  '/calendar',   'bi-calendar3'),
+      ('Stats',     '/stats',      'bi-bar-chart-line-fill'),
+      ('Settings',  '/settings',   'bi-gear-fill'),
+    ] %}
+    {% set ns = namespace(label='Menu', icon='bi-compass-fill') %}
+    {% for name, href, icon in island_items %}
+      {% if p == href or (href == '/diaries' and p.startswith('/diaries/') and p != '/diaries/new') %}
+        {% set ns.label = name %}{% set ns.icon = icon %}
+      {% endif %}
+    {% endfor %}
+    <div class="island" id="island">
+      <button type="button" class="island-pill" id="islandToggle"
+              aria-expanded="false" aria-controls="islandMenu" aria-label="Quick navigation, {{ ns.label }}"
+              data-base-label="Quick navigation, {{ ns.label }}">
+        <span class="island-current" aria-hidden="true"><i class="bi {{ ns.icon }}"></i><span class="island-label">{{ ns.label }}</span><span class="island-meta" id="islandMeta"></span></span>
+        <i class="bi bi-chevron-up island-chevron" aria-hidden="true"></i>
+      </button>
+      <nav class="island-menu" id="islandMenu" aria-label="Quick navigation">
+        <div class="island-menu-inner">
+          <div class="island-grid">
+            {% for name, href, icon in island_items %}
+            <a class="island-item" href="{{ href }}"{% if name == ns.label %} aria-current="page"{% endif %}>
+              <i class="bi {{ icon }}" aria-hidden="true"></i><span>{{ name }}</span>
+            </a>
+            {% endfor %}
+            <button type="button" class="island-item theme-toggle" aria-label="Toggle colour theme">
+              <i class="bi bi-moon-fill" aria-hidden="true"></i><span class="theme-label">Dark</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    </div>
+    {% endif %}
 
   </div><!-- /.app-main -->
 </div><!-- /.app-layout -->
