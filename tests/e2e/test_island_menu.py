@@ -151,3 +151,136 @@ def test_reduced_motion_opens_without_animating(browser, live_server):
     width = page.evaluate("document.getElementById('island').getBoundingClientRect().width")
     assert width > 300, f"island still mid-animation under reduced motion: {width}px"
     ctx.close()
+
+
+# ---- adaptive behaviour ------------------------------------------------------
+
+def _many_entries(page, base_url: str, n: int = 10) -> None:
+    for i in range(n):
+        page.request.post(f"{base_url}/api/diaries", data={"title": f"Entry {i}", "content": "words " * 60, "mood": "happy", "visibility": "private"})
+
+
+def _scroll_to(page, y: int) -> None:
+    page.evaluate(f"window.scrollTo({{ top: {y}, behavior: 'instant' }})")
+    page.wait_for_function(f"Math.abs(window.scrollY - {y}) < 2")
+    page.wait_for_timeout(250)
+    _settle(page)
+
+
+def _island_width(page) -> float:
+    return page.locator("#island").bounding_box()["width"]
+
+
+def test_island_compacts_while_scrolling_down_and_returns_on_scroll_up(page, live_server):
+    _login(page, live_server)
+    _many_entries(page, live_server)
+    page.set_viewport_size(PHONE)
+    page.goto(f"{live_server}/diaries")
+    assert _island_width(page) > 150
+    _scroll_to(page, 500)
+    assert page.evaluate("document.getElementById('island').classList.contains('is-compact')")
+    assert _island_width(page) < 60, "should be a small circle"
+    # still operable and still named while compact
+    assert "Quick navigation" in page.get_attribute("#islandToggle", "aria-label")
+    page.click("#islandToggle")
+    _settle(page)
+    assert _is_open(page) and _island_width(page) > 300, "opening a compact island must expand it"
+    page.click("#islandToggle")
+    _scroll_to(page, 300)
+    assert not page.evaluate("document.getElementById('island').classList.contains('is-compact')")
+    assert _island_width(page) > 150
+
+
+def test_island_expands_again_near_the_bottom_and_on_hover(page, live_server):
+    _login(page, live_server)
+    _many_entries(page, live_server)
+    page.set_viewport_size(DESKTOP)
+    page.goto(f"{live_server}/diaries")
+    _scroll_to(page, 500)
+    assert _island_width(page) < 60
+    page.locator("#island").hover()
+    _settle(page)
+    assert _island_width(page) > 150, "hovering the compact circle with a mouse should expand it"
+    page.mouse.move(5, 5)
+    _scroll_to(page, 600)
+    page.evaluate("window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })")
+    page.wait_for_function("Math.abs(window.scrollY + innerHeight - document.documentElement.scrollHeight) < 2")
+    _settle(page)
+    assert _island_width(page) > 150, "at the end of the page the nav should be back"
+
+
+def test_island_hides_while_typing_on_a_phone_and_returns(page, live_server):
+    _login(page, live_server)
+    page.set_viewport_size(PHONE)
+    page.goto(f"{live_server}/diaries/new")
+    page.focus("#diaryContent")
+    page.wait_for_function("document.getElementById('island').classList.contains('is-typing')")
+    _settle(page)
+    assert page.evaluate("getComputedStyle(document.getElementById('island')).visibility") == "hidden"
+    page.keyboard.type("hello")
+    # While it is tucked away it must not be reachable: focusing a hidden element is a no-op.
+    page.evaluate("document.getElementById('islandToggle').focus()")
+    assert page.evaluate("document.activeElement.id") == "diaryContent", "hidden island took focus while typing"
+    page.evaluate("document.activeElement.blur()")
+    page.wait_for_function("!document.getElementById('island').classList.contains('is-typing')")
+    _settle(page)
+    assert page.locator("#island").is_visible()
+
+
+def test_island_stays_put_while_typing_on_a_desktop(page, live_server):
+    """The keyboard-avoidance is for phones only; on desktop the pill is useful while writing."""
+    _login(page, live_server)
+    page.set_viewport_size(DESKTOP)
+    page.goto(f"{live_server}/diaries/new")
+    page.focus("#diaryContent")
+    page.keyboard.type("hello there")
+    page.wait_for_timeout(300)
+    assert not page.evaluate("document.getElementById('island').classList.contains('is-typing')")
+    assert page.locator("#island").is_visible()
+
+
+def test_island_shows_a_live_word_count_on_the_write_page(page, live_server):
+    _login(page, live_server)
+    page.set_viewport_size(DESKTOP)
+    page.goto(f"{live_server}/diaries/new")
+    assert page.inner_text("#islandMeta") == ""
+    page.fill("#diaryContent", "one")
+    assert page.inner_text("#islandMeta") == "1 word"
+    page.fill("#diaryContent", "one two three four")
+    assert page.inner_text("#islandMeta") == "4 words"
+    # visible text must be in the accessible name (WCAG 2.5.3)
+    assert page.get_attribute("#islandToggle", "aria-label").endswith("4 words")
+    page.fill("#diaryContent", "")
+    assert "words" not in page.get_attribute("#islandToggle", "aria-label")
+
+
+def test_island_progress_hairline_follows_the_scroll_position(page, live_server):
+    _login(page, live_server)
+    _many_entries(page, live_server, 12)
+    page.set_viewport_size(PHONE)
+    page.goto(f"{live_server}/diaries")
+    read = lambda: float(page.evaluate("document.getElementById('island').style.getPropertyValue('--island-progress') || '0'"))
+    page.wait_for_function("document.getElementById('island').dataset.scrollable === 'true'")
+    assert read() < 0.05
+    _scroll_to(page, 600)
+    mid = read()
+    page.evaluate("window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })")
+    page.wait_for_function("Math.abs(window.scrollY + innerHeight - document.documentElement.scrollHeight) < 2")
+    page.wait_for_timeout(300)
+    end = read()
+    assert 0.05 < mid < 0.95 and end > 0.97 and end <= 1.0, (mid, end)
+
+
+@pytest.mark.parametrize("width,cols", [(390, 4), (640, 8), (700, 8), (1280, 8)])
+def test_open_island_grid_adapts_to_the_screen_without_overflowing(page, live_server, width, cols):
+    _login(page, live_server)
+    page.set_viewport_size({"width": width, "height": 800})
+    page.goto(f"{live_server}/dashboard")
+    page.click("#islandToggle")
+    _settle(page)
+    tops = page.evaluate("[...document.querySelectorAll('#islandMenu .island-item')].map(e => Math.round(e.getBoundingClientRect().top))")
+    assert len(set(tops)) == (2 if cols == 4 else 1), f"{width}px: expected {cols} columns, got rows at {sorted(set(tops))}"
+    clipped = page.evaluate("[...document.querySelectorAll('#islandMenu .island-item')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.innerText.trim())")
+    assert not clipped, f"labels overflow their tile at {width}px: {clipped}"
+    box = page.locator("#island").bounding_box()
+    assert box["x"] >= 0 and box["x"] + box["width"] <= width + 0.5
