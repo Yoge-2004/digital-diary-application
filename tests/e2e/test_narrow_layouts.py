@@ -122,3 +122,16 @@ def test_landing_header_fits_on_very_narrow_phones(page, live_server, width):
     page.wait_for_timeout(600)
     assert _overflows(page, ".topbar-actions, .topbar-actions .btn, .topbar-actions .theme-toggle") == []
     assert page.get_attribute(".topbar-actions .theme-toggle", "aria-label"), "icon-only toggle needs an accessible name"
+
+
+@pytest.mark.parametrize("width", [320, 375, 412])
+def test_404_page_fits_a_phone_instead_of_being_laid_out_at_980px(browser, live_server, width):
+    """The old raw-JSON 404 had no viewport tag, so a 375px phone laid it out 980px wide."""
+    ctx = browser.new_context(viewport={"width": width, "height": 700}, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    resp = page.goto(f"{live_server}/definitely-not-a-page")
+    assert resp.status == 404
+    assert page.evaluate("document.documentElement.clientWidth") == width
+    assert not page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
+    assert page.locator("a[href='/']").is_visible()
+    ctx.close()
