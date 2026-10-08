@@ -88,7 +88,7 @@
                id="diaryLocation" 
                name="location" 
                placeholder="Paris, France or home…" 
-               value="{% if diary %}{{ diary.location }}{% endif %}"
+               value="{% if diary and diary.location %}{{ diary.location }}{% endif %}"
                class="journal-location-input"
                aria-label="Location text">
         <button type="button" 
