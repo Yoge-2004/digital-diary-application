@@ -284,3 +284,32 @@ def test_open_island_grid_adapts_to_the_screen_without_overflowing(page, live_se
     assert not clipped, f"labels overflow their tile at {width}px: {clipped}"
     box = page.locator("#island").bounding_box()
     assert box["x"] >= 0 and box["x"] + box["width"] <= width + 0.5
+
+
+@pytest.mark.parametrize("width", [390, 521, 768, 1023, 1024, 1100, 1280, 1920])
+def test_island_is_centred_on_the_screen_at_every_width(page, live_server, width):
+    """It used to centre on the content area beside the sidebar (135-150px right of the
+    screen centre from 1024px up)."""
+    _login(page, live_server)
+    page.set_viewport_size({"width": width, "height": 800})
+    page.goto(f"{live_server}/dashboard")
+    _settle(page)
+    for opened in (False, True):
+        if opened:
+            page.click("#islandToggle")
+            _settle(page)
+        box = page.locator("#island").bounding_box()
+        centre = box["x"] + box["width"] / 2
+        assert abs(centre - width / 2) <= 1, f"{width}px, open={opened}: island centre {centre}, screen centre {width / 2}"
+
+
+@pytest.mark.parametrize("width", [1024, 1100, 1199, 1200, 1280])
+def test_open_island_never_reaches_under_the_sidebar(page, live_server, width):
+    _login(page, live_server)
+    page.set_viewport_size({"width": width, "height": 800})
+    page.goto(f"{live_server}/dashboard")
+    page.click("#islandToggle")
+    _settle(page)
+    island = page.locator("#island").bounding_box()
+    sidebar = page.locator("#appSidebar").bounding_box()
+    assert island["x"] >= sidebar["x"] + sidebar["width"], f"{width}px: island starts at {island['x']}, sidebar ends at {sidebar['x'] + sidebar['width']}"

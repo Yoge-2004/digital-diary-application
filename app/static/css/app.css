@@ -618,6 +618,8 @@ img, video { max-width: 100%; display: block; }
 /* ============================================================
    Typography
    ============================================================ */
+.page-title, .journal-entry-title { overflow-wrap: anywhere; }
+.page-header > *, .journal-entry-header > div > * { min-width: 0; }
 .page-title {
   font-family: var(--font-display);
   font-size: clamp(1.75rem, 3.2vw, 2.75rem);
@@ -1362,7 +1364,8 @@ img, video { max-width: 100%; display: block; }
               border-color 0.2s ease,
               color 0.2s ease;
   text-decoration: none;
-  white-space: nowrap;
+  white-space: normal;      /* was nowrap + overflow:hidden: long labels were cut off in narrow boxes */
+  text-align: center;
   line-height: 1.2;
   position: relative;
   overflow: hidden;
@@ -2317,11 +2320,12 @@ img, video { max-width: 100%; display: block; }
 
 .modal-actions {
   display: flex;
+  flex-wrap: wrap;           /* stack on narrow screens instead of squeezing both buttons */
   gap: 0.75rem;
   margin-top: 1.5rem;
 }
 
-.modal-actions .btn { flex: 1; justify-content: center; }
+.modal-actions .btn { flex: 1 1 9rem; justify-content: center; }
 
 .modal-actions .btn-danger:disabled {
   opacity: 0.45;
@@ -2369,6 +2373,7 @@ img, video { max-width: 100%; display: block; }
   gap: 0.25rem;
 }
 .journal-location-input {
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -2853,8 +2858,9 @@ img, video { max-width: 100%; display: block; }
   color: var(--accent-text);
   margin-bottom: 0.5rem;
   display: flex;
+  flex-wrap: wrap;           /* date, time, edited and location wrap instead of squeezing */
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem 0.5rem;
 }
 
 .journal-date-input {
@@ -3156,6 +3162,10 @@ img, video { max-width: 100%; display: block; }
   color: var(--txt-primary);
 }
 .journal-location-stamp {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  flex: 0 1 auto;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -4233,10 +4243,9 @@ html {
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.28), 0 2px 6px rgb(0 0 0 / 0.2);
   transition: width var(--island-dur) var(--island-ease), border-radius var(--island-dur) var(--island-ease);
 }
-@media (min-width: 1024px) {
-  /* centre on the content area, not the viewport (the sidebar takes 270px) */
-  .island { left: calc(50% + var(--sidebar-w) / 2); }
-}
+/* Always centred on the screen (it used to centre on the content area beside the
+   sidebar, which looked off-centre). With the 270px sidebar, an open card must not
+   reach under it: see the 1024-1199px rule below. */
 .island.is-open { width: var(--island-open-w); border-radius: 28px; }
 
 .island-pill {
@@ -4366,6 +4375,13 @@ html {
   .island { --island-open-w: min(calc(100vw - 48px), 612px); }
   .island-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }
+/* Sidebar is fixed at 270px from 1024px up. Centred on the screen, a 612px card would
+   reach under it until the viewport is >= 1200px, so use the compact 4-column card
+   (372px: left edge 326px at 1024) in that range. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .island { --island-open-w: 372px; }
+  .island-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 @media (prefers-reduced-motion: reduce) {
   .island::after, .island.is-typing { transition: none !important; }
 }
@@ -4374,3 +4390,23 @@ html {
 .island-label, .island-meta { transition: opacity 160ms ease; }
 .island-chevron { transition: transform var(--island-dur) var(--island-ease), opacity 160ms ease; }
 .island.is-compact:not(.is-open) :is(.island-label, .island-meta, .island-chevron) { opacity: 0; }
+
+/* Very narrow phones (<= 360px, e.g. 280px foldables, 320px SE): the landing header's
+   Dark + Sign in + Get started overflowed by up to 40px. Tighten, and show the theme
+   toggle as an icon (it keeps its aria-label). */
+@media (max-width: 360px) {
+  .topbar-actions { gap: 0.25rem; }
+  .topbar-actions .btn { padding-left: 0.7rem; padding-right: 0.7rem; }
+  .topbar-actions .theme-toggle .theme-label { display: none; }
+  /* Sign in carries an inline margin-right:1rem in the template */
+  .topbar-actions .nav-link { margin-right: 0.25rem !important; }
+}
+@media (max-width: 300px) {
+  .topbar-actions .btn { padding-left: 0.5rem; padding-right: 0.5rem; font-size: 0.78rem; }
+}
+
+/* Breadcrumb on an entry with a long unbroken title ran 24px past the screen edge at 320px
+   (the current-page crumb is a flex item that could not shrink or break). */
+nav[aria-label="Breadcrumb"] { flex-wrap: wrap; min-width: 0; }
+nav[aria-label="Breadcrumb"] > * { min-width: 0; }
+nav[aria-label="Breadcrumb"] > span { overflow-wrap: anywhere; }
