@@ -135,3 +135,15 @@ def test_404_page_fits_a_phone_instead_of_being_laid_out_at_980px(browser, live_
     assert not page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
     assert page.locator("a[href='/']").is_visible()
     ctx.close()
+
+
+@pytest.mark.parametrize("width", [280, 320, 390])
+def test_breadcrumb_with_a_long_unbroken_title_stays_on_screen(page, live_server, width):
+    """The current-page crumb of an entry titled with one 90-character word ran 24px past the
+    right edge at 320px (the page itself did not scroll, so the text was simply cut off)."""
+    _signup(page, live_server)
+    diary_id = _entry(page, live_server, title="Pneumonoultramicroscopicsilicovolcanoconiosis" * 2)
+    page.set_viewport_size({"width": width, "height": 700})
+    page.goto(f"{live_server}/diaries/{diary_id}")
+    page.wait_for_timeout(600)
+    assert _overflows(page, 'nav[aria-label="Breadcrumb"], nav[aria-label="Breadcrumb"] > *') == []

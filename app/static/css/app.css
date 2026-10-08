@@ -4404,3 +4404,9 @@ html {
 @media (max-width: 300px) {
   .topbar-actions .btn { padding-left: 0.5rem; padding-right: 0.5rem; font-size: 0.78rem; }
 }
+
+/* Breadcrumb on an entry with a long unbroken title ran 24px past the screen edge at 320px
+   (the current-page crumb is a flex item that could not shrink or break). */
+nav[aria-label="Breadcrumb"] { flex-wrap: wrap; min-width: 0; }
+nav[aria-label="Breadcrumb"] > * { min-width: 0; }
+nav[aria-label="Breadcrumb"] > span { overflow-wrap: anywhere; }
