@@ -4233,10 +4233,9 @@ html {
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.28), 0 2px 6px rgb(0 0 0 / 0.2);
   transition: width var(--island-dur) var(--island-ease), border-radius var(--island-dur) var(--island-ease);
 }
-@media (min-width: 1024px) {
-  /* centre on the content area, not the viewport (the sidebar takes 270px) */
-  .island { left: calc(50% + var(--sidebar-w) / 2); }
-}
+/* Always centred on the screen (it used to centre on the content area beside the
+   sidebar, which looked off-centre). With the 270px sidebar, an open card must not
+   reach under it: see the 1024-1199px rule below. */
 .island.is-open { width: var(--island-open-w); border-radius: 28px; }
 
 .island-pill {
@@ -4365,6 +4364,13 @@ html {
 @media (min-width: 640px) {
   .island { --island-open-w: min(calc(100vw - 48px), 612px); }
   .island-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+/* Sidebar is fixed at 270px from 1024px up. Centred on the screen, a 612px card would
+   reach under it until the viewport is >= 1200px, so use the compact 4-column card
+   (372px: left edge 326px at 1024) in that range. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .island { --island-open-w: 372px; }
+  .island-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .island::after, .island.is-typing { transition: none !important; }
