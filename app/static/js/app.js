@@ -2099,7 +2099,19 @@
 
       try {
         // Alternating [word, whitespace, word, ...]; keeps newlines intact.
-        const tokens = fullText.split(/(\s+)/);
+        // A single unbroken word (a long URL, a pasted string) can be taller than a whole page.
+        // fitEnd() treats one token as always fitting, so that page overflowed its clip box:
+        // the scrollbar, and text showing after the end-of-entry mark. Cut such words into
+        // chunks (their concatenation is unchanged) so a page boundary can fall inside them.
+        const CHUNK = 24;
+        const tokens = [];
+        for (const t of fullText.split(/(\s+)/)) {
+          if (t.length > CHUNK && !/^\s+$/.test(t)) {
+            for (let k = 0; k < t.length; k += CHUNK) tokens.push(t.slice(k, k + CHUNK));
+          } else {
+            tokens.push(t);
+          }
+        }
         const n = tokens.length;
         const offsets = new Array(n + 1);
         offsets[0] = 0;
@@ -2260,12 +2272,19 @@
 
       isFlipping = true;
 
-      // Prepare 3D turning faces
+      // The leaf is hinged on the spine and only its front face is used:
+      //  next: the leaf shows the CURRENT page and swings away, so the NEXT page has to be
+      //        underneath already (it used to be swapped in half-way, i.e. while the leaf was
+      //        edge-on, so you saw: old page shrinking, a blank beat, the new page popping in).
+      //  prev: the leaf shows the PREVIOUS page and swings back over the current one; the
+      //        underlying page is replaced when it lands, which is seamless because the leaf
+      //        and the page are the same text.
       const curData = pages[currentPage - 1];
       const targetData = pages[targetPage - 1];
+      if (turnFront) turnFront.textContent = direction === "next" ? curData.text : targetData.text;
+      if (turnBack) turnBack.textContent = "";
 
-      if (turnFront) turnFront.textContent = curData.text;
-      if (turnBack) turnBack.textContent = targetData.text;
+      if (direction === "next") renderPage(targetPage);
 
       if (overlay) overlay.classList.add("flipping");
       if (sheet) {
@@ -2274,22 +2293,18 @@
         sheet.classList.add(direction === "next" ? "flip-forward" : "flip-backward");
       }
 
-      // Update actual page content underneath halfway through
-      setTimeout(() => {
-        renderPage(targetPage);
-      }, 190);
-
-      const safetyTimer = setTimeout(() => {
-        onEnd();
-      }, 420);
-
+      let finished = false;
       const onEnd = () => {
+        if (finished) return;
+        finished = true;
         clearTimeout(safetyTimer);
         sheet?.removeEventListener("animationend", onEnd);
+        if (direction === "prev") renderPage(targetPage);   // same frame as removing the leaf
         if (overlay) overlay.classList.remove("flipping");
         if (sheet) sheet.classList.remove("flip-forward", "flip-backward");
         isFlipping = false;
       };
+      const safetyTimer = setTimeout(onEnd, 1000);
       if (sheet) sheet.addEventListener("animationend", onEnd, { once: true });
     }
 
@@ -2334,6 +2349,7 @@
 
     btnToggleView?.addEventListener("click", () => {
       isContinuous = !isContinuous;
+      document.body.classList.toggle("book-view", !isContinuous);
       if (isContinuous) {
         pageCard.classList.add("continuous-view");
         rawContent.textContent = fullText;
