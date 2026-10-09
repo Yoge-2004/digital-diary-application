@@ -4438,3 +4438,41 @@ nav[aria-label="Breadcrumb"] > span { overflow-wrap: anywhere; }
 
 /* The island sat on top of the book's footer (page counter + Prev/Next) while reading. */
 body.book-view .island { display: none; }
+
+/* ============================================================
+   App-styled dropdown (replaces the browser's <select> popup, which
+   CSS cannot style). Built by initCustomSelects(); the native <select>
+   stays in the DOM, hidden, so forms and existing JS keep working.
+   ============================================================ */
+.cs { position: relative; width: 100%; }
+.cs-native { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); }
+.cs-btn { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; text-align: left; cursor: pointer; font-weight: 400; line-height: 1.3; -webkit-appearance: none; appearance: none; }
+.cs-btn .cs-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-btn::after { content: ""; flex-shrink: 0; width: 0.5rem; height: 0.5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); opacity: 0.65; transition: transform var(--t-base); }
+.cs-btn[aria-expanded="true"] { border-color: var(--clr-accent); box-shadow: 0 0 0 3px var(--clr-accent-light); }
+.cs-btn[aria-expanded="true"]::after { transform: translateY(1px) rotate(225deg); }
+.cs-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.cs-btn:focus-visible { outline: 2px solid var(--clr-accent); outline-offset: 2px; }
+.cs-list {
+  position: fixed;
+  z-index: 10050;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  color: var(--txt-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.22), 0 2px 8px rgb(0 0 0 / 0.12);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.cs-list[hidden] { display: none; }
+.cs-opt { display: flex; align-items: center; gap: 0.5rem; min-height: 40px; padding: 0.5rem 0.7rem; border-radius: 6px; cursor: pointer; }
+.cs-opt[data-active="true"] { background: var(--bg-surface-2, rgb(127 127 140 / 0.14)); }
+.cs-opt[aria-selected="true"] { font-weight: 600; color: var(--accent-text); background: var(--clr-accent-light); }
+.cs-opt[aria-selected="true"]::after { content: ""; margin-left: auto; width: 0.55rem; height: 0.3rem; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg) translateY(-2px); }
+.cs-opt[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
