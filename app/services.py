@@ -165,7 +165,11 @@ def change_password(db: Session, user: User, payload: PasswordUpdate) -> User:
     """Change a logged-in user's password after verifying their current one."""
     if not verify_password(payload.current_password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
-    return repositories.update_user_password(db, user, hash_password(payload.new_password))
+    user = repositories.update_user_password(db, user, hash_password(payload.new_password))
+    from app import security_factors
+
+    security_factors.bump_version(db, user)  # forget every "remembered" device
+    return user
 
 
 def delete_account(db: Session, user: User) -> None:
@@ -213,14 +217,15 @@ def verify_reset_code(db: Session, identifier: str, code: str) -> User:
     still-valid password-reset code matches what they typed in."""
     identifier = identifier.strip()
     user = repositories.get_user_by_username(db, identifier) or repositories.get_user_by_email(db, identifier)
-    if (
-        not user
-        or not user.reset_token
-        or not code
-        or user.reset_token != code.strip()
-        or _is_expired(user.reset_token_expires)
-    ):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="That code is invalid or has expired")
+    bad = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="That code is invalid or has expired")
+    if not user or not user.reset_token or not code or _is_expired(user.reset_token_expires):
+        raise bad
+    if not secrets.compare_digest(user.reset_token, code.strip()):
+        # Used to be unlimited: a million guesses within the code's 15 minutes. 5 wrong tries now burn it.
+        from app import security_factors
+
+        security_factors.note_wrong_reset_code(db, user)
+        raise bad
     return user
 
 
@@ -230,6 +235,9 @@ def reset_password_with_code(db: Session, identifier: str, code: str, new_passwo
     user = verify_reset_code(db, identifier, code)
     repositories.update_user_password(db, user, hash_password(new_password))
     repositories.set_password_reset_token(db, user, None, None)
+    from app import security_factors
+
+    security_factors.bump_version(db, user)  # forget every "remembered" device
     return user
 
 
