@@ -76,7 +76,7 @@
       <div style="text-align:center;margin-bottom:1.5rem;">
         <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.35rem;">Confirm it's you</h1>
         <p style="font-size:.875rem;color:var(--txt-secondary);font-family:var(--font-serif);font-style:italic;">
-          Signing in as <strong>{{ username }}</strong>. Enter your security PIN{% if has_passkey %} or use this device's fingerprint or face{% endif %}.
+          Signing in as <strong>{{ username }}</strong>. Enter your security PIN{% if has_passkey %}<span data-passkey-copy hidden> or use this device's fingerprint or face</span>{% endif %}.
         </p>
       </div>
 

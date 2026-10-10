@@ -90,7 +90,15 @@
   async function initSettings() {
     const btn = $("#pkAddBtn");
     if (!btn) return;
-    if (!(await supported())) { const n = $("#pkUnsupported"); if (n) n.hidden = false; return; }
+    if (!(await supported())) {
+      // No fingerprint / face sensor (or no WebAuthn): don't offer to register one.
+      const note = $("#pkSupportNote"), n = $("#pkUnsupported");
+      if (note) note.hidden = true;
+      if (n) n.hidden = false;
+      return;
+    }
+    const row = $("#pkAddRow");
+    if (row) row.hidden = false;
     btn.hidden = false;
     btn.addEventListener("click", async () => {
       btn.disabled = true;
@@ -101,6 +109,7 @@
         const cred = await navigator.credentials.create({ publicKey: toCreate(opt.data.options) });
         const fin = await postJSON("/settings/passkeys/finish", { credential: attestationJSON(cred), name: ($("#pkName") || {}).value || "" });
         if (!fin.ok) return say(fin.data.detail || "That didn't work. Try again.", true);
+        try { localStorage.setItem("dd-has-passkey", "1"); } catch (e) { /* storage blocked */ }
         say("Added. Reloading\u2026");
         location.href = "/settings?msg=Device+added#security";
       } catch (e) {
@@ -115,8 +124,9 @@
   async function initLogin() {
     const btn = $("#pkLoginBtn");
     if (!btn) return;
-    if (!(await supported())) return;
+    if (!(await supported())) return;   // no sensor: the page is just the PIN form
     btn.hidden = false;
+    document.querySelectorAll("[data-passkey-copy]").forEach((el) => (el.hidden = false));
     async function run() {
       btn.disabled = true;
       say("");
@@ -135,7 +145,12 @@
       }
     }
     btn.addEventListener("click", run);
-    run(); // devices that have it are asked straight away; the PIN form stays right below
+    // Ask straight away only on a device that registered a passkey here; on a device that has a
+    // sensor but never registered (e.g. the passkey is on the phone), show the button instead of
+    // an OS prompt that can only fail. The PIN form is right below either way.
+    let registeredHere = false;
+    try { registeredHere = localStorage.getItem("dd-has-passkey") === "1"; } catch (e) { /* storage blocked */ }
+    if (registeredHere) run();
   }
 
   // ---- Recovery: PIN or fingerprint/face, no email needed
@@ -159,6 +174,7 @@
     const btn = $("#pkRecoverBtn");
     if (btn && (await supported())) {
       btn.hidden = false;
+      document.querySelectorAll("[data-passkey-copy]").forEach((el) => (el.hidden = false));
       btn.addEventListener("click", async () => {
         if (!val("username").trim() || !passwordsOk()) return;
         btn.disabled = true;
