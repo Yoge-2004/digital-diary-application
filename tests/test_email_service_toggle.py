@@ -74,11 +74,15 @@ def test_with_email_enabled_forgot_password_and_verify_email_still_work():
 
 # ── With the toggle off: routes must not exist (404), not just redirect ─
 
-def test_forgot_password_page_404s_when_email_disabled():
+def test_forgot_password_page_offers_pin_recovery_only_when_email_disabled():
+    """Without SMTP the page is no longer a 404: recovery by security PIN / fingerprint needs no
+    email. The emailed-code form is what disappears."""
     client, tmp = build_client_no_email()
     with client, tmp:
         resp = client.get("/forgot-password")
-        assert resp.status_code == 404
+        assert resp.status_code == 200
+        assert "Recover with your security PIN" in resp.text
+        assert 'id="forgotForm"' not in resp.text
 
 
 def test_reset_password_page_404s_when_email_disabled():
@@ -122,12 +126,11 @@ def test_verify_email_confirm_and_resend_404_when_email_disabled():
 
 # ── No hints anywhere in the UI ─────────────────────────────────────────
 
-def test_login_page_has_no_forgot_password_link_when_email_disabled():
+def test_login_page_links_to_recovery_even_when_email_disabled():
     client, tmp = build_client_no_email()
     with client, tmp:
         resp = client.get("/login")
-        assert "Forgot password?" not in resp.text
-        assert "/forgot-password" not in resp.text
+        assert 'href="/forgot-password"' in resp.text
 
 
 def test_register_page_has_no_forgot_password_link_when_email_disabled():
