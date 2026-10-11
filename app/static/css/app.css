@@ -3815,30 +3815,18 @@ img, video { max-width: 100%; display: block; }
   .diary-reading  { padding-left: 1.25rem; }
   .writing-stats  { padding-left: 1.25rem; }
 
+  /* An old rule here painted a second set of ruled lines (1.3em spacing) on .journal-paper,
+     so below 768px the editor showed two sets of lines half a row apart: the textarea draws
+     the real, baseline-aligned ones (see .journal-textarea and initRuledLineAlignment). The
+     copy for .diary-reading was already overridden by the !important block below, so it was
+     dead. Both removed. The margin line (drawn by the base .journal-paper rule at 3.25rem, which
+     is where the text starts on desktop) has to move left of the text on phones, where the
+     paper's left padding is only 1.25rem, otherwise it runs through the first letters. */
   .journal-paper {
-    background-image:
-      repeating-linear-gradient(
-        to bottom,
-        transparent 0,
-        transparent calc(1.3em - 1px),
-        hsl(220 30% 88% / 0.50) calc(1.3em - 1px),
-        hsl(220 30% 88% / 0.50) 1.3em,
-        transparent 1.3em,
-        transparent 2em
-      );
+    background-image: linear-gradient(90deg, transparent 0.75rem, hsl(5 65% 65% / 0.25) 0.75rem, hsl(5 65% 65% / 0.25) calc(0.75rem + 1.5px), transparent calc(0.75rem + 1.5px));
   }
-
-  .diary-reading {
-    background-image:
-      repeating-linear-gradient(
-        to bottom,
-        transparent 0,
-        transparent calc(1.3em - 1px),
-        hsl(220 30% 88% / 0.50) calc(1.3em - 1px),
-        hsl(220 30% 88% / 0.50) 1.3em,
-        transparent 1.3em,
-        transparent 2em
-      );
+  [data-theme="dark"] .journal-paper {
+    background-image: linear-gradient(90deg, transparent 0.75rem, hsl(5 50% 45% / 0.20) 0.75rem, hsl(5 50% 45% / 0.20) calc(0.75rem + 1.5px), transparent calc(0.75rem + 1.5px));
   }
 }
 
