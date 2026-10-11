@@ -132,6 +132,217 @@
   //  Sidebar mobile toggle
   // ══════════════════════════════════════════════════════════
   // ══════════════════════════════════════════════════════════
+  //  App-styled dropdowns (select-only combobox, WAI-ARIA APG)
+  //  The browser's <select> popup can't be styled with CSS, so each
+  //  select.form-select gets a button + listbox in the app's style. The native
+  //  <select> stays in the DOM (hidden) as the source of truth: forms submit it,
+  //  and we fire input/change on it so any existing listener keeps working.
+  // ══════════════════════════════════════════════════════════
+  function initCustomSelects() {
+    let uid = 0;
+    let current = null; // the open dropdown, if any
+
+    function build(sel) {
+      const id = "cs" + ++uid;
+      const cls = sel.className;
+      const root = document.createElement("div");
+      root.className = "cs";
+      sel.parentNode.insertBefore(root, sel);
+      root.appendChild(sel);
+      sel.classList.add("cs-native");
+      sel.tabIndex = -1;
+      sel.setAttribute("aria-hidden", "true");
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cs-btn " + cls.replace(/\bcs-native\b/, "").trim();
+      btn.id = id + "-btn";
+      btn.setAttribute("role", "combobox");
+      btn.setAttribute("aria-haspopup", "listbox");
+      btn.setAttribute("aria-expanded", "false");
+      btn.setAttribute("aria-controls", id + "-list");
+      btn.disabled = sel.disabled;
+      const val = document.createElement("span");
+      val.className = "cs-value";
+      val.id = id + "-val";
+      btn.appendChild(val);
+      root.insertBefore(btn, sel);
+
+      const label = sel.id ? document.querySelector('label[for="' + sel.id + '"]') : null;
+      if (label) {
+        if (!label.id) label.id = id + "-lab";
+        btn.setAttribute("aria-labelledby", label.id + " " + val.id);
+        label.addEventListener("click", (e) => { e.preventDefault(); btn.focus(); });
+      } else if (sel.getAttribute("aria-label")) {
+        btn.setAttribute("aria-label", sel.getAttribute("aria-label"));
+      }
+
+      const list = document.createElement("ul");
+      list.className = "cs-list";
+      list.id = id + "-list";
+      list.setAttribute("role", "listbox");
+      list.setAttribute("aria-labelledby", btn.id);
+      list.tabIndex = -1;
+      list.hidden = true;
+
+      let active = -1;
+      let typed = "";
+      let typedTimer = null;
+
+      const options = () => Array.from(sel.options);
+      const enabled = (i) => options()[i] && !options()[i].disabled;
+      const sync = () => {
+        const o = sel.options[sel.selectedIndex];
+        val.textContent = o ? o.textContent.trim() : "";
+      };
+      const render = () => {
+        list.textContent = "";
+        options().forEach((o, i) => {
+          const li = document.createElement("li");
+          li.className = "cs-opt";
+          li.id = id + "-o" + i;
+          li.setAttribute("role", "option");
+          li.setAttribute("aria-selected", o.selected ? "true" : "false");
+          if (o.disabled) li.setAttribute("aria-disabled", "true");
+          li.dataset.index = String(i);
+          li.textContent = o.textContent.trim();
+          list.appendChild(li);
+        });
+      };
+      const setActive = (i) => {
+        active = i;
+        Array.from(list.children).forEach((li, k) => {
+          const on = k === i;
+          li.dataset.active = on ? "true" : "false";
+          if (on) {
+            btn.setAttribute("aria-activedescendant", li.id);
+            li.scrollIntoView({ block: "nearest" });
+          }
+        });
+      };
+      const reposition = () => {
+        const r = btn.getBoundingClientRect();
+        list.style.minWidth = r.width + "px";
+        list.style.left = Math.max(8, Math.min(r.left, window.innerWidth - r.width - 8)) + "px";
+        list.style.maxHeight = "";
+        const gap = 4;
+        const room = (n) => Math.max(120, Math.min(288, n - 12));
+        const below = window.innerHeight - r.bottom - gap;
+        const above = r.top - gap;
+        const h = Math.min(list.scrollHeight + 4, 288);
+        if (h > below && above > below) {
+          list.style.maxHeight = room(above) + "px";
+          list.style.top = Math.max(8, r.top - gap - Math.min(h, room(above))) + "px";
+        } else {
+          list.style.maxHeight = room(below) + "px";
+          list.style.top = r.bottom + gap + "px";
+        }
+      };
+      const api = {
+        root, list,
+        open() {
+          if (sel.disabled) return;
+          if (current && current !== api) current.close(false);
+          render();
+          document.body.appendChild(list);
+          list.hidden = false;
+          btn.setAttribute("aria-expanded", "true");
+          reposition();
+          setActive(Math.max(0, sel.selectedIndex));
+          current = api;
+        },
+        close(focusBtn) {
+          if (list.hidden) return;
+          list.hidden = true;
+          list.remove();
+          btn.setAttribute("aria-expanded", "false");
+          btn.removeAttribute("aria-activedescendant");
+          if (current === api) current = null;
+          if (focusBtn) btn.focus();
+        },
+        reposition,
+      };
+      const choose = (i) => {
+        if (!enabled(i)) return;
+        const changed = sel.selectedIndex !== i;
+        sel.selectedIndex = i;
+        sync();
+        if (changed) {
+          sel.dispatchEvent(new Event("input", { bubbles: true }));
+          sel.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        api.close(true);
+      };
+      const step = (from, dir) => {
+        const n = sel.options.length;
+        let i = from;
+        for (let k = 0; k < n; k++) { i = (i + dir + n) % n; if (enabled(i)) return i; }
+        return from;
+      };
+      const typeahead = (ch) => {
+        typed += ch.toLowerCase();
+        clearTimeout(typedTimer);
+        typedTimer = setTimeout(() => { typed = ""; }, 600);
+        const opts = options();
+        const start = typed.length === 1 ? active + 1 : active;
+        for (let k = 0; k < opts.length; k++) {
+          const i = (start + k) % opts.length;
+          if (!opts[i].disabled && opts[i].textContent.trim().toLowerCase().startsWith(typed)) return i;
+        }
+        return -1;
+      };
+
+      btn.addEventListener("click", () => (list.hidden ? api.open() : api.close(true)));
+      btn.addEventListener("keydown", (e) => {
+        const isOpen = !list.hidden;
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const k = e.key;
+        if (k === "ArrowDown" || k === "ArrowUp") {
+          e.preventDefault();
+          if (!isOpen) { api.open(); return; }
+          setActive(step(active, k === "ArrowDown" ? 1 : -1));
+        } else if (k === "Home" || k === "End") {
+          e.preventDefault();
+          if (!isOpen) api.open();
+          setActive(k === "Home" ? step(-1, 1) : step(sel.options.length, -1));
+        } else if (k === "Enter" || k === " ") {
+          e.preventDefault();
+          if (!isOpen) api.open(); else choose(active);
+        } else if (k === "Escape") {
+          if (isOpen) { e.preventDefault(); e.stopPropagation(); api.close(true); }
+        } else if (k === "Tab") {
+          if (isOpen) { choose(active); }
+        } else if (k.length === 1 && /\S/.test(k)) {
+          const i = typeahead(k);
+          if (i >= 0) { if (!isOpen) api.open(); setActive(i); }
+        }
+      });
+      list.addEventListener("mousedown", (e) => e.preventDefault()); // keep focus on the button
+      list.addEventListener("click", (e) => {
+        const li = e.target.closest(".cs-opt");
+        if (li) choose(Number(li.dataset.index));
+      });
+      list.addEventListener("mousemove", (e) => {
+        const li = e.target.closest(".cs-opt");
+        if (li && Number(li.dataset.index) !== active) setActive(Number(li.dataset.index));
+      });
+
+      sel.addEventListener("change", sync);   // programmatic changes
+      sel.form?.addEventListener("reset", () => setTimeout(sync, 0));
+      sync();
+      return api;
+    }
+
+    $$("select.form-select:not([multiple]):not([data-native])").forEach((s) => { if (!s.size || s.size <= 1) build(s); });
+
+    document.addEventListener("pointerdown", (e) => {
+      if (current && !current.root.contains(e.target) && !current.list.contains(e.target)) current.close(false);
+    }, true);
+    window.addEventListener("resize", () => current && current.reposition());
+    window.addEventListener("scroll", (e) => { if (current && !current.list.contains(e.target)) current.close(false); }, true);
+  }
+
+  // ══════════════════════════════════════════════════════════
   //  Island quick-nav (disclosure pattern)
   // ══════════════════════════════════════════════════════════
   function initIsland() {
@@ -1939,6 +2150,7 @@
     initRipple();
     initSidebar();
     initIsland();
+    initCustomSelects();
     initFlash();
     initCopyShareLink();
     initPasswordToggle();
@@ -2009,6 +2221,7 @@
 
     let isContinuous = true;
     let isFlipping = false;
+    let endFlip = null; // finishes the turn in progress (see turnPage)
     let currentPage = 1;
     let pages = [];
 
@@ -2100,10 +2313,14 @@
       try {
         // Alternating [word, whitespace, word, ...]; keeps newlines intact.
         const tokens = fullText.split(/(\s+)/);
-        const n = tokens.length;
+        let n = tokens.length;
         const offsets = new Array(n + 1);
-        offsets[0] = 0;
-        for (let i = 0; i < n; i++) offsets[i + 1] = offsets[i] + tokens[i].length;
+        const rebuildOffsets = () => {
+          offsets.length = n + 1;
+          offsets[0] = 0;
+          for (let i = 0; i < n; i++) offsets[i + 1] = offsets[i] + tokens[i].length;
+        };
+        rebuildOffsets();
         const isSpace = (t) => /^\s+$/.test(t);
 
         const heightOf = (a, b) => {
@@ -2127,6 +2344,23 @@
           while (hi - lo > 1) {
             const mid = (lo + hi) >> 1;
             if (heightOf(start, mid) <= cap) lo = mid; else hi = mid;
+          }
+          // A single unbroken word (a long URL, a pasted string) can be taller than a whole page.
+          // Treating it as "always fits" made that page overflow its clip box: the scrollbar, and
+          // text showing after the end-of-entry mark. Only such a word is cut: at the longest
+          // prefix that fits, the rest starts the next page (the text itself is unchanged).
+          if (lo === start + 1 && !isSpace(tokens[start]) && tokens[start].length > 1 && heightOf(start, lo) > cap) {
+            const word = tokens[start];
+            let a = 1, b = word.length - 1;
+            while (a < b) {
+              const mid = (a + b + 1) >> 1;
+              measurer.textContent = word.slice(0, mid);
+              if (measurer.offsetHeight <= cap) a = mid; else b = mid - 1;
+            }
+            tokens.splice(start, 1, word.slice(0, a), word.slice(a));
+            n = tokens.length;
+            rebuildOffsets();
+            lo = start + 1;
           }
           lastSize = lo - start;
           return lo;
@@ -2244,7 +2478,12 @@
     }
 
     function turnPage(direction) {
-      if (isFlipping || isContinuous) return;
+      if (isContinuous) return;
+      // A turn takes ~0.8s. Ignoring clicks/keys during it made quick paging skip pages. The page
+      // underneath already shows the target, so finishing a turn is just dropping its leaf: do
+      // that, then start the new one.
+      if (isFlipping && endFlip) endFlip();
+      if (isFlipping) return;
       const targetPage = direction === "next" ? currentPage + 1 : currentPage - 1;
       if (targetPage < 1 || targetPage > pages.length) return;
 
@@ -2260,12 +2499,16 @@
 
       isFlipping = true;
 
-      // Prepare 3D turning faces
+      // The leaf is the page you are LEAVING; the page you are going to is rendered underneath
+      // before the leaf moves, so the counter, buttons and text update at once and the leaf
+      // uncovers the new page as it goes (it used to swap the page half-way, while the leaf was
+      // edge-on: old page shrinking, a blank beat, new page popping in). Next hinges on the
+      // spine (left) and swings away to the left; Previous hinges on the right edge and swings
+      // away to the right, so the direction reads.
       const curData = pages[currentPage - 1];
-      const targetData = pages[targetPage - 1];
-
       if (turnFront) turnFront.textContent = curData.text;
-      if (turnBack) turnBack.textContent = targetData.text;
+      if (turnBack) turnBack.textContent = "";
+      renderPage(targetPage);
 
       if (overlay) overlay.classList.add("flipping");
       if (sheet) {
@@ -2274,22 +2517,19 @@
         sheet.classList.add(direction === "next" ? "flip-forward" : "flip-backward");
       }
 
-      // Update actual page content underneath halfway through
-      setTimeout(() => {
-        renderPage(targetPage);
-      }, 190);
-
-      const safetyTimer = setTimeout(() => {
-        onEnd();
-      }, 420);
-
+      let finished = false;
       const onEnd = () => {
+        if (finished) return;
+        finished = true;
         clearTimeout(safetyTimer);
         sheet?.removeEventListener("animationend", onEnd);
         if (overlay) overlay.classList.remove("flipping");
         if (sheet) sheet.classList.remove("flip-forward", "flip-backward");
         isFlipping = false;
+        endFlip = null;
       };
+      endFlip = onEnd;
+      const safetyTimer = setTimeout(onEnd, 1000);
       if (sheet) sheet.addEventListener("animationend", onEnd, { once: true });
     }
 
@@ -2334,6 +2574,7 @@
 
     btnToggleView?.addEventListener("click", () => {
       isContinuous = !isContinuous;
+      document.body.classList.toggle("book-view", !isContinuous);
       if (isContinuous) {
         pageCard.classList.add("continuous-view");
         rawContent.textContent = fullText;
