@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.core.config import BASE_DIR, settings
 from app.deps import ensure_csrf_cookie, get_optional_user, verify_csrf
 from app.db.session import get_db
-from app import repositories, services
+from app import repositories, security_factors, services
 from app.schemas import DiaryCreate, DiaryUpdate, PasswordUpdate, UserCreate, UserUpdate
 
 
@@ -241,6 +241,16 @@ def login(
         user = services.authenticate_user(db, username, password)
     except Exception as exc:
         return _redirect(f"/login?err={_safe_msg(exc)}")
+    # Accounts that set a security PIN get a second step (PIN or fingerprint/face) unless this
+    # device was remembered; the half-signed-in state is a short-lived signed cookie, and no
+    # access/refresh token exists until the second step passes.
+    from app import security_factors
+
+    if security_factors.has_second_factor(db, user) and not security_factors.is_trusted_device(user, request.cookies.get("trusted_device")):
+        response = _redirect("/login/verify")
+        response.set_cookie("mfa_token", security_factors.create_mfa_token(user), httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=int(security_factors.MFA_TTL.total_seconds()), path="/login")
+        response.set_cookie("csrf_token", ensure_csrf_cookie(request), httponly=False, secure=settings.cookie_secure, samesite=settings.cookie_samesite)
+        return response
     access_token, refresh_token = services.issue_tokens(user)
     response = _redirect("/dashboard")
     _set_auth_cookies(response, access_token, refresh_token)
@@ -262,8 +272,8 @@ def logout(request: Request, csrf_token: str = Form(...)):
 
 @router.get("/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request, current_user=Depends(get_optional_user)):
-    if not request.app.state.settings.email_service_enabled:
-        raise HTTPException(status_code=404)
+    # No longer 404 without SMTP: recovery by security PIN or passkey needs no email. The email
+    # section is only rendered when the email service is on.
     if current_user:
         return _redirect("/dashboard")
     return _response_with_csrf(
@@ -271,7 +281,7 @@ def forgot_password_page(request: Request, current_user=Depends(get_optional_use
         templates.TemplateResponse(
             request,
             "forgot_password.html",
-            _base_context(request, None),
+            _base_context(request, None) | {"email_enabled": request.app.state.settings.email_service_enabled},
         ),
     )
 
@@ -970,7 +980,16 @@ def settings_page(request: Request, db: Session = Depends(get_db), current_user=
         return _redirect("/login")
     return _response_with_csrf(
         request,
-        templates.TemplateResponse(request, "settings.html", _base_context(request, current_user)),
+        templates.TemplateResponse(
+            request,
+            "settings.html",
+            _base_context(request, current_user)
+            | {
+                "has_pin": security_factors.has_pin(current_user),
+                "passkeys": security_factors.list_credentials(db, current_user),
+                "is_oauth_only": bool(current_user.oauth_provider),
+            },
+        ),
     )
 
 

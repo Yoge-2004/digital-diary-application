@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Table, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -87,6 +87,18 @@ class User(Base):
     reminder_timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     last_reminder_sent_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
+    # Second step after the password (opt-in): a security PIN and/or passkeys (fingerprint / face
+    # via WebAuthn). The PIN also recovers the account when no email is configured. All of these
+    # are additive nullable/defaulted columns so patch_missing_columns can add them to old databases.
+    pin_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    pin_failed_attempts: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    pin_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Bumped whenever the PIN/passkeys/password change; "remember this device" and recovery
+    # tokens carry it, so changing a factor revokes every device that was trusted before.
+    sec_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reset_attempts: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    webauthn_credentials: Mapped[list["WebAuthnCredential"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     diaries: Mapped[list["Diary"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     tags: Mapped[list["Tag"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -181,3 +193,20 @@ class PushSubscription(Base):
     user: Mapped[User] = relationship(back_populates="push_subscriptions")
 
     __table_args__ = (UniqueConstraint("user_id", "endpoint", name="uq_push_subscription_user_endpoint"),)
+
+
+class WebAuthnCredential(Base):
+    """A passkey (platform authenticator: fingerprint / face / device PIN) registered by a user."""
+
+    __tablename__ = "webauthn_credentials"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uuid_str)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    credential_id: Mapped[str] = mapped_column(String(512), unique=True, index=True)  # base64url
+    public_key: Mapped[str] = mapped_column(Text)  # base64url COSE key
+    sign_count: Mapped[int] = mapped_column(Integer, default=0)
+    name: Mapped[str] = mapped_column(String(80), default="This device")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="webauthn_credentials")

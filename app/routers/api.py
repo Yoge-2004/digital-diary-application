@@ -73,9 +73,45 @@ def login(
 ):
     """Authenticate a user by username + password and issue new tokens."""
     user = services.authenticate_user(db, username, password)
+    from app import security_factors
+
+    if security_factors.has_second_factor(db, user):
+        # No tokens yet. The client finishes with POST /api/auth/login/pin (mfa_token + pin).
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "second_factor_required", "mfa_token": security_factors.create_mfa_token(user)},
+        )
     access_token, refresh_token = services.issue_tokens(user)
     response.set_cookie("access_token", access_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=60 * 60 * 24)
     response.set_cookie("refresh_token", refresh_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=60 * 60 * 24 * 30)
+    return AuthToken(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post(
+    "/auth/login/pin",
+    response_model=AuthToken,
+    tags=["Authentication"],
+    summary="Finish sign-in with the security PIN",
+    description="Second step for accounts with a security PIN: send the mfa_token returned by "
+    "/auth/login (HTTP 401, code second_factor_required) and the PIN. 5 wrong PINs lock the PIN for 15 minutes.",
+)
+def login_with_pin(
+    response: Response,
+    mfa_token: str = Form(...),
+    pin: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    from app import security_factors
+
+    try:
+        user = security_factors.read_mfa_user(db, mfa_token)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in again")
+    if not security_factors.check_pin(db, user, pin):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="That PIN is not right")
+    access_token, refresh_token = services.issue_tokens(user)
+    response.set_cookie("access_token", access_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite)
+    response.set_cookie("refresh_token", refresh_token, httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite)
     return AuthToken(access_token=access_token, refresh_token=refresh_token)
 
 

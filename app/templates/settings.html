@@ -15,6 +15,9 @@
   <button class="settings-tab" data-panel="password">
     <i class="bi bi-lock-fill"></i> Password
   </button>
+  <button class="settings-tab" data-panel="security">
+    <i class="bi bi-shield-lock-fill"></i> Security
+  </button>
   <button class="settings-tab" data-panel="appearance">
     <i class="bi bi-palette-fill"></i> Appearance
   </button>
@@ -141,6 +144,90 @@
 </div>
 
 <!-- Appearance Panel -->
+<div class="settings-panel" id="security">
+  <div style="max-width:520px;display:flex;flex-direction:column;gap:1.25rem;">
+
+    <div class="card card-paper">
+      <div class="card-header"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Security PIN</div>
+      <div class="card-body">
+        <p style="font-size:.875rem;color:var(--txt-secondary);margin-bottom:1rem;">
+          {% if has_pin %}A PIN is set. Signing in asks for it after your password (fingerprint or face on devices where you registered it), and it can reset your password if email isn't available.
+          {% else %}Add a 6 to 8 digit PIN. After your password you'll confirm with it (or a fingerprint / face you register below), and it can reset your password when no email is set up.{% endif %}
+        </p>
+        <form method="post" action="/settings/pin" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <div style="display:flex;flex-direction:column;gap:.9rem;">
+            {% if not is_oauth_only %}
+            <div class="form-group">
+              <label class="form-label" for="pin-cur">Current password</label>
+              <input class="form-control" id="pin-cur" name="current_password" type="password" required autocomplete="current-password">
+            </div>
+            {% endif %}
+            <div class="form-group">
+              <label class="form-label" for="pin-new">{{ 'New PIN' if has_pin else 'PIN' }} (6 to 8 digits)</label>
+              <input class="form-control" id="pin-new" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6,8}" minlength="6" maxlength="8" required autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pin-confirm">Confirm PIN</label>
+              <input class="form-control" id="pin-confirm" name="confirm_pin" type="password" inputmode="numeric" pattern="[0-9]{6,8}" minlength="6" maxlength="8" required autocomplete="off">
+            </div>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> {{ 'Change PIN' if has_pin else 'Save PIN' }}</button>
+          </div>
+        </form>
+        {% if has_pin %}
+        <form method="post" action="/settings/pin/remove" style="margin-top:1rem;border-top:1px solid var(--border-color);padding-top:1rem;" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          {% if not is_oauth_only %}
+          <div class="form-group" style="margin-bottom:.75rem;">
+            <label class="form-label" for="pin-rm-pw">Current password</label>
+            <input class="form-control" id="pin-rm-pw" name="current_password" type="password" required autocomplete="current-password">
+          </div>
+          {% endif %}
+          <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash" aria-hidden="true"></i> Remove PIN and passkeys</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card card-paper" id="passkeyCard" data-csrf="{{ csrf_token }}">
+      <div class="card-header"><i class="bi bi-fingerprint" aria-hidden="true"></i> Fingerprint or face</div>
+      <div class="card-body">
+        {% if not has_pin %}
+        <p style="font-size:.875rem;color:var(--txt-secondary);">Set a security PIN first. It's the fallback for devices without a fingerprint or face sensor.</p>
+        {% else %}
+        <p id="pkSupportNote" style="font-size:.875rem;color:var(--txt-secondary);margin-bottom:1rem;">
+          Register this device so sign-in and password recovery can use its fingerprint or face (your biometric never leaves the device).
+        </p>
+        {% if passkeys %}
+        <ul style="list-style:none;padding:0;margin:0 0 1rem;display:flex;flex-direction:column;gap:.6rem;">
+          {% for pk in passkeys %}
+          <li style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
+            <span><i class="bi bi-phone" aria-hidden="true"></i> {{ pk.name }}</span>
+            <form method="post" action="/settings/passkeys/{{ pk.id }}/delete" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              {% if not is_oauth_only %}<input class="form-control" name="current_password" type="password" placeholder="Current password" aria-label="Current password to remove {{ pk.name }}" required autocomplete="current-password" style="max-width:11rem;">{% endif %}
+              <button class="btn btn-outline-danger btn-sm" type="submit">Remove</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        <div id="secMsg" class="form-feedback" role="status" aria-live="polite" style="margin-bottom:.75rem;"></div>
+        <div id="pkAddRow" hidden style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-group" style="flex:1 1 11rem;margin:0;">
+            <label class="form-label" for="pkName">Name this device</label>
+            <input class="form-control" id="pkName" maxlength="80" placeholder="My phone" autocomplete="off">
+          </div>
+          <button class="btn btn-primary" type="button" id="pkAddBtn" data-passkey hidden><i class="bi bi-plus-lg" aria-hidden="true"></i> Add this device</button>
+        </div>
+        <p id="pkUnsupported" hidden style="font-size:.85rem;color:var(--txt-muted);margin-top:.75rem;">This device or browser doesn't offer a fingerprint or face sensor for sign-in, so the PIN will be used here.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div class="settings-panel" id="appearance">
   <div style="max-width:520px;">
     <div class="card">

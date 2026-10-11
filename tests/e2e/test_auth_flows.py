@@ -73,12 +73,12 @@ def test_oauth_button_shown_when_configured(page, live_server_factory):
     assert "Google" in btn.inner_text()
 
 
-def test_forgot_password_link_hidden_without_smtp(page, live_server):
+def test_forgot_password_offers_pin_recovery_without_smtp(page, live_server):
     page.goto(f"{live_server}/login")
-    assert page.locator('a[href="/forgot-password"]').count() == 0
-    # And the route itself should 404, not just be unlinked
-    resp = page.request.get(f"{live_server}/forgot-password")
-    assert resp.status == 404
+    assert page.locator('a[href="/forgot-password"]').count() == 1
+    page.goto(f"{live_server}/forgot-password")
+    assert page.locator("#recoveryCard").is_visible()
+    assert page.locator("#forgotForm").count() == 0, "the emailed-code form needs SMTP"
 
 
 def test_forgot_password_link_shown_with_smtp_configured(page, live_server_factory):

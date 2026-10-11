@@ -32,6 +32,13 @@ class Settings:
     smtp_use_tls: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
     app_base_url: str = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 
+    # Passkeys (WebAuthn). Leave empty to derive the relying-party id / origin from each request;
+    # set them when running behind a proxy that rewrites the host or scheme (the browser checks
+    # that the origin it saw is the one the server expects).
+    webauthn_rp_id: str = os.getenv("WEBAUTHN_RP_ID", "")
+    webauthn_origin: str = os.getenv("WEBAUTHN_ORIGIN", "")
+    webauthn_rp_name: str = os.getenv("WEBAUTHN_RP_NAME", "Digital Diary")
+
     # Master switch for the whole email subsystem. Turn this off
     # (EMAIL_SERVICE_ENABLED=false) -- or just leave SMTP unconfigured --
     # for a deployment that doesn't want the OTP-gated flows around at

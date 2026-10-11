@@ -8,6 +8,12 @@ HTML frontend (Jinja2 + a bit of vanilla JS — no React/build step), SQLAlchemy
 
 - Email/username + password auth (JWT access + refresh tokens in httponly cookies)
 - Diary entries with title, rich content, mood, tags, and an optional location
+- Optional second step after the password: a 6-8 digit security PIN, plus
+  fingerprint / face sign-in on devices that have a sensor (passkeys / WebAuthn).
+  The same PIN (or a registered passkey) recovers a forgotten password when no
+  email service is configured; with email configured the emailed code still works
+  too. "Remember this device" skips the second step for 30 days, until the PIN,
+  a passkey or the password changes.
 - Favourite, pin, archive, and bookmark each entry independently
 - Visibility per entry: `private` (default) or `public`
 - Sharing: grant a specific user access, or generate a public link — either
@@ -42,6 +48,8 @@ for anything beyond local experimentation.
 | `REFRESH_TOKEN_DAYS` | `30` | Refresh token lifetime |
 | `COOKIE_SECURE` | `false` | Set `true` once served over HTTPS |
 | `COOKIE_SAMESITE` | `lax` | Cookie `SameSite` policy |
+| `WEBAUTHN_RP_ID` | *(request host)* | Passkey relying-party id. Set it behind a proxy that rewrites the host; passkeys are tied to this domain |
+| `WEBAUTHN_ORIGIN` | *(request origin)* | Exact origin the browser reports, e.g. `https://diary.example.com`. Passkeys need HTTPS (or `localhost`) |
 
 Uploaded attachments are written to `./uploads` by default. That directory is
 **not** persistent on most scale-to-zero hosts (e.g. Hugging Face Spaces,
