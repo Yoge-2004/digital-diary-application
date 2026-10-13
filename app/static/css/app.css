@@ -1866,7 +1866,10 @@ img, video { max-width: 100%; display: block; }
      here too was a third, redundant layer of the same constraint,
      which is why the hero looked more inset than the features grid
      below it despite both nominally using --content-max. */
-  padding: clamp(2rem, 6vw, 5rem) 0;
+  /* longhand on purpose: the `padding: X 0` shorthand that was here zeroed the left/right
+     padding .full-bleed provides, which put the hero title, lead paragraph and buttons flush
+     against the screen edge on every phone. */
+  padding-block: clamp(2rem, 6vw, 5rem);
 }
 
 .hero-bg {
