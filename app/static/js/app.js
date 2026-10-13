@@ -2251,6 +2251,21 @@
     // trusting max-height put ~2x too much text on every page. Instead,
     // briefly fill the page with far more text than could fit and see how
     // tall the viewport really ends up. All synchronous: nothing paints.
+    // On phones the reading area is sized to 12-15 lines (the card used to cap it at ~240px, i.e.
+    // 5-6 lines). Portrait: as many lines as fit under the header/controls, never fewer than 12
+    // (the page scrolls if the card is taller than the screen) and never more than 15; landscape
+    // phones are only ~390px tall, so 8. Wider screens keep the CSS sizing.
+    function fitPhoneViewport() {
+      if (!viewport) return;
+      if (!window.matchMedia("(max-width: 767px)").matches) { viewport.style.removeProperty("height"); return; }
+      const cs = getComputedStyle(readingArea || rawContent);
+      const lh = parseFloat(cs.lineHeight);
+      if (!lh) return;
+      const portrait = window.innerHeight >= window.innerWidth;
+      const lines = portrait ? Math.max(12, Math.min(15, Math.floor((window.innerHeight - 300) / lh))) : 8;
+      viewport.style.height = Math.round((parseFloat(cs.paddingTop) || 0) + lines * lh) + "px";
+    }
+
     function pageCapacity() {
       const saved = {
         text: rawContent.textContent,
@@ -2261,6 +2276,7 @@
       const wasContinuous = pageCard.classList.contains("continuous-view");
       if (wasContinuous) pageCard.classList.remove("continuous-view");
       rawContent.style.display = "block";
+      fitPhoneViewport();
       rawContent.textContent = new Array(400).join("x\n");   // ~17000px: more than any page holds
       if (endFlourish) endFlourish.style.display = "none";
       if (attachments) attachments.style.display = "none";
@@ -2276,7 +2292,10 @@
       rawContent.style.display = saved.rawDisplay;
       if (endFlourish) endFlourish.style.display = saved.flourish;
       if (attachments) attachments.style.display = saved.attachments;
-      if (wasContinuous) pageCard.classList.add("continuous-view");
+      if (wasContinuous) {
+        pageCard.classList.add("continuous-view");
+        if (viewport) viewport.style.removeProperty("height");   // continuous view sizes itself
+      }
 
       // bottom padding is allowed to be clipped, top padding is not
       const capacity = vpHeight - padTop;
@@ -2587,7 +2606,7 @@
         if (cornerPrev) cornerPrev.style.display = "none";
         if (cornerNext) cornerNext.style.display = "none";
         if (endFlourish) endFlourish.style.display = "";
-        if (viewport) { viewport.style.overflowY = ""; viewport.scrollTop = 0; }   // undo renderPage's tall-page scroll
+        if (viewport) { viewport.style.overflowY = ""; viewport.style.removeProperty("height"); viewport.scrollTop = 0; }   // undo renderPage's tall-page scroll
       } else {
         pageCard.classList.remove("continuous-view");
         if (btnPrev) btnPrev.style.display = "";
