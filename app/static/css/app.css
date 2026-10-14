@@ -1866,7 +1866,10 @@ img, video { max-width: 100%; display: block; }
      here too was a third, redundant layer of the same constraint,
      which is why the hero looked more inset than the features grid
      below it despite both nominally using --content-max. */
-  padding: clamp(2rem, 6vw, 5rem) 0;
+  /* longhand on purpose: the `padding: X 0` shorthand that was here zeroed the left/right
+     padding .full-bleed provides, which put the hero title, lead paragraph and buttons flush
+     against the screen edge on every phone. */
+  padding-block: clamp(2rem, 6vw, 5rem);
 }
 
 .hero-bg {
@@ -4470,3 +4473,11 @@ body.book-view .island { display: none; }
 .cs-opt[aria-selected="true"] { font-weight: 600; color: var(--accent-text); background: var(--clr-accent-light); }
 .cs-opt[aria-selected="true"]::after { content: ""; margin-left: auto; width: 0.55rem; height: 0.3rem; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg) translateY(-2px); }
 .cs-opt[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+
+/* Book view on phones: the whole card (header + page + Prev/Next) was capped at 460-620px, which
+   left ~240px (5-6 lines) for the text. Phones now let the card grow and the reading area is
+   sized in JS to 12-15 lines (initDiaryBookPaging > fitPhoneViewport). */
+@media (max-width: 767px) {
+  .journal-book-container .journal-page:not(.continuous-view) { max-height: none; }
+  .journal-page:not(.continuous-view) .journal-reading-viewport { max-height: none; flex: none; }
+}
