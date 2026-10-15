@@ -1,0 +1,13 @@
+{
+  "name": "diary-browser-tools",
+  "private": true,
+  "description": "Node packages used by the Python/Playwright scripts in this folder (axe-core and local copies of the fonts/icons the app loads from CDNs)",
+  "dependencies": {
+    "@fontsource/caveat": "^5",
+    "@fontsource/inter": "^5",
+    "@fontsource/lora": "^5",
+    "@fontsource/playfair-display": "^5",
+    "axe-core": "^4",
+    "bootstrap-icons": "1.11.3"
+  }
+}
