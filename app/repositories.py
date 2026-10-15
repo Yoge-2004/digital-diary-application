@@ -55,10 +55,6 @@ def set_password_reset_token(db: Session, user: User, token: str | None, expires
     return user
 
 
-def get_user_by_reset_token(db: Session, token: str) -> User | None:
-    return db.scalar(select(User).where(User.reset_token == token))
-
-
 def set_verification_code(db: Session, user: User, code: str | None, expires_at) -> User:
     user.verification_code = code
     user.verification_code_expires = expires_at
@@ -176,10 +172,6 @@ def list_diaries(
     query = query.order_by(desc(Diary.is_pinned), desc(Diary.updated_at), desc(Diary.created_at))
     return list(db.scalars(query.limit(limit).offset(offset)))
 
-
-
-def count_diaries(db: Session, user_id: str) -> int:
-    return db.scalar(select(func.count()).select_from(Diary).where(Diary.user_id == user_id)) or 0
 
 
 def create_diary(
@@ -307,11 +299,6 @@ def add_attachment(
 def delete_attachment(db: Session, attachment: Attachment) -> None:
     db.delete(attachment)
     db.commit()
-
-
-def list_dates(db: Session, user_id: str) -> list[date]:
-    rows = db.scalars(select(Diary.created_at).where(Diary.user_id == user_id, Diary.is_archived.is_(False)))
-    return [row.date() for row in rows if row]
 
 
 def list_diaries_for_calendar(db: Session, user_id: str, year: int, month: int) -> list[Diary]:
