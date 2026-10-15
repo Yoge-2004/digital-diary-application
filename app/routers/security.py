@@ -124,10 +124,6 @@ async def login_verify_webauthn_finish(request: Request, db: Session = Depends(g
 
 
 # ------------------------------------------------------------------ settings: PIN and passkeys
-def _need_user(current_user):
-    return None if current_user else _redirect("/login")
-
-
 @router.post("/settings/pin")
 def settings_set_pin(
     request: Request,

@@ -28,3 +28,7 @@ uploads/
 .coverage
 coverage.json
 htmlcov/
+
+# browser tooling (npm install in tools/browser)
+tools/browser/node_modules/
+tools/browser/package-lock.json

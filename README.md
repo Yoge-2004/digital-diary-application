@@ -4,6 +4,8 @@ A personal, private-by-default digital diary. FastAPI backend, server-rendered
 HTML frontend (Jinja2 + a bit of vanilla JS — no React/build step), SQLAlchemy
 + SQLite/Postgres for storage.
 
+For a complete working-notes document (architecture, conventions, how to push, known issues) see [HANDOFF.md](HANDOFF.md).
+
 ## Features
 
 - Email/username + password auth (JWT access + refresh tokens in httponly cookies)
@@ -28,7 +30,7 @@ HTML frontend (Jinja2 + a bit of vanilla JS — no React/build step), SQLAlchemy
 ```bash
 git clone <this repo>
 cd digital-diary-application
-pip install -r requirements.txt   # or: uv sync
+pip install -e .                  # or: uv sync
 uvicorn app.main:app --reload
 ```
 
@@ -48,6 +50,11 @@ for anything beyond local experimentation.
 | `REFRESH_TOKEN_DAYS` | `30` | Refresh token lifetime |
 | `COOKIE_SECURE` | `false` | Set `true` once served over HTTPS |
 | `COOKIE_SAMESITE` | `lax` | Cookie `SameSite` policy |
+| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_USE_TLS` (true) | empty | Email (verification, reset code, reminders) turns on when `SMTP_HOST` is set |
+| `EMAIL_SERVICE_ENABLED` | auto | Force the email service on or off |
+| `APP_BASE_URL` | `http://127.0.0.1:8000` | Used to build links in emails |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | empty | Enables "Continue with Google" (see `GOOGLE_OAUTH_SETUP.md`) |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CLAIMS_SUB` | empty | Enables web push notifications |
 | `WEBAUTHN_RP_ID` | *(request host)* | Passkey relying-party id. Set it behind a proxy that rewrites the host; passkeys are tied to this domain |
 | `WEBAUTHN_ORIGIN` | *(request origin)* | Exact origin the browser reports, e.g. `https://diary.example.com`. Passkeys need HTTPS (or `localhost`) |
 
@@ -95,7 +102,7 @@ it stays focused on what's actually meant to be called programmatically.
 ## Running tests
 
 ```bash
-pip install pytest
+pip install -e ".[test]"
 pytest tests/ -v
 ```
 

@@ -82,16 +82,6 @@ def _redirect(location: str) -> RedirectResponse:
     return RedirectResponse(location, status_code=303)
 
 
-def _redirect_with_msg(location: str, msg: str | None = None, err: str | None = None) -> RedirectResponse:
-    if err:
-        sep = "&" if "?" in location else "?"
-        location = f"{location}{sep}err={err}"
-    elif msg:
-        sep = "&" if "?" in location else "?"
-        location = f"{location}{sep}msg={msg}"
-    return RedirectResponse(location, status_code=303)
-
-
 @router.get("/sw.js", response_class=Response)
 def service_worker():
     """Served at the root path (not /static/sw.js) so its default scope

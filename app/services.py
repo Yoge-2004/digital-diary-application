@@ -143,13 +143,6 @@ def issue_tokens(user: User) -> tuple[str, str]:
     return create_access_token(user.id), create_refresh_token(user.id)
 
 
-def get_user_or_404(db: Session, user_id: str) -> User:
-    user = repositories.get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
-
-
 def update_profile(db: Session, user: User, payload: UserUpdate) -> User:
     """Update username/email/profile image, rejecting a change that collides with another account."""
     existing_email = repositories.get_user_by_email(db, payload.email)
